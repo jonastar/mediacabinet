@@ -2,7 +2,7 @@
 
 v1 is a self-hosted library manager and streaming server for movies and TV, used through its own web UI. It tracks what you have and want, works with today's \*arrs, and plays your library in the browser.
 
-Phases follow the build order in the handoff README: each one builds on the one before. Later phases can start early where they don't depend on unfinished work (for example, UI shells against stub data).
+The web UI is built early and grows with the backend: Phase 2 lays the foundation against seeded data, and every later phase ships the screens for what it adds. Backend phases follow the build order in the handoff README.
 
 Tick items as they land. Open questions from the spec are listed in the phase that needs the answer.
 
@@ -17,21 +17,41 @@ Tick items as they land. Open questions from the spec are listed in the phase th
 - [ ] CI: format, lint, test and build on every push (needs a remote)
 - [ ] Choose a licence
 
-## Phase 1 — Library and scanning
+## Phase 1 — Scanning core
 
 - [x] Discover: walk roots, skip junk, record files
 - [x] File identity across renames, swaps and cross-device moves (inode, path, content hash)
 - [x] Missing and restored files; unreachable, empty and unreadable roots change nothing
 - [ ] Probe: ffprobe streams into `media_stream` for new and changed files
 - [ ] Sidecars: associate subtitles, `.nfo` and artwork with their videos
-- [ ] Library and root management (create, edit, remove; write policy; import target)
+
+## Phase 2 — Web UI foundation
+
+Real API, seeded data. Seeing and testing the design early.
+
+- [ ] Dev seed command: the mockups' sample series, episodes, orderings, files and watch state
+- [ ] Read API for the UI: series list, series detail with episodes per ordering, home rails
+- [ ] Simple availability and next up in the read API (replaced by Phase 5's derived views)
+- [ ] Routing and data fetching conventions; API types generated from OpenAPI
+- [ ] App shell: sidebar, Media Cabinet branding, app-wide Watch / Manage mode for admins (remembered)
+- [ ] Shared components: segmented controls, state badges, cards, rails, posters, progress bars
+- [ ] Series page: hero (Watch and Manage), ordering switch, list and grid (remembered), wording per mode
+- [ ] Series page, Manage: counts per state, technical lines, monitor checkboxes, gaps
+- [ ] Home: hero, keep watching, coming this week, TV shows; Manage adds needs attention
+- [ ] Responsive layout down to phone width; focus states
+
+## Phase 3 — Library management
+
+- [ ] Library and root management API (create, edit, remove; write policy; import target)
 - [ ] Layout templates: parse and validate, and propose one from existing folders
 - [ ] Group: find each file's series folder from the template; grouping levels as hints
 - [ ] Scan orchestration: one scan per root at a time, scheduled scans, scan on demand
 - [ ] Filesystem watching (notify) to rescan changed paths quickly
 - [ ] Large-library test: scan time and memory for ~50k files
+- [ ] UI: Libraries and roots (write policy, coloured template, offline state, "where would a new file go")
+- [ ] UI: scan progress and results
 
-## Phase 2 — Metadata
+## Phase 4 — Metadata and matching
 
 - [ ] Provider client: TMDB (series, seasons, episodes, episode groups, movies)
 - [ ] Provider client: TVDB (season types as orderings)
@@ -44,9 +64,6 @@ Tick items as they land. Open questions from the spec are listed in the phase th
 - [ ] Offline behaviour: cached metadata, refresh retries when providers are unreachable
 - [ ] Item tags from external sources (filler lists)
 - [ ] AniDB support (decide: v1 or later)
-
-## Phase 3 — Matching and review
-
 - [ ] Identify series: explicit ID in path, `.nfo`, provider search with year hints
 - [ ] Folder → series proposals in the review queue when unsure
 - [ ] Filename parser (S/E, `1x01`, absolute, multi-episode, year, edition, part), test-first on a name corpus
@@ -58,8 +75,13 @@ Tick items as they land. Open questions from the spec are listed in the phase th
 - [ ] Pinned links and user decisions survive every rescan
 - [ ] Review queue actions: accept, accept and pin, reject, pick another candidate, ignore file
 - [ ] Decide: match confidence thresholds global, per root or per source
+- [ ] UI: Review queue (path segments by template token, fact tiles, candidates with confidence)
+- [ ] UI: Series Manage panels for metadata and orderings (edit details, lock fields, change match)
+- [ ] UI: Movies library and movie page
+- [ ] UI: real artwork (hero backdrop with scrim, posters, thumbnails)
+- [ ] UI: search
 
-## Phase 4 — Derived state
+## Phase 5 — Derived state
 
 - [ ] Availability per item (available, missing, not acquired, upcoming, unknown)
 - [ ] Monitor inheritance (series → episode) and quality profiles
@@ -69,8 +91,11 @@ Tick items as they land. Open questions from the spec are listed in the phase th
 - [ ] Custom status from external tools, with expiry and stale display
 - [ ] Decide: own quality profiles fully, or share with the \*arrs
 - [ ] Decide: can wanted follow a playlist (monitor only no-filler episodes)
+- [ ] UI: switch the Series and Home pages to the derived views
+- [ ] UI: Series Manage panel for monitoring (quality profile, wanted follows)
+- [ ] UI: Wanted and Calendar screens
 
-## Phase 5 — Integration API and events
+## Phase 6 — Integration API and events
 
 - [ ] Item addressing: `item:<id>` and provider position (`tvdb:123`, ordering, S02E05)
 - [ ] `GET /wanted`, `GET /items/{ref}`, `GET /series/{ref}/gaps`, `GET /calendar`
@@ -86,8 +111,11 @@ Tick items as they land. Open questions from the spec are listed in the phase th
 - [ ] Move a series between roots or folders (explicit action)
 - [ ] API keys for external tools
 - [ ] Decide: write `.nfo` or embedded tags back out (default or opt-in)
+- [ ] UI: Series Manage panel for location (move series)
+- [ ] UI: live updates from the event stream
+- [ ] UI: Settings for API keys and webhooks
 
-## Phase 6 — Users and playback
+## Phase 7 — Users and playback
 
 - [ ] Local users and login (no external account), admin role
 - [ ] Watch state: position, played, play count; mark watched or unwatched
@@ -99,27 +127,14 @@ Tick items as they land. Open questions from the spec are listed in the phase th
 - [ ] Version picker, audio and subtitle tracks (embedded and sidecar)
 - [ ] Hardware acceleration (VAAPI, NVENC, QSV) where available
 - [ ] Decide: remote access via the user's reverse proxy or VPN, or an optional relay
-
-## Phase 7 — Web UI
-
-- [ ] App shell: sidebar, Media Cabinet branding, app-wide Watch / Manage mode for admins
-- [ ] Shared components: segmented controls, state badges, cards, rails, posters
-- [ ] Series page: hero (Watch and Manage), orderings, list and grid, monitor checkboxes, gaps
-- [ ] Series page, Manage panels: monitoring, metadata, orderings, location
-- [ ] Home: hero, needs attention, keep watching, coming this week, TV shows
-- [ ] Movies: library and movie page
-- [ ] Search
-- [ ] Review queue
-- [ ] Libraries and roots (write policy, template, offline state, "where would a new file go")
-- [ ] Wanted and Calendar screens
-- [ ] Player: version and track picker, direct play or transcode hint, resume
-- [ ] Real artwork: hero backdrop with scrim, posters, thumbnails
-- [ ] Settings: users, providers, API keys, webhooks
-- [ ] Focus states and keyboard navigation
-- [ ] Episode inspector (every link, number in each ordering, event history)
+- [ ] UI: login and user management
+- [ ] UI: Player (version and track picker, direct play or transcode hint, resume)
+- [ ] UI: playlists, mark watched
 
 ## Phase 8 — Release
 
+- [ ] Keyboard navigation and accessibility pass across all screens
+- [ ] Episode inspector (every link, number in each ordering, event history)
 - [ ] Published Docker image and release binaries
 - [ ] Smaller image (static ffmpeg)
 - [ ] Upgrade test: migrate a large database from an older version, with backup

@@ -1,0 +1,47 @@
+.poster {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  color: var(--text);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.art {
+  aspect-ratio: 2 / 3;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px;
+}
+
+.badge {
+  align-self: flex-start;
+  padding: 3px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--text);
+  color: var(--bg);
+  font-size: 11.5px;
+  font-weight: 800;
+}
+
+.title {
+  margin-top: auto;
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.bar {
+  display: flex;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: #2a2e37;
+}
+
+.line {
+  font-size: 13px;
+  color: var(--text-muted);
+}

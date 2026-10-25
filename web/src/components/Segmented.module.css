@@ -1,0 +1,77 @@
+.group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 16px;
+  border: 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Inside a dark track, e.g. the mode switch over a hero. */
+.track {
+  padding: 4px;
+  border-radius: var(--radius-pill);
+  background: rgba(15, 17, 21, 0.6);
+}
+
+.track .option {
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text);
+}
+
+.track .option[aria-pressed='true'] {
+  background: var(--text);
+  color: var(--bg);
+  font-weight: 700;
+}
+
+/* Separate pills; the selected one is filled with the accent. */
+.pills {
+  gap: 6px;
+}
+
+.pills .option {
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-control);
+  background: transparent;
+  color: var(--text);
+}
+
+.pills .option[aria-pressed='true'] {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
+/* A compact boxed switch, e.g. List / Grid. */
+.box {
+  padding: 4px;
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.box .option {
+  padding: 0 14px;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.box .option[aria-pressed='true'] {
+  background: #2a2f3a;
+  color: #fff;
+  font-weight: 700;
+}

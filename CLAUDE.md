@@ -9,6 +9,13 @@ Self-hosted media library manager and streaming server. Rust backend (`crates/`)
 - After changing API handlers: `cd web && pnpm api:types`
 - Format before committing: `cargo fmt` and `cd web && pnpm format`
 
+## Web UI conventions
+
+- Plain React: routing in `web/src/lib/router.ts` (+ `components/Link.tsx`), data via `api/useApi.ts`, typed calls in `api/client.ts`. Add libraries only when needed.
+- Styles are CSS Modules using the design tokens in `index.css`; reference designs are in `media-cabinet-handoff/design/screens/Hybrid*.dc.html`.
+- State wording per Watch/Manage mode lives in `lib/wording.ts`; controls for features not built yet are shown disabled with a title.
+- Try the UI with demo data: `CABINET_DATA_DIR=./data-demo cargo run -p media-cabinet -- seed-demo`, then run the server and `pnpm dev`.
+
 ## Code style
 
 - Never put the body of an `if`, `else`, `for`, `while` or `let ... else` on the same line as its condition. Always braces, body on its own line:

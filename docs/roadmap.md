@@ -32,13 +32,13 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Dev seed command: the mockups' sample series, episodes, orderings, files and watch state
 - [x] Read API for the UI: series list, series detail with episodes per ordering, home rails
 - [x] Simple availability and next up in the read API (replaced by Phase 5's derived views)
-- [ ] Routing and data fetching conventions; API types generated from OpenAPI
-- [ ] App shell: sidebar, Media Cabinet branding, app-wide Watch / Manage mode for admins (remembered)
-- [ ] Shared components: segmented controls, state badges, cards, rails, posters, progress bars
-- [ ] Series page: hero (Watch and Manage), ordering switch, list and grid (remembered), wording per mode
-- [ ] Series page, Manage: counts per state, technical lines, monitor checkboxes, gaps
-- [ ] Home: hero, keep watching, coming this week, TV shows; Manage adds needs attention
-- [ ] Responsive layout down to phone width; focus states
+- [x] Routing and data fetching conventions; API types generated from OpenAPI
+- [x] App shell: sidebar, Media Cabinet branding, app-wide Watch / Manage mode for admins (remembered)
+- [x] Shared components: segmented controls, state badges, cards, rails, posters, progress bars
+- [x] Series page: hero (Watch and Manage), ordering switch, list and grid (remembered), wording per mode
+- [x] Series page, Manage: counts per state, technical lines, monitor checkboxes, gaps
+- [x] Home: hero, keep watching, coming this week, TV shows; Manage adds needs attention
+- [x] Responsive layout down to phone width; focus states
 
 ## Phase 3 — Library management
 

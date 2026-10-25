@@ -1,0 +1,48 @@
+.badge {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.small {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.ready {
+  background: var(--text);
+  color: var(--bg);
+}
+
+.watched {
+  background: rgba(15, 17, 21, 0.7);
+  color: var(--text);
+}
+
+.next {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.available {
+  background: rgba(76, 195, 138, 0.16);
+  color: var(--state-available-text);
+}
+
+.missing {
+  background: rgba(240, 122, 90, 0.18);
+  color: var(--state-missing-text);
+}
+
+.upcoming {
+  background: rgba(110, 168, 254, 0.16);
+  color: var(--state-upcoming-text);
+}
+
+.neutral {
+  background: var(--state-neutral-bg);
+  color: var(--state-neutral);
+}

@@ -1,0 +1,130 @@
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.sidebar {
+  flex: 1 1 220px;
+  padding: 24px 16px;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 12px 24px;
+  color: var(--text);
+  text-decoration: none;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--touch-target);
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.link:hover {
+  background: rgba(31, 35, 44, 0.6);
+  color: var(--text);
+}
+
+.link[aria-current='page'] {
+  background: var(--surface-raised);
+  color: #fff;
+  font-weight: 600;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 12px;
+}
+
+.section {
+  padding: 0 12px 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* The user menu: who you are and the app-wide mode. */
+.user {
+  margin-top: auto;
+  padding: 16px 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.role {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.main {
+  flex: 999 1 560px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 800px) {
+  .sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 16px;
+  }
+
+  .user {
+    margin-top: 8px;
+  }
+}
+
+/* The mode switch fits the sidebar's width on one line. */
+.user [role='group'] {
+  flex-wrap: nowrap;
+}
+
+.user [role='group'] button {
+  flex: 1;
+  justify-content: center;
+  padding: 0 12px;
+}

@@ -24,6 +24,12 @@ cargo run -p media-cabinet
 cd web && pnpm install && pnpm dev
 ```
 
+A fake library for testing (about 40 short clips covering the spec's layouts, naming styles, editions, versions, sidecars and junk; needs ffmpeg):
+
+```sh
+scripts/make-fixtures.sh            # writes fixtures/media (gitignored); --force to regenerate
+```
+
 After changing API handlers, regenerate the frontend types:
 
 ```sh

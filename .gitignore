@@ -4,3 +4,4 @@
 *.db-*
 *.db.*.bak
 .env
+/fixtures

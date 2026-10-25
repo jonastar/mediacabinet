@@ -1,0 +1,46 @@
+# Media Cabinet — Tech decisions
+
+Oct 25, 2026 · Jonas
+
+Settles the stack and the build-blocking open questions in `media-cabinet-handoff/docs/spec.md`.
+
+## Decided
+
+| Area | Decision |
+| --- | --- |
+| Backend language | Rust |
+| Database | SQLite only for v1, WAL mode. Keep SQL portable so Postgres can be added later. |
+| Frontend | React + TypeScript, no meta-framework. Vite as the build tool. |
+| API contract | OpenAPI. The frontend's TypeScript types are generated from it. |
+| Streaming | In v1, with our own player. Web player first. |
+| Deployment | Both: a single binary with the UI embedded, and a Docker image that adds ffmpeg. |
+
+## Backend stack
+
+| Concern | Choice | Notes |
+| --- | --- | --- |
+| Async runtime | tokio | |
+| HTTP | axum + tower-http | `ServeFile` handles range requests for direct play. SSE for `GET /events`. |
+| Database access | sqlx (SQLite) | Raw SQL checked at compile time; derived views stay as real SQL. |
+| Migrations | sqlx migrations, embedded in the binary | Copy the database file before each migration run (spec: backup before migrating). |
+| OpenAPI | utoipa (code-first) | Spec served at `/api/openapi.json`; `openapi-typescript` generates frontend types. |
+| Media probing | ffprobe / ffmpeg as subprocesses (`tokio::process`) | No FFmpeg bindings. |
+| Transcoding | ffmpeg → HLS when the client can't direct-play | |
+| File identity | device + inode, then a partial content hash (blake3 over head, tail and size) | Full hash only when needed. |
+| Filesystem watching | notify | Scheduled full scans stay the source of truth. |
+| Filename parsing | Own parser module, built test-first against a corpus of real filenames | Look at existing Rust crates first. The layout template supplies structure, so the parser only extracts S/E, absolute number, year, edition. |
+| Logging | tracing | |
+| Errors | thiserror in library code, anyhow at the edges | |
+| Static UI | Built frontend embedded with rust-embed | Ships as one binary. |
+
+## Frontend stack
+
+- React + TypeScript, built with Vite.
+- Plain CSS; the design tokens from `design.md` become CSS variables on `:root`.
+- Native `<video>` for direct play; hls.js where native HLS is not available.
+- Keep the number of dependencies small. Add data fetching or routing libraries only when they're needed.
+
+## Still open
+
+- Licence.
+- The rest of the spec's open questions (remote access, quality profile ownership, confidence thresholds, wanted following a playlist, writing `.nfo` back out). None of them block the schema and scanner work.

@@ -71,9 +71,8 @@ mod tests {
 
     #[tokio::test]
     async fn opens_and_reopens() {
-        let dir = std::env::temp_dir().join(format!("cabinet-db-test-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("cabinet.db");
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("cabinet.db");
 
         let pool = open(&path).await.unwrap();
         let mode: String = sqlx::query_scalar("PRAGMA journal_mode")
@@ -84,6 +83,33 @@ mod tests {
         pool.close().await;
 
         open(&path).await.unwrap().close().await;
-        std::fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(backups(dir.path()), 0, "nothing pending, so no backup");
+    }
+
+    #[tokio::test]
+    async fn backs_up_existing_database_before_migrating() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("cabinet.db");
+
+        // An existing database that has not had any migrations applied.
+        let options = SqliteConnectOptions::new()
+            .filename(&path)
+            .create_if_missing(true);
+        let pool = SqlitePool::connect_with(options).await.unwrap();
+        sqlx::query("CREATE TABLE keep_me (x INTEGER)")
+            .execute(&pool)
+            .await
+            .unwrap();
+        pool.close().await;
+
+        open(&path).await.unwrap().close().await;
+        assert_eq!(backups(dir.path()), 1);
+    }
+
+    fn backups(dir: &Path) -> usize {
+        std::fs::read_dir(dir)
+            .unwrap()
+            .filter(|e| e.as_ref().unwrap().path().extension() == Some("bak".as_ref()))
+            .count()
     }
 }

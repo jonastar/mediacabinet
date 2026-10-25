@@ -53,13 +53,13 @@ Real API, seeded data. Seeing and testing the design early.
 
 ## Phase 4 — Metadata and matching
 
-- [ ] Provider client: TMDB (series, seasons, episodes, episode groups, movies)
+- [x] Provider client: TMDB (series, seasons, episodes, episode groups, movies)
 - [ ] Provider client: TVDB (season types as orderings)
-- [ ] Import a series: items for every episode, orderings (aired default, DVD, absolute), external IDs
-- [ ] Import a movie
-- [ ] Cross-reference secondary provider IDs where they map cleanly
-- [ ] Refresh: match by primary ID, reconcile by position, title and date, never duplicate
-- [ ] Refresh: new episodes, provider-deleted episodes flagged (`removed_upstream_at`), locked fields kept
+- [x] Import a series: items for every episode, orderings (aired default, DVD, absolute), external IDs
+- [x] Import a movie
+- [x] Cross-reference secondary provider IDs where they map cleanly
+- [x] Refresh: match by primary ID, reconcile by position, title and date, never duplicate
+- [x] Refresh: new episodes, provider-deleted episodes flagged (`removed_upstream_at`), locked fields kept
 - [ ] Refresh scheduling: ended and cancelled series less often
 - [ ] Offline behaviour: cached metadata, refresh retries when providers are unreachable
 - [ ] Item tags from external sources (filler lists)

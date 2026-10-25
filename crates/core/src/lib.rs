@@ -6,4 +6,5 @@ pub mod demo;
 pub mod events;
 pub mod layout;
 pub mod library;
+pub mod metadata;
 pub mod scan;

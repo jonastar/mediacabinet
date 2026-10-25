@@ -1,0 +1,1544 @@
+{
+ "series": [
+  {
+   "provider": "tmdb",
+   "id": "99010",
+   "title": "Night Harbor",
+   "original_title": null,
+   "year": 2019,
+   "overview": "Night Harbor: an invented series for testing.",
+   "status": "continuing",
+   "genres": [
+    "Drama",
+    "Mystery"
+   ],
+   "external_ids": [
+    [
+     "tvdb",
+     "399010"
+    ]
+   ],
+   "seasons": [
+    {
+     "number": 1,
+     "title": "Season 1",
+     "overview": null,
+     "poster": null
+    },
+    {
+     "number": 2,
+     "title": "Season 2",
+     "overview": null,
+     "poster": null
+    },
+    {
+     "number": 0,
+     "title": "Specials",
+     "overview": null,
+     "poster": null
+    }
+   ],
+   "episodes": [
+    {
+     "id": "990100101",
+     "title": "Pilot",
+     "overview": null,
+     "airs": {
+      "at": 1551744000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 1
+    },
+    {
+     "id": "990100102",
+     "title": "The Tide",
+     "overview": null,
+     "airs": {
+      "at": 1552348800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 2
+    },
+    {
+     "id": "990100103",
+     "title": "Lighthouse",
+     "overview": null,
+     "airs": {
+      "at": 1552953600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 3
+    },
+    {
+     "id": "990100104",
+     "title": "Breakwater",
+     "overview": null,
+     "airs": {
+      "at": 1553558400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 4
+    },
+    {
+     "id": "990100105",
+     "title": "Undertow",
+     "overview": null,
+     "airs": {
+      "at": 1554163200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 5
+    },
+    {
+     "id": "990100106",
+     "title": "Fog",
+     "overview": null,
+     "airs": {
+      "at": 1554768000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 6
+    },
+    {
+     "id": "990100201",
+     "title": "Episode 1",
+     "overview": null,
+     "airs": {
+      "at": 1555372800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 1
+    },
+    {
+     "id": "990100202",
+     "title": "Episode 2",
+     "overview": null,
+     "airs": {
+      "at": 1555977600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 2
+    },
+    {
+     "id": "990100203",
+     "title": "Episode 3",
+     "overview": null,
+     "airs": {
+      "at": 1556582400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 3
+    },
+    {
+     "id": "990100204",
+     "title": "Episode 4",
+     "overview": null,
+     "airs": {
+      "at": 1557187200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 4
+    },
+    {
+     "id": "990100205",
+     "title": "Episode 5",
+     "overview": null,
+     "airs": {
+      "at": 1557792000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 5
+    },
+    {
+     "id": "990100206",
+     "title": "Episode 6",
+     "overview": null,
+     "airs": {
+      "at": 1558396800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 6
+    },
+    {
+     "id": "990100001",
+     "title": "Behind the Scenes",
+     "overview": null,
+     "airs": {
+      "at": 1577232000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 0,
+     "number": 1
+    }
+   ],
+   "orderings": [],
+   "poster": null,
+   "backdrop": null
+  },
+  {
+   "provider": "tmdb",
+   "id": "99011",
+   "title": "Night Harbour",
+   "original_title": null,
+   "year": 2004,
+   "overview": "Night Harbour: an invented series for testing.",
+   "status": "ended",
+   "genres": [
+    "Documentary"
+   ],
+   "external_ids": [],
+   "seasons": [
+    {
+     "number": 1,
+     "title": "Season 1",
+     "overview": null,
+     "poster": null
+    }
+   ],
+   "episodes": [
+    {
+     "id": "990110101",
+     "title": "Episode 1",
+     "overview": null,
+     "airs": {
+      "at": 1075766400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 1
+    },
+    {
+     "id": "990110102",
+     "title": "Episode 2",
+     "overview": null,
+     "airs": {
+      "at": 1076371200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 2
+    },
+    {
+     "id": "990110103",
+     "title": "Episode 3",
+     "overview": null,
+     "airs": {
+      "at": 1076976000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 3
+    },
+    {
+     "id": "990110104",
+     "title": "Episode 4",
+     "overview": null,
+     "airs": {
+      "at": 1077580800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 4
+    }
+   ],
+   "orderings": [],
+   "poster": null,
+   "backdrop": null
+  },
+  {
+   "provider": "tmdb",
+   "id": "99001",
+   "title": "Glass Orchard",
+   "original_title": null,
+   "year": 2021,
+   "overview": "Glass Orchard: an invented series for testing.",
+   "status": "ended",
+   "genres": [
+    "Drama"
+   ],
+   "external_ids": [
+    [
+     "tvdb",
+     "401001"
+    ]
+   ],
+   "seasons": [
+    {
+     "number": 1,
+     "title": "Season 1",
+     "overview": null,
+     "poster": null
+    }
+   ],
+   "episodes": [
+    {
+     "id": "990010101",
+     "title": "Episode 1",
+     "overview": null,
+     "airs": {
+      "at": 1619913600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 1
+    },
+    {
+     "id": "990010102",
+     "title": "Episode 2",
+     "overview": null,
+     "airs": {
+      "at": 1620518400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 2
+    },
+    {
+     "id": "990010103",
+     "title": "Grafting",
+     "overview": null,
+     "airs": {
+      "at": 1621123200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 3
+    },
+    {
+     "id": "990010104",
+     "title": "Episode 4",
+     "overview": null,
+     "airs": {
+      "at": 1621728000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 4
+    },
+    {
+     "id": "990010105",
+     "title": "Episode 5",
+     "overview": null,
+     "airs": {
+      "at": 1622332800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 5
+    },
+    {
+     "id": "990010106",
+     "title": "Episode 6",
+     "overview": null,
+     "airs": {
+      "at": 1622937600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 6
+    },
+    {
+     "id": "990010107",
+     "title": "Episode 7",
+     "overview": null,
+     "airs": {
+      "at": 1623542400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 7
+    },
+    {
+     "id": "990010108",
+     "title": "Episode 8",
+     "overview": null,
+     "airs": {
+      "at": 1624147200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 8
+    }
+   ],
+   "orderings": [],
+   "poster": null,
+   "backdrop": null
+  },
+  {
+   "provider": "tmdb",
+   "id": "99030",
+   "title": "Lantern Street",
+   "original_title": null,
+   "year": 2021,
+   "overview": "Lantern Street: an invented series for testing.",
+   "status": "continuing",
+   "genres": [
+    "Drama"
+   ],
+   "external_ids": [],
+   "seasons": [
+    {
+     "number": 1,
+     "title": "Season 1",
+     "overview": null,
+     "poster": null
+    }
+   ],
+   "episodes": [
+    {
+     "id": "990300101",
+     "title": "Episode 1",
+     "overview": null,
+     "airs": {
+      "at": 1630540800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 1
+    },
+    {
+     "id": "990300102",
+     "title": "Episode 2",
+     "overview": null,
+     "airs": {
+      "at": 1631145600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 2
+    },
+    {
+     "id": "990300103",
+     "title": "Episode 3",
+     "overview": null,
+     "airs": {
+      "at": 1631750400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 3
+    },
+    {
+     "id": "990300104",
+     "title": "Episode 4",
+     "overview": null,
+     "airs": {
+      "at": 1632355200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 4
+    },
+    {
+     "id": "990300105",
+     "title": "Episode 5",
+     "overview": null,
+     "airs": {
+      "at": 1632960000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 5
+    },
+    {
+     "id": "990300106",
+     "title": "Episode 6",
+     "overview": null,
+     "airs": {
+      "at": 1633564800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 6
+    },
+    {
+     "id": "990300107",
+     "title": "Episode 7",
+     "overview": null,
+     "airs": {
+      "at": 1634169600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 7
+    },
+    {
+     "id": "990300108",
+     "title": "Episode 8",
+     "overview": null,
+     "airs": {
+      "at": 1634774400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 8
+    },
+    {
+     "id": "990300109",
+     "title": "Episode 9",
+     "overview": null,
+     "airs": {
+      "at": 1635379200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 9
+    },
+    {
+     "id": "990300110",
+     "title": "Episode 10",
+     "overview": null,
+     "airs": {
+      "at": 1635984000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 10
+    }
+   ],
+   "orderings": [],
+   "poster": null,
+   "backdrop": null
+  },
+  {
+   "provider": "tmdb",
+   "id": "99031",
+   "title": "Paper Moons",
+   "original_title": null,
+   "year": 2008,
+   "overview": "Paper Moons: an invented series for testing.",
+   "status": "ended",
+   "genres": [
+    "Comedy"
+   ],
+   "external_ids": [],
+   "seasons": [
+    {
+     "number": 1,
+     "title": "Season 1",
+     "overview": null,
+     "poster": null
+    },
+    {
+     "number": 2,
+     "title": "Season 2",
+     "overview": null,
+     "poster": null
+    },
+    {
+     "number": 3,
+     "title": "Season 3",
+     "overview": null,
+     "poster": null
+    }
+   ],
+   "episodes": [
+    {
+     "id": "990310101",
+     "title": "Episode 1",
+     "overview": null,
+     "airs": {
+      "at": 1136937600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 1
+    },
+    {
+     "id": "990310102",
+     "title": "Episode 2",
+     "overview": null,
+     "airs": {
+      "at": 1137542400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 2
+    },
+    {
+     "id": "990310103",
+     "title": "Episode 3",
+     "overview": null,
+     "airs": {
+      "at": 1138147200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 3
+    },
+    {
+     "id": "990310104",
+     "title": "Episode 4",
+     "overview": null,
+     "airs": {
+      "at": 1138752000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 4
+    },
+    {
+     "id": "990310105",
+     "title": "Episode 5",
+     "overview": null,
+     "airs": {
+      "at": 1139356800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 5
+    },
+    {
+     "id": "990310106",
+     "title": "Episode 6",
+     "overview": null,
+     "airs": {
+      "at": 1139961600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 6
+    },
+    {
+     "id": "990310107",
+     "title": "Episode 7",
+     "overview": null,
+     "airs": {
+      "at": 1140566400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 7
+    },
+    {
+     "id": "990310108",
+     "title": "Episode 8",
+     "overview": null,
+     "airs": {
+      "at": 1141171200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 8
+    },
+    {
+     "id": "990310109",
+     "title": "Episode 9",
+     "overview": null,
+     "airs": {
+      "at": 1141776000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 9
+    },
+    {
+     "id": "990310110",
+     "title": "Episode 10",
+     "overview": null,
+     "airs": {
+      "at": 1142380800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 10
+    },
+    {
+     "id": "990310111",
+     "title": "Episode 11",
+     "overview": null,
+     "airs": {
+      "at": 1142985600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 11
+    },
+    {
+     "id": "990310112",
+     "title": "Episode 12",
+     "overview": null,
+     "airs": {
+      "at": 1143590400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 12
+    },
+    {
+     "id": "990310201",
+     "title": "Episode 1",
+     "overview": null,
+     "airs": {
+      "at": 1144195200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 1
+    },
+    {
+     "id": "990310202",
+     "title": "Episode 2",
+     "overview": null,
+     "airs": {
+      "at": 1144800000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 2
+    },
+    {
+     "id": "990310203",
+     "title": "Episode 3",
+     "overview": null,
+     "airs": {
+      "at": 1145404800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 3
+    },
+    {
+     "id": "990310204",
+     "title": "Episode 4",
+     "overview": null,
+     "airs": {
+      "at": 1146009600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 4
+    },
+    {
+     "id": "990310205",
+     "title": "Episode 5",
+     "overview": null,
+     "airs": {
+      "at": 1146614400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 5
+    },
+    {
+     "id": "990310206",
+     "title": "Episode 6",
+     "overview": null,
+     "airs": {
+      "at": 1147219200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 6
+    },
+    {
+     "id": "990310207",
+     "title": "Episode 7",
+     "overview": null,
+     "airs": {
+      "at": 1147824000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 7
+    },
+    {
+     "id": "990310208",
+     "title": "Episode 8",
+     "overview": null,
+     "airs": {
+      "at": 1148428800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 8
+    },
+    {
+     "id": "990310209",
+     "title": "Episode 9",
+     "overview": null,
+     "airs": {
+      "at": 1149033600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 9
+    },
+    {
+     "id": "990310210",
+     "title": "Episode 10",
+     "overview": null,
+     "airs": {
+      "at": 1149638400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 10
+    },
+    {
+     "id": "990310211",
+     "title": "Episode 11",
+     "overview": null,
+     "airs": {
+      "at": 1150243200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 11
+    },
+    {
+     "id": "990310212",
+     "title": "Episode 12",
+     "overview": null,
+     "airs": {
+      "at": 1150848000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 12
+    },
+    {
+     "id": "990310301",
+     "title": "Episode 1",
+     "overview": null,
+     "airs": {
+      "at": 1151452800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 1
+    },
+    {
+     "id": "990310302",
+     "title": "Episode 2",
+     "overview": null,
+     "airs": {
+      "at": 1152057600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 2
+    },
+    {
+     "id": "990310303",
+     "title": "Episode 3",
+     "overview": null,
+     "airs": {
+      "at": 1152662400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 3
+    },
+    {
+     "id": "990310304",
+     "title": "Episode 4",
+     "overview": null,
+     "airs": {
+      "at": 1153267200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 4
+    },
+    {
+     "id": "990310305",
+     "title": "Episode 5",
+     "overview": null,
+     "airs": {
+      "at": 1153872000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 5
+    },
+    {
+     "id": "990310306",
+     "title": "Episode 6",
+     "overview": null,
+     "airs": {
+      "at": 1154476800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 6
+    },
+    {
+     "id": "990310307",
+     "title": "Episode 7",
+     "overview": null,
+     "airs": {
+      "at": 1155081600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 7
+    },
+    {
+     "id": "990310308",
+     "title": "Episode 8",
+     "overview": null,
+     "airs": {
+      "at": 1155686400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 8
+    },
+    {
+     "id": "990310309",
+     "title": "Episode 9",
+     "overview": null,
+     "airs": {
+      "at": 1156291200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 9
+    },
+    {
+     "id": "990310310",
+     "title": "Episode 10",
+     "overview": null,
+     "airs": {
+      "at": 1156896000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 10
+    },
+    {
+     "id": "990310311",
+     "title": "Episode 11",
+     "overview": null,
+     "airs": {
+      "at": 1157500800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 11
+    },
+    {
+     "id": "990310312",
+     "title": "Episode 12",
+     "overview": null,
+     "airs": {
+      "at": 1158105600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 3,
+     "number": 12
+    }
+   ],
+   "orderings": [],
+   "poster": null,
+   "backdrop": null
+  },
+  {
+   "provider": "tmdb",
+   "id": "99040",
+   "title": "Starfall Brigade",
+   "original_title": null,
+   "year": 2022,
+   "overview": "Starfall Brigade: an invented series for testing.",
+   "status": "continuing",
+   "genres": [
+    "Animation",
+    "Action"
+   ],
+   "external_ids": [
+    [
+     "anidb",
+     "17001"
+    ]
+   ],
+   "seasons": [
+    {
+     "number": 1,
+     "title": "Season 1",
+     "overview": null,
+     "poster": null
+    },
+    {
+     "number": 2,
+     "title": "Season 2",
+     "overview": null,
+     "poster": null
+    }
+   ],
+   "episodes": [
+    {
+     "id": "990400101",
+     "title": "Episode 1",
+     "overview": null,
+     "airs": {
+      "at": 1641686400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 1
+    },
+    {
+     "id": "990400102",
+     "title": "Episode 2",
+     "overview": null,
+     "airs": {
+      "at": 1642291200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 2
+    },
+    {
+     "id": "990400103",
+     "title": "Episode 3",
+     "overview": null,
+     "airs": {
+      "at": 1642896000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 3
+    },
+    {
+     "id": "990400104",
+     "title": "Episode 4",
+     "overview": null,
+     "airs": {
+      "at": 1643500800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 4
+    },
+    {
+     "id": "990400105",
+     "title": "Episode 5",
+     "overview": null,
+     "airs": {
+      "at": 1644105600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 5
+    },
+    {
+     "id": "990400106",
+     "title": "Episode 6",
+     "overview": null,
+     "airs": {
+      "at": 1644710400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 6
+    },
+    {
+     "id": "990400107",
+     "title": "Episode 7",
+     "overview": null,
+     "airs": {
+      "at": 1645315200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 7
+    },
+    {
+     "id": "990400108",
+     "title": "Episode 8",
+     "overview": null,
+     "airs": {
+      "at": 1645920000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 8
+    },
+    {
+     "id": "990400109",
+     "title": "Episode 9",
+     "overview": null,
+     "airs": {
+      "at": 1646524800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 9
+    },
+    {
+     "id": "990400110",
+     "title": "Episode 10",
+     "overview": null,
+     "airs": {
+      "at": 1647129600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 10
+    },
+    {
+     "id": "990400111",
+     "title": "Episode 11",
+     "overview": null,
+     "airs": {
+      "at": 1647734400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 11
+    },
+    {
+     "id": "990400112",
+     "title": "Episode 12",
+     "overview": null,
+     "airs": {
+      "at": 1648339200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 1,
+     "number": 12
+    },
+    {
+     "id": "990400201",
+     "title": "Episode 1",
+     "overview": null,
+     "airs": {
+      "at": 1648944000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 1
+    },
+    {
+     "id": "990400202",
+     "title": "Episode 2",
+     "overview": null,
+     "airs": {
+      "at": 1649548800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 2
+    },
+    {
+     "id": "990400203",
+     "title": "Episode 3",
+     "overview": null,
+     "airs": {
+      "at": 1650153600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 3
+    },
+    {
+     "id": "990400204",
+     "title": "Episode 4",
+     "overview": null,
+     "airs": {
+      "at": 1650758400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 4
+    },
+    {
+     "id": "990400205",
+     "title": "Episode 5",
+     "overview": null,
+     "airs": {
+      "at": 1651363200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 5
+    },
+    {
+     "id": "990400206",
+     "title": "Episode 6",
+     "overview": null,
+     "airs": {
+      "at": 1651968000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 6
+    },
+    {
+     "id": "990400207",
+     "title": "Episode 7",
+     "overview": null,
+     "airs": {
+      "at": 1652572800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 7
+    },
+    {
+     "id": "990400208",
+     "title": "Episode 8",
+     "overview": null,
+     "airs": {
+      "at": 1653177600,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 8
+    },
+    {
+     "id": "990400209",
+     "title": "Episode 9",
+     "overview": null,
+     "airs": {
+      "at": 1653782400,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 9
+    },
+    {
+     "id": "990400210",
+     "title": "Episode 10",
+     "overview": null,
+     "airs": {
+      "at": 1654387200,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 10
+    },
+    {
+     "id": "990400211",
+     "title": "Episode 11",
+     "overview": null,
+     "airs": {
+      "at": 1654992000,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 11
+    },
+    {
+     "id": "990400212",
+     "title": "Episode 12",
+     "overview": null,
+     "airs": {
+      "at": 1655596800,
+      "time_known": false
+     },
+     "airs_tz": null,
+     "runtime_minutes": null,
+     "season": 2,
+     "number": 12
+    }
+   ],
+   "orderings": [],
+   "poster": null,
+   "backdrop": null
+  }
+ ],
+ "movies": [
+  {
+   "provider": "tmdb",
+   "id": "99020",
+   "title": "The Quiet Meridian",
+   "original_title": null,
+   "year": 2014,
+   "overview": "The Quiet Meridian: an invented film for testing.",
+   "runtime_minutes": null,
+   "release": {
+    "at": 1401667200,
+    "time_known": false
+   },
+   "genres": [
+    "Drama"
+   ],
+   "external_ids": [
+    [
+     "imdb",
+     "tt9902000"
+    ]
+   ],
+   "poster": null,
+   "backdrop": null
+  },
+  {
+   "provider": "tmdb",
+   "id": "99021",
+   "title": "Halfway Coast",
+   "original_title": null,
+   "year": 2001,
+   "overview": "Halfway Coast: an invented film for testing.",
+   "runtime_minutes": null,
+   "release": {
+    "at": 991440000,
+    "time_known": false
+   },
+   "genres": [
+    "Drama"
+   ],
+   "external_ids": [],
+   "poster": null,
+   "backdrop": null
+  },
+  {
+   "provider": "tmdb",
+   "id": "99022",
+   "title": "Long Winter Road",
+   "original_title": null,
+   "year": 1987,
+   "overview": "Long Winter Road: an invented film for testing.",
+   "runtime_minutes": null,
+   "release": {
+    "at": 549590400,
+    "time_known": false
+   },
+   "genres": [
+    "Drama"
+   ],
+   "external_ids": [],
+   "poster": null,
+   "backdrop": null
+  },
+  {
+   "provider": "tmdb",
+   "id": "99023",
+   "title": "Some Random Movie",
+   "original_title": null,
+   "year": 2010,
+   "overview": "Some Random Movie: an invented film for testing.",
+   "runtime_minutes": null,
+   "release": {
+    "at": 1275436800,
+    "time_known": false
+   },
+   "genres": [
+    "Drama"
+   ],
+   "external_ids": [],
+   "poster": null,
+   "backdrop": null
+  },
+  {
+   "provider": "tmdb",
+   "id": "99024",
+   "title": "Some Random Movie",
+   "original_title": null,
+   "year": 1994,
+   "overview": "Some Random Movie: an invented film for testing.",
+   "runtime_minutes": null,
+   "release": {
+    "at": 770515200,
+    "time_known": false
+   },
+   "genres": [
+    "Drama"
+   ],
+   "external_ids": [],
+   "poster": null,
+   "backdrop": null
+  }
+ ]
+}

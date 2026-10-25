@@ -9,6 +9,8 @@ pub const FILE_CHANGED: &str = "file.changed";
 pub const FILE_MISSING: &str = "file.missing";
 pub const FILE_MOVED: &str = "file.moved";
 pub const FILE_RESTORED: &str = "file.restored";
+pub const ITEM_ADDED: &str = "item.added";
+pub const ITEM_REFRESHED: &str = "item.refreshed";
 pub const ITEM_UNWANTED: &str = "item.unwanted";
 pub const ITEM_WANTED: &str = "item.wanted";
 pub const LIBRARY_ADDED: &str = "library.added";
@@ -17,6 +19,7 @@ pub const ROOT_ADDED: &str = "root.added";
 pub const ROOT_CHANGED: &str = "root.changed";
 pub const ROOT_REMOVED: &str = "root.removed";
 pub const SCAN_FINISHED: &str = "scan.finished";
+pub const SERIES_REFRESHED: &str = "series.refreshed";
 
 pub async fn emit(
     conn: &mut SqliteConnection,

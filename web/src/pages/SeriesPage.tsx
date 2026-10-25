@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { api, type Episode, type SeriesDetail, type View } from '../api/client'
+import { api, artworkUrl, type Episode, type SeriesDetail, type View } from '../api/client'
+import { heroBackground } from '../lib/artwork'
+import { EditDetails } from '../components/EditDetails'
 import { useApi } from '../api/useApi'
 import { BackIcon, GridIcon, ListIcon, PlayIcon } from '../components/Icons'
 import { Segmented } from '../components/Segmented'
 import { Failed, Loading } from '../components/Status'
-import { dayTimeLabel, episodeLabel, seriesTone } from '../lib/format'
+import { airDayLabel, episodeLabel, seriesTone } from '../lib/format'
 import { useEpisodeLayout, useMode } from '../lib/prefs'
 import { Link } from '../components/Link'
 import { Episodes } from './series/Episodes'
@@ -41,6 +43,8 @@ export function SeriesPage({ id }: { id: number }) {
   const [pickedView, setPickedView] = useState<string | null>(null)
   const [pendingMonitor, setPendingMonitor] = useState(new Map<number, boolean>())
   const [seriesMonitorPending, setSeriesMonitorPending] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
 
   const view = pickedView ?? detail.data?.selected_view ?? null
   const episodes = useApi(detail.data ? `episodes:${id}:${view ?? ''}` : null, () =>
@@ -88,15 +92,31 @@ export function SeriesPage({ id }: { id: number }) {
     }
   }
 
+  const reloadAll = () => Promise.all([detail.reload(), episodes.reload()])
+
+  const runAction = async (label: string, action: () => Promise<string>) => {
+    setNotice(`${label}…`)
+    try {
+      setNotice(await action())
+      await reloadAll()
+    } catch (e) {
+      setNotice(`${label} failed: ${(e as Error).message}`)
+    }
+  }
+
   const tone = seriesTone(series.title)
-  const heroBackground = manage ? `color-mix(in srgb, ${tone} 70%, var(--bg))` : tone
+  const background = heroBackground(
+    artworkUrl(series, 'backdrop'),
+    manage ? `color-mix(in srgb, ${tone} 70%, var(--bg))` : tone,
+  )
   const upNext = list?.up_next != null ? list.entries[list.up_next] : null
   const resuming = (upNext?.watch?.position_seconds ?? 0) > 0
   const next = series.next_airing
   const meta = [
     series.year,
+    series.genres[0],
     series.series_status ? capitalize(series.series_status) : null,
-    next?.airs_at ? `New episode ${dayTimeLabel(next.airs_at)}` : null,
+    next?.airs_at ? `New episode ${airDayLabel(next.airs_at, next.airs_time_known)}` : null,
   ]
     .filter(Boolean)
     .join(' · ')
@@ -108,7 +128,7 @@ export function SeriesPage({ id }: { id: number }) {
       <section
         aria-labelledby="series-title"
         className={`${styles.hero} ${manage ? styles.manage : ''}`}
-        style={{ background: heroBackground }}
+        style={{ background }}
       >
         <div className={styles.heroBar}>
           <Link to="/tv" className={styles.back}>
@@ -162,27 +182,63 @@ export function SeriesPage({ id }: { id: number }) {
                 </span>
               </div>
               <div className={styles.manageActions}>
-                <button type="button" disabled title="This isn't built yet">
+                <button type="button" onClick={() => setEditing(!editing)}>
                   Edit details
                 </button>
-                <button type="button" disabled title="This isn't built yet">
+                <button
+                  type="button"
+                  disabled={series.locations.length === 0}
+                  onClick={() =>
+                    runAction('Rescan', async () => {
+                      await api.rescanSeries(id)
+                      return 'Rescan started; files appear as the scan finishes.'
+                    })
+                  }
+                >
                   Rescan files
                 </button>
-                <button type="button" disabled title="This isn't built yet">
+                <button
+                  type="button"
+                  onClick={() =>
+                    runAction('Refresh', async () => {
+                      const r = await api.refreshItem(id)
+                      return `Refreshed: ${r.episodes_added} new, ${r.episodes_updated} updated episodes.`
+                    })
+                  }
+                >
                   Refresh metadata
                 </button>
               </div>
+              {notice && (
+                <p className={styles.notice} role="status">
+                  {notice}
+                </p>
+              )}
             </>
           )}
         </div>
       </section>
 
       <div className={styles.content}>
+        {manage && editing && (
+          <EditDetails
+            itemId={id}
+            title={series.title}
+            year={series.year}
+            overview={series.overview}
+            onSaved={() => {
+              setEditing(false)
+              reloadAll()
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        )}
         {manage && (
           <ManagePanels
             series={series as SeriesDetail}
             monitorPending={seriesMonitorPending}
             onToggleMonitor={toggleSeriesMonitor}
+            onChanged={reloadAll}
           />
         )}
 

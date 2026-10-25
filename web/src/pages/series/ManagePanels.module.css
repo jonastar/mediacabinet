@@ -114,3 +114,26 @@
   opacity: 0.55;
   cursor: not-allowed;
 }
+
+.warning {
+  margin: 0;
+  font-size: 13px;
+  color: var(--state-missing-text);
+}
+
+.ordering {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.link {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+}

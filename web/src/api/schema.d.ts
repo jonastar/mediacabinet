@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/artwork/{id}/{kind}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An item's artwork (poster, backdrop or still), cached locally after first use. */
+        get: operations["artwork"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/files/{id}/ignore": {
         parameters: {
             query?: never;
@@ -109,6 +126,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edits a series', episode's or movie's details, optionally locking them against refresh. */
+        patch: operations["edit_item"];
+        trace?: never;
+    };
+    "/api/items/{id}/locks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["set_locks"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/items/{id}/monitor": {
         parameters: {
             query?: never;
@@ -122,6 +172,40 @@ export interface paths {
          *     `item.unwanted` for episodes whose wanted state changes.
          */
         put: operations["set_item_monitor"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Fetches a series' or movie's metadata from its provider now. */
+        post: operations["refresh_item"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}/tags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Sets an item's tags from one source; external tools use this for filler lists. */
+        put: operations["set_tags"];
         post?: never;
         delete?: never;
         options?: never;
@@ -206,6 +290,40 @@ export interface paths {
         };
         /** Searches the metadata provider. */
         get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/movies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** All movies, by title. */
+        get: operations["list_movies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/movies/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A movie with its files (versions, editions and parts). */
+        get: operations["movie_detail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -316,6 +434,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Searches the library by title: series, movies and episodes. */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/series": {
         parameters: {
             query?: never;
@@ -364,6 +499,57 @@ export interface paths {
         get: operations["series_episodes"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/series/{id}/match-ordering": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Sets which ordering filenames of this series are numbered in. */
+        put: operations["set_match_ordering"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/series/{id}/rematch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Points a series at a different provider entry and refreshes it from there. */
+        post: operations["rematch_series"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/series/{id}/rescan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rescans every root holding one of the series' folders. */
+        post: operations["rescan_series"];
         delete?: never;
         options?: never;
         head?: never;
@@ -497,6 +683,11 @@ export interface components {
             wanted: boolean;
             watch?: components["schemas"]["WatchState"] | null;
         };
+        EpisodeHit: components["schemas"]["EpisodeRef"] & {
+            /** Format: int64 */
+            series_id: number;
+            series_title: string;
+        };
         EpisodeList: {
             /** @description Over this view's entries. */
             counts: components["schemas"]["StateCounts"];
@@ -521,6 +712,8 @@ export interface components {
              * @description Unix seconds, UTC.
              */
             airs_at?: number | null;
+            /** @description False when the provider only gave a date: show the date without a time. */
+            airs_time_known: boolean;
             /** Format: int64 */
             item_id: number;
             number?: components["schemas"]["EpisodeNumber"] | null;
@@ -632,6 +825,7 @@ export interface components {
             coming_up: components["schemas"]["ComingUp"][];
             hero?: components["schemas"]["ContinueItem"] | null;
             keep_watching: components["schemas"]["ContinueItem"][];
+            movies: components["schemas"]["MovieSummary"][];
             shows: components["schemas"]["SeriesSummary"][];
         };
         IdentifyFolder: {
@@ -640,6 +834,28 @@ export interface components {
             provider_id: string;
             /** Format: int64 */
             root_id: number;
+        };
+        ImportReport: {
+            /** @description True when the series or movie was new. */
+            created: boolean;
+            episodes_added: number;
+            /** @description Dropped by the provider but kept: they have files or watch history. */
+            episodes_flagged: number;
+            episodes_removed: number;
+            episodes_updated: number;
+            /** Format: int64 */
+            item_id: number;
+        };
+        /** @description Fields people can edit. Absent fields are left alone. */
+        ItemEdit: {
+            /** @description Lock the edited fields so metadata refreshes never overwrite them. */
+            lock?: boolean;
+            original_title?: string | null;
+            overview?: string | null;
+            sort_title?: string | null;
+            title?: string | null;
+            /** Format: int64 */
+            year?: number | null;
         };
         Library: {
             /** Format: int64 */
@@ -668,6 +884,11 @@ export interface components {
             last_seen: number;
             /** @description How it was matched: `path_id`, `nfo`, `parser`, `ai` or `user`. */
             link_source: string;
+            /**
+             * Format: int64
+             * @description For movies split over several files.
+             */
+            part?: number | null;
             pinned: boolean;
             relative_path: string;
             root_path: string;
@@ -691,6 +912,50 @@ export interface components {
             root_id: number;
             root_path: string;
             write_policy: string;
+        };
+        Locks: {
+            /** @description Fields refreshes must not overwrite; empty unlocks all. */
+            fields: string[];
+        };
+        MatchOrdering: {
+            /** @description `ordering:<id>` of this series, or null to try the default first. */
+            view?: string | null;
+        };
+        MovieDetail: components["schemas"]["MovieSummary"] & {
+            external_ids: components["schemas"]["ExternalId"][];
+            files: components["schemas"]["LinkedFile"][];
+            locked_fields: string[];
+            original_title?: string | null;
+            overview?: string | null;
+            primary_provider?: string | null;
+            refresh_error?: string | null;
+            /** Format: int64 */
+            refreshed_at?: number | null;
+        };
+        MovieSummary: {
+            artwork: string[];
+            availability: components["schemas"]["Availability"];
+            genres: string[];
+            /** Format: int64 */
+            id: number;
+            monitored: boolean;
+            /**
+             * Format: int64
+             * @description Release, Unix seconds.
+             */
+            release?: number | null;
+            /** Format: int64 */
+            runtime_seconds?: number | null;
+            title: string;
+            /**
+             * Format: int64
+             * @description Present files: versions and editions.
+             */
+            versions: number;
+            wanted: boolean;
+            watch?: components["schemas"]["WatchState"] | null;
+            /** Format: int64 */
+            year?: number | null;
         };
         /** @enum {string} */
         NumberStyle: "season" | "absolute" | "playlist";
@@ -772,6 +1037,10 @@ export interface components {
             id: number;
             name: string;
         };
+        Rematch: {
+            /** @description The provider's ID for the right series. */
+            provider_id: string;
+        };
         RenameLibrary: {
             name: string;
         };
@@ -843,9 +1112,18 @@ export interface components {
             /** Format: int64 */
             year?: number | null;
         };
+        SearchResults: {
+            episodes: components["schemas"]["EpisodeHit"][];
+            movies: components["schemas"]["MovieSummary"][];
+            series: components["schemas"]["SeriesSummary"][];
+        };
         SeriesDetail: components["schemas"]["SeriesSummary"] & {
             external_ids: components["schemas"]["ExternalId"][];
             locations: components["schemas"]["Location"][];
+            /** @description Fields metadata refreshes never overwrite. */
+            locked_fields: string[];
+            /** @description The view filenames are numbered in, if set; otherwise the default first. */
+            match_view?: string | null;
             /** @description The series' own setting; episodes inherit it unless set themselves. */
             monitored: boolean;
             overview?: string | null;
@@ -853,12 +1131,18 @@ export interface components {
             /** Format: int64 */
             quality_profile_id?: number | null;
             quality_profiles: components["schemas"]["QualityProfile"][];
+            refresh_error?: string | null;
+            /** Format: int64 */
+            refreshed_at?: number | null;
             /** @description The current user's view, or the default ordering. */
             selected_view?: string | null;
             views: components["schemas"]["View"][];
         };
         SeriesSummary: {
+            /** @description Artwork kinds available from `/api/artwork/{id}/{kind}`: poster, backdrop. */
+            artwork: string[];
             counts: components["schemas"]["StateCounts"];
+            genres: string[];
             /** Format: int64 */
             id: number;
             /**
@@ -896,6 +1180,11 @@ export interface components {
             upcoming: number;
             /** Format: int64 */
             wanted: number;
+        };
+        Tags: {
+            /** @description Who sets them, e.g. `animefillerlist`. Replaces that source's tags only. */
+            source: string;
+            tags: string[];
         };
         TemplateCheck: {
             /** @description What's wrong, when it isn't valid. */
@@ -948,6 +1237,36 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    artwork: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": unknown;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     ignore_file: {
         parameters: {
             query?: never;
@@ -1121,6 +1440,84 @@ export interface operations {
             };
         };
     };
+    edit_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ItemEdit"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_locks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Locks"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     set_item_monitor: {
         parameters: {
             query?: never;
@@ -1141,6 +1538,90 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    refresh_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportReport"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_tags: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Tags"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
             };
             404: {
                 headers: {
@@ -1396,6 +1877,54 @@ export interface operations {
             };
         };
     };
+    list_movies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovieSummary"][];
+                };
+            };
+        };
+    };
+    movie_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovieDetail"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     queue: {
         parameters: {
             query?: never;
@@ -1631,6 +2160,27 @@ export interface operations {
             };
         };
     };
+    search: {
+        parameters: {
+            query: {
+                q: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResults"];
+                };
+            };
+        };
+    };
     list_series: {
         parameters: {
             query?: never;
@@ -1708,6 +2258,113 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ErrorBody"];
                 };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_match_ordering: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatchOrdering"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    rematch_series: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Rematch"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportReport"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    rescan_series: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             404: {
                 headers: {

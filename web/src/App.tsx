@@ -1,6 +1,9 @@
 import { Shell } from './components/Shell'
 import { HomePage } from './pages/HomePage'
 import { LibrariesPage } from './pages/LibrariesPage'
+import { MoviePage } from './pages/MoviePage'
+import { MoviesPage } from './pages/MoviesPage'
+import { SearchPage } from './pages/SearchPage'
 import { ReviewPage } from './pages/ReviewPage'
 import { NotFoundPage, PlaceholderPage } from './pages/PlaceholderPage'
 import { SeriesPage } from './pages/SeriesPage'
@@ -10,6 +13,16 @@ import { match, usePath } from './lib/router'
 function Page({ path }: { path: string }) {
   if (path === '/') {
     return <HomePage />
+  }
+  if (path === '/movies') {
+    return <MoviesPage />
+  }
+  const movie = match('/movies/:id', path)
+  if (movie && /^\d+$/.test(movie.id)) {
+    return <MoviePage key={movie.id} id={Number(movie.id)} />
+  }
+  if (path === '/search') {
+    return <SearchPage />
   }
   if (path === '/review') {
     return <ReviewPage />
@@ -26,7 +39,6 @@ function Page({ path }: { path: string }) {
     return <SeriesPage key={series.id} id={Number(series.id)} />
   }
   const placeholders: Record<string, [string, string]> = {
-    '/movies': ['Movies', 'Phase 4'],
     '/calendar': ['Calendar', 'Phase 5'],
     '/wanted': ['Wanted', 'Phase 5'],
   }

@@ -35,13 +35,42 @@ const timeFormat = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute:
 
 const date = (seconds: number) => new Date(seconds * 1000)
 
-/** Past: `4 Apr 2019`. Future: `Fri 30 Oct, 17:30`, in the viewer's time zone. */
-export function airDate(airsAt: number | null | undefined, now = Date.now() / 1000): string {
+/**
+ * Past: `4 Apr 2019`. Future: `Fri 30 Oct, 17:30`, in the viewer's time zone, or
+ * `Fri 30 Oct` when the provider only knows the date.
+ */
+export function airDate(
+  airsAt: number | null | undefined,
+  timeKnown = true,
+  now = Date.now() / 1000,
+): string {
   if (airsAt == null) {
     return 'No air date yet'
   }
-  return airsAt > now ? dayTimeFormat.format(date(airsAt)) : dateFormat.format(date(airsAt))
+  if (airsAt <= now) {
+    return dateFormat.format(airDay(airsAt, timeKnown))
+  }
+  return timeKnown ? dayTimeFormat.format(date(airsAt)) : dayFormat.format(airDay(airsAt, false))
 }
+
+/**
+ * Date-only air times are stored as the end of that day in UTC; step back into
+ * the day itself, so time zones west of UTC don't show the next day.
+ */
+function airDay(seconds: number, timeKnown: boolean) {
+  if (timeKnown) {
+    return date(seconds)
+  }
+  const d = date(seconds - 12 * 3600)
+  return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
+}
+
+export const airDayLabel = (seconds: number, timeKnown: boolean) =>
+  timeKnown ? dayTimeFormat.format(date(seconds)) : dayFormat.format(airDay(seconds, false))
+export const airShortDay = (seconds: number, timeKnown: boolean) =>
+  dayFormat.format(airDay(seconds, timeKnown))
+export const airWeekday = (seconds: number, timeKnown: boolean) =>
+  weekdayFormat.format(airDay(seconds, timeKnown))
 
 export const shortDay = (seconds: number) => dayFormat.format(date(seconds))
 export const dayTimeLabel = (seconds: number) => dayTimeFormat.format(date(seconds))
@@ -69,7 +98,10 @@ export function bytes(n: number): string {
   if (n >= 1e9) {
     return `${(n / 1e9).toFixed(1)} GB`
   }
-  return `${Math.round(n / 1e6)} MB`
+  if (n >= 1e6) {
+    return `${Math.round(n / 1e6)} MB`
+  }
+  return `${Math.max(1, Math.round(n / 1e3))} KB`
 }
 
 export function resolution(height: number | null | undefined): string | null {

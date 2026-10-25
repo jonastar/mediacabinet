@@ -196,6 +196,8 @@ pub struct LinkedFile {
     pub height: Option<i64>,
     pub hdr_format: Option<String>,
     pub edition: Option<String>,
+    /// For movies split over several files.
+    pub part: Option<i64>,
     /// How it was matched: `path_id`, `nfo`, `parser`, `ai` or `user`.
     pub link_source: String,
     pub confidence: f64,
@@ -487,6 +489,15 @@ async fn genres_and_artwork(
             .fetch_all(&mut *conn)
             .await?;
     Ok((genres, artwork))
+}
+
+/// Specials (season 0) are left out of gaps: owning them says nothing about the
+/// regular episodes around them.
+fn counts_for_gaps(entries: &[(i64, Option<EpisodeNumber>)]) -> Vec<bool> {
+    entries
+        .iter()
+        .map(|(_, n)| n.as_ref().is_none_or(|n| n.season != Some(0)))
+        .collect()
 }
 
 /// A view resolved to its entries, in order.
@@ -850,7 +861,7 @@ pub async fn episodes(
     let file_rows: Vec<FileRow> = sqlx::query_as(
         "SELECT l.item_id, f.id AS file_id, r.path AS root_path, f.relative_path, f.status,
                 f.size, f.last_seen, f.container, v.codec AS video_codec, v.width, v.height,
-                v.hdr_format, l.edition, l.source AS link_source, l.confidence, l.pinned
+                v.hdr_format, l.edition, l.part, l.source AS link_source, l.confidence, l.pinned
          FROM file_link l
          JOIN media_file f ON f.id = l.file_id
          JOIN library_root r ON r.id = f.root_id
@@ -894,7 +905,7 @@ pub async fn episodes(
         .map(|(id, _)| &loaded.episodes[id])
         .collect();
     let availability: Vec<Availability> = rows.iter().map(|e| loaded.availability(e)).collect();
-    let gaps = rules::gaps(&availability);
+    let gaps = rules::gaps(&availability, &counts_for_gaps(&resolved.entries));
     let played: Vec<(Availability, bool)> = rows
         .iter()
         .zip(&availability)
@@ -953,6 +964,7 @@ pub(crate) struct FileRow {
     height: Option<i64>,
     hdr_format: Option<String>,
     edition: Option<String>,
+    part: Option<i64>,
     link_source: String,
     confidence: f64,
     pinned: bool,
@@ -973,6 +985,7 @@ impl From<FileRow> for LinkedFile {
             height: r.height,
             hdr_format: r.hdr_format,
             edition: r.edition,
+            part: r.part,
             link_source: r.link_source,
             confidence: r.confidence,
             pinned: r.pinned,
@@ -1041,7 +1054,10 @@ pub async fn home(pool: &SqlitePool, user: Option<i64>, now: i64) -> Result<Home
             .iter()
             .map(|(id, _)| loaded.availability(&loaded.episodes[id]))
             .collect();
-        let gaps = rules::gaps(&availability).iter().filter(|g| **g).count() as i64;
+        let gaps = rules::gaps(&availability, &counts_for_gaps(&default.entries))
+            .iter()
+            .filter(|g| **g)
+            .count() as i64;
         attention.gaps += gaps;
         attention.gap_series += i64::from(gaps > 0);
 

@@ -166,7 +166,7 @@ pub async fn movie_detail(
     let files: Vec<super::FileRow> = sqlx::query_as(
         "SELECT l.item_id, f.id AS file_id, r.path AS root_path, f.relative_path, f.status,
                 f.size, f.last_seen, f.container, v.codec AS video_codec, v.width, v.height,
-                v.hdr_format, l.edition, l.source AS link_source, l.confidence, l.pinned
+                v.hdr_format, l.edition, l.part, l.source AS link_source, l.confidence, l.pinned
          FROM file_link l
          JOIN media_file f ON f.id = l.file_id
          JOIN library_root r ON r.id = f.root_id

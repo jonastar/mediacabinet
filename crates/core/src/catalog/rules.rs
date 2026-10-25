@@ -50,11 +50,16 @@ pub fn wanted(monitored: bool, availability: Availability) -> bool {
     monitored && availability.is_unavailable()
 }
 
-/// For each entry, whether it's a gap: unavailable, with an available entry after it.
-pub fn gaps(entries: &[Availability]) -> Vec<bool> {
+/// For each entry, whether it's a gap: unavailable, with an available entry after
+/// it. Entries with `counts` false (specials) are never gaps and don't make
+/// earlier entries gaps either.
+pub fn gaps(entries: &[Availability], counts: &[bool]) -> Vec<bool> {
     let mut later_available = false;
     let mut gaps = vec![false; entries.len()];
     for (i, a) in entries.iter().enumerate().rev() {
+        if !counts.get(i).copied().unwrap_or(true) {
+            continue;
+        }
         gaps[i] = a.is_unavailable() && later_available;
         later_available |= *a == Availability::Available;
     }
@@ -105,7 +110,16 @@ mod tests {
             NotAcquired,
             Upcoming,
         ];
-        assert_eq!(gaps(&entries), [false, true, true, false, false, false]);
+        assert_eq!(
+            gaps(&entries, &[true; 6]),
+            [false, true, true, false, false, false]
+        );
+        // An available special at the end doesn't turn missing episodes into gaps.
+        let with_special = [Available, NotAcquired, Available];
+        assert_eq!(
+            gaps(&with_special, &[true, true, false]),
+            [false, false, false]
+        );
     }
 
     #[test]

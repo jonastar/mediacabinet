@@ -1,6 +1,6 @@
 import type { Episode } from '../api/client'
 import type { Mode } from './prefs'
-import { shortDay } from './format'
+import { airShortDay } from './format'
 
 /** Badge tones map to the state colours in index.css. */
 export type Tone = 'ready' | 'watched' | 'next' | 'available' | 'missing' | 'upcoming' | 'neutral'
@@ -54,7 +54,7 @@ export function episodeBadge(e: Episode, mode: Mode, isUpNext: boolean): Badge {
         : { label: 'Not in library', tone: 'neutral' }
     }
     case 'upcoming':
-      return { label: `Airs ${shortDay(e.airs_at ?? 0)}`, tone: 'upcoming' }
+      return { label: `Airs ${airShortDay(e.airs_at ?? 0, e.airs_time_known)}`, tone: 'upcoming' }
     case 'unknown':
       return { label: 'Date TBA', tone: 'neutral' }
   }

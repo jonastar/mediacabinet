@@ -28,7 +28,18 @@ export type FileReview = Schemas['FileReview']
 export type Candidate = Schemas['Candidate']
 export type SearchResult = Schemas['SearchResult']
 export type PathPiece = Schemas['PathPiece']
+export type MovieSummary = Schemas['MovieSummary']
+export type MovieDetail = Schemas['MovieDetail']
+export type SearchResults = Schemas['SearchResults']
+export type ImportReport = Schemas['ImportReport']
 export type LibraryKind = 'tv' | 'movies'
+
+export interface ItemEdit {
+  title?: string
+  year?: number | null
+  overview?: string
+  lock?: boolean
+}
 export type WritePolicy = 'managed' | 'adaptive' | 'read_only'
 
 export interface NewRoot {
@@ -51,6 +62,11 @@ export class ApiError extends Error {
     super(message)
     this.status = status
   }
+}
+
+/** The URL of an item's artwork, if it has that kind. */
+export function artworkUrl(item: { id: number; artwork: string[] }, kind: 'poster' | 'backdrop') {
+  return item.artwork.includes(kind) ? `/api/artwork/${item.id}/${kind}` : null
 }
 
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
@@ -117,6 +133,18 @@ export const api = {
       'GET',
       `/api/metadata/search?kind=${kind}&query=${encodeURIComponent(query)}${year ? `&year=${year}` : ''}`,
     ),
+  movies: () => request<MovieSummary[]>('GET', '/api/movies'),
+  movieDetail: (id: number) => request<MovieDetail>('GET', `/api/movies/${id}`),
+  search: (q: string) => request<SearchResults>('GET', `/api/search?q=${encodeURIComponent(q)}`),
+  editItem: (id: number, edit: ItemEdit) => request<void>('PATCH', `/api/items/${id}`, edit),
+  setLocks: (id: number, fields: string[]) =>
+    request<void>('PUT', `/api/items/${id}/locks`, { fields }),
+  refreshItem: (id: number) => request<ImportReport>('POST', `/api/items/${id}/refresh`),
+  setMatchOrdering: (seriesId: number, view: string | null) =>
+    request<void>('PUT', `/api/series/${seriesId}/match-ordering`, { view }),
+  rematchSeries: (seriesId: number, providerId: string) =>
+    request<ImportReport>('POST', `/api/series/${seriesId}/rematch`, { provider_id: providerId }),
+  rescanSeries: (seriesId: number) => request<void>('POST', `/api/series/${seriesId}/rescan`),
   placementExample: (libraryId: number) =>
     request<PlacementExample | null>('GET', `/api/libraries/${libraryId}/placement-example`),
 }

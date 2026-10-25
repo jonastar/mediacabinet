@@ -28,3 +28,49 @@
     padding: 24px 16px;
   }
 }
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.section h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.searchInput {
+  width: 100%;
+  max-width: 560px;
+  min-height: var(--touch-target);
+  padding: 0 18px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-control);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 15px;
+}
+
+.hits {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hit {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  text-decoration: none;
+}

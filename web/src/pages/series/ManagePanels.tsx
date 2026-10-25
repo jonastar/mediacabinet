@@ -1,7 +1,11 @@
-import type { SeriesDetail } from '../../api/client'
+import { useState } from 'react'
+import { api, type SeriesDetail } from '../../api/client'
+import { ago } from '../../lib/format'
+import { SearchPicker } from '../review/Pickers'
 import styles from './ManagePanels.module.css'
 
 const NOT_BUILT = "This isn't built yet"
+const LOCKABLE = ['title', 'year', 'overview']
 
 const PROVIDERS: Record<string, string> = {
   tmdb: 'TMDB',
@@ -9,6 +13,7 @@ const PROVIDERS: Record<string, string> = {
   anidb: 'AniDB',
   imdb: 'IMDb',
   trakt: 'Trakt',
+  computed: 'derived',
 }
 const provider = (p: string) => PROVIDERS[p] ?? p
 
@@ -22,14 +27,30 @@ interface Props {
   series: SeriesDetail
   monitorPending: boolean
   onToggleMonitor: () => void
+  /** Reload after a change here. */
+  onChanged: () => Promise<unknown>
 }
 
 /** Monitoring, Metadata, Orderings and Location: Manage mode only. */
-export function ManagePanels({ series, monitorPending, onToggleMonitor }: Props) {
+export function ManagePanels({ series, monitorPending, onToggleMonitor, onChanged }: Props) {
+  const [changingMatch, setChangingMatch] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const primary = series.external_ids.find((x) => x.is_primary)
   const others = [
     ...new Set(series.external_ids.filter((x) => !x.is_primary).map((x) => provider(x.provider))),
   ]
+  const locked = series.locked_fields.length > 0
+
+  const act = async (action: () => Promise<unknown>) => {
+    setError(null)
+    try {
+      await action()
+      await onChanged()
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+
   return (
     <div className={styles.panels}>
       <section aria-labelledby="p-mon" className={styles.panel}>
@@ -76,31 +97,79 @@ export function ManagePanels({ series, monitorPending, onToggleMonitor }: Props)
         {others.length > 0 && (
           <span className={styles.muted}>Also linked: {others.join(', ')}</span>
         )}
+        {series.refresh_error ? (
+          <span className={styles.warning}>Last refresh failed: {series.refresh_error}</span>
+        ) : (
+          series.refreshed_at && (
+            <span className={styles.muted}>Refreshed {ago(series.refreshed_at)}</span>
+          )
+        )}
         <label className={styles.check}>
-          <input type="checkbox" disabled title={NOT_BUILT} />
+          <input
+            type="checkbox"
+            checked={locked}
+            onChange={() => act(() => api.setLocks(series.id, locked ? [] : LOCKABLE))}
+          />
           Lock my edits from refresh
         </label>
-        <button type="button" className={styles.button} disabled title={NOT_BUILT}>
-          Change match…
+        {locked && <span className={styles.muted}>Locked: {series.locked_fields.join(', ')}</span>}
+        <button
+          type="button"
+          className={styles.button}
+          onClick={() => setChangingMatch(!changingMatch)}
+        >
+          {changingMatch ? 'Cancel' : 'Change match…'}
         </button>
+        {changingMatch && (
+          <SearchPicker
+            kind="tv"
+            initial={series.title}
+            year={series.year}
+            onPick={(r) =>
+              act(async () => {
+                await api.rematchSeries(series.id, r.id)
+                setChangingMatch(false)
+              })
+            }
+          />
+        )}
       </section>
 
       <section aria-labelledby="p-ord" className={styles.panel}>
         <h2 id="p-ord">Orderings</h2>
-        {series.views.map((v) => (
-          <span key={v.id} className={styles.spread}>
-            <span>
-              {v.name} · {v.kind === 'playlist' ? 'playlist' : provider(v.source)}
-            </span>
-            {v.is_default ? (
-              <span className={styles.default}>Default</span>
-            ) : (
-              v.kind === 'playlist' && (
-                <span className={styles.note}>{v.shared ? 'Shared' : 'Yours'}</span>
-              )
-            )}
-          </span>
-        ))}
+        {series.views.map((v) => {
+          const matching = series.match_view === v.id || (!series.match_view && v.is_default)
+          return (
+            <div key={v.id} className={styles.ordering}>
+              <span className={styles.spread}>
+                <span>
+                  {v.name} · {v.kind === 'playlist' ? 'playlist' : provider(v.source)}
+                </span>
+                {v.is_default ? (
+                  <span className={styles.default}>Default</span>
+                ) : (
+                  v.kind === 'playlist' && (
+                    <span className={styles.note}>{v.shared ? 'Shared' : 'Yours'}</span>
+                  )
+                )}
+              </span>
+              {v.kind !== 'playlist' &&
+                (matching ? (
+                  <span className={styles.note}>Used for file matching</span>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.link}
+                    onClick={() =>
+                      act(() => api.setMatchOrdering(series.id, v.is_default ? null : v.id))
+                    }
+                  >
+                    Use for file matching
+                  </button>
+                ))}
+            </div>
+          )
+        })}
         <button type="button" className={styles.button} disabled title={NOT_BUILT}>
           New playlist…
         </button>
@@ -134,6 +203,11 @@ export function ManagePanels({ series, monitorPending, onToggleMonitor }: Props)
           Move series…
         </button>
       </section>
+      {error && (
+        <p className={styles.warning} role="alert" style={{ gridColumn: '1 / -1' }}>
+          {error}
+        </p>
+      )}
     </div>
   )
 }

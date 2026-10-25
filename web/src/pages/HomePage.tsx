@@ -1,10 +1,21 @@
-import { api, type ContinueItem, type Home } from '../api/client'
+import { useState } from 'react'
+import { api, artworkUrl, type ContinueItem, type Home } from '../api/client'
+import { heroBackground } from '../lib/artwork'
+import { navigate } from '../lib/router'
 import { useApi } from '../api/useApi'
 import { PlayIcon } from '../components/Icons'
-import { Poster } from '../components/Poster'
+import { MoviePoster, Poster } from '../components/Poster'
 import { Progress } from '../components/Progress'
 import { Failed, Loading } from '../components/Status'
-import { episodeLabel, minutesLeft, progress, seriesTone, time, weekday } from '../lib/format'
+import {
+  airShortDay,
+  airWeekday,
+  episodeLabel,
+  minutesLeft,
+  progress,
+  seriesTone,
+  time,
+} from '../lib/format'
 import { useMode } from '../lib/prefs'
 import { Link } from '../components/Link'
 import styles from './HomePage.module.css'
@@ -39,8 +50,25 @@ export function HomePage() {
       <Hero home={data} />
       <div className={styles.content}>
         {mode === 'manage' && <NeedsAttention home={data} />}
-        <KeepWatching items={data.keep_watching} />
+        <KeepWatching items={data.keep_watching} home={data} />
         <ComingUp home={data} />
+        {data.movies.length > 0 && (
+          <section aria-labelledby="home-movies" className={styles.section}>
+            <div className={styles.sectionHead}>
+              <h2 id="home-movies">Movies</h2>
+              {data.movies.length > RAIL_LIMIT && (
+                <Link to="/movies" className={styles.seeAll}>
+                  See all {data.movies.length}
+                </Link>
+              )}
+            </div>
+            <div className={`${styles.rail} ${styles.posterRail}`}>
+              {data.movies.slice(0, RAIL_LIMIT).map((m) => (
+                <MoviePoster key={m.id} movie={m} mode={mode} />
+              ))}
+            </div>
+          </section>
+        )}
         <section aria-labelledby="home-tv" className={styles.section}>
           <div className={styles.sectionHead}>
             <h2 id="home-tv">TV Shows</h2>
@@ -68,10 +96,22 @@ export function HomePage() {
 function Hero({ home }: { home: Home }) {
   const hero = home.hero
   const first = home.shows[0]
+  const [query, setQuery] = useState('')
   const tone = seriesTone(hero?.series_title ?? first?.title ?? '')
+  const show = home.shows.find((s) => s.id === (hero?.series_id ?? first?.id))
+  const background = heroBackground(show ? artworkUrl(show, 'backdrop') : null, tone)
   return (
-    <section aria-labelledby="home-hero" className={styles.hero} style={{ background: tone }}>
-      <div className={styles.heroBar}>
+    <section aria-labelledby="home-hero" className={styles.hero} style={{ background }}>
+      <form
+        role="search"
+        className={styles.heroBar}
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (query.trim()) {
+            navigate(`/search?q=${encodeURIComponent(query.trim())}`)
+          }
+        }}
+      >
         <label htmlFor="home-search" className="visually-hidden">
           Search
         </label>
@@ -79,11 +119,11 @@ function Hero({ home }: { home: Home }) {
           id="home-search"
           type="search"
           className={styles.search}
-          placeholder="Search shows, movies, people…"
-          disabled
-          title="Search isn't built yet"
+          placeholder="Search shows, movies, episodes…"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
         />
-      </div>
+      </form>
       <div className={styles.heroBody}>
         {hero ? (
           <>
@@ -171,7 +211,12 @@ function NeedsAttention({ home }: { home: Home }) {
   )
 }
 
-function KeepWatching({ items }: { items: ContinueItem[] }) {
+function backdropOf(home: Home, seriesId: number) {
+  const show = home.shows.find((s) => s.id === seriesId)
+  return show ? artworkUrl(show, 'backdrop') : null
+}
+
+function KeepWatching({ items, home }: { items: ContinueItem[]; home: Home }) {
   if (items.length === 0) {
     return null
   }
@@ -187,7 +232,12 @@ function KeepWatching({ items }: { items: ContinueItem[] }) {
             <Link key={c.series_id} to={`/tv/${c.series_id}`} className={styles.continue}>
               <div
                 className={styles.continueArt}
-                style={{ background: seriesTone(c.series_title) }}
+                style={{
+                  background: heroBackground(
+                    backdropOf(home, c.series_id),
+                    seriesTone(c.series_title),
+                  ),
+                }}
               >
                 <span>{c.series_title}</span>
                 <Progress value={progress(c.episode.runtime_seconds, c.position_seconds, false)} />
@@ -219,8 +269,12 @@ function ComingUp({ home }: { home: Home }) {
         {home.coming_up.map((u) => (
           <Link key={u.episode.item_id} to={`/tv/${u.series_id}`} className={styles.upcoming}>
             <div className={styles.dayTile} style={{ background: seriesTone(u.series_title) }}>
-              <b>{weekday(u.episode.airs_at ?? 0)}</b>
-              <span>{time(u.episode.airs_at ?? 0)}</span>
+              <b>{airWeekday(u.episode.airs_at ?? 0, u.episode.airs_time_known)}</b>
+              <span>
+                {u.episode.airs_time_known
+                  ? time(u.episode.airs_at ?? 0)
+                  : airShortDay(u.episode.airs_at ?? 0, false).replace(/^\D+/, '')}
+              </span>
             </div>
             <span className={styles.stack}>
               <b>{u.series_title}</b>

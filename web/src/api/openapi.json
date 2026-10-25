@@ -9,6 +9,50 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/artwork/{id}/{kind}": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "An item's artwork (poster, backdrop or still), cached locally after first use.",
+        "operationId": "artwork",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {}
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/files/{id}/ignore": {
       "post": {
         "tags": [
@@ -217,6 +261,107 @@
         }
       }
     },
+    "/api/items/{id}": {
+      "patch": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Edits a series', episode's or movie's details, optionally locking them against refresh.",
+        "operationId": "edit_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ItemEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/locks": {
+      "put": {
+        "tags": [
+          "items"
+        ],
+        "operationId": "set_locks",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Locks"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/items/{id}/monitor": {
       "put": {
         "tags": [
@@ -247,6 +392,115 @@
         },
         "responses": {
           "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/refresh": {
+      "post": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Fetches a series' or movie's metadata from its provider now.",
+        "operationId": "refresh_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/tags": {
+      "put": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Sets an item's tags from one source; external tools use this for filler lists.",
+        "operationId": "set_tags",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Tags"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
           "404": {
             "content": {
               "application/json": {
@@ -602,6 +856,69 @@
         }
       }
     },
+    "/api/movies": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "All movies, by title.",
+        "operationId": "list_movies",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/MovieSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/movies/{id}": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "A movie with its files (versions, editions and parts).",
+        "operationId": "movie_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovieDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/review": {
       "get": {
         "tags": [
@@ -891,6 +1208,36 @@
         }
       }
     },
+    "/api/search": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Searches the library by title: series, movies and episodes.",
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResults"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/series": {
       "get": {
         "tags": [
@@ -1003,6 +1350,148 @@
               }
             }
           },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/series/{id}/match-ordering": {
+      "put": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Sets which ordering filenames of this series are numbered in.",
+        "operationId": "set_match_ordering",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MatchOrdering"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/series/{id}/rematch": {
+      "post": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Points a series at a different provider entry and refreshes it from there.",
+        "operationId": "rematch_series",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Rematch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/series/{id}/rescan": {
+      "post": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Rescans every root holding one of the series' folders.",
+        "operationId": "rescan_series",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "202": {},
           "404": {
             "content": {
               "application/json": {
@@ -1400,6 +1889,29 @@
           }
         ]
       },
+      "EpisodeHit": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/EpisodeRef"
+          },
+          {
+            "type": "object",
+            "required": [
+              "series_id",
+              "series_title"
+            ],
+            "properties": {
+              "series_id": {
+                "type": "integer",
+                "format": "int64"
+              },
+              "series_title": {
+                "type": "string"
+              }
+            }
+          }
+        ]
+      },
       "EpisodeList": {
         "type": "object",
         "required": [
@@ -1468,7 +1980,8 @@
         "type": "object",
         "required": [
           "item_id",
-          "title"
+          "title",
+          "airs_time_known"
         ],
         "properties": {
           "airs_at": {
@@ -1478,6 +1991,10 @@
             ],
             "format": "int64",
             "description": "Unix seconds, UTC."
+          },
+          "airs_time_known": {
+            "type": "boolean",
+            "description": "False when the provider only gave a date: show the date without a time."
           },
           "item_id": {
             "type": "integer",
@@ -1863,6 +2380,7 @@
           "keep_watching",
           "coming_up",
           "shows",
+          "movies",
           "attention"
         ],
         "properties": {
@@ -1892,6 +2410,12 @@
               "$ref": "#/components/schemas/ContinueItem"
             }
           },
+          "movies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovieSummary"
+            }
+          },
           "shows": {
             "type": "array",
             "items": {
@@ -1917,6 +2441,85 @@
           },
           "root_id": {
             "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ImportReport": {
+        "type": "object",
+        "required": [
+          "item_id",
+          "created",
+          "episodes_added",
+          "episodes_updated",
+          "episodes_flagged",
+          "episodes_removed"
+        ],
+        "properties": {
+          "created": {
+            "type": "boolean",
+            "description": "True when the series or movie was new."
+          },
+          "episodes_added": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "episodes_flagged": {
+            "type": "integer",
+            "description": "Dropped by the provider but kept: they have files or watch history.",
+            "minimum": 0
+          },
+          "episodes_removed": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "episodes_updated": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "item_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "ItemEdit": {
+        "type": "object",
+        "description": "Fields people can edit. Absent fields are left alone.",
+        "properties": {
+          "lock": {
+            "type": "boolean",
+            "description": "Lock the edited fields so metadata refreshes never overwrite them."
+          },
+          "original_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "overview": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sort_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
             "format": "int64"
           }
         }
@@ -2023,6 +2626,14 @@
             "type": "string",
             "description": "How it was matched: `path_id`, `nfo`, `parser`, `ai` or `user`."
           },
+          "part": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "For movies split over several files."
+          },
           "pinned": {
             "type": "boolean"
           },
@@ -2091,6 +2702,179 @@
           },
           "write_policy": {
             "type": "string"
+          }
+        }
+      },
+      "Locks": {
+        "type": "object",
+        "required": [
+          "fields"
+        ],
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields refreshes must not overwrite; empty unlocks all."
+          }
+        }
+      },
+      "MatchOrdering": {
+        "type": "object",
+        "properties": {
+          "view": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`ordering:<id>` of this series, or null to try the default first."
+          }
+        }
+      },
+      "MovieDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/MovieSummary"
+          },
+          {
+            "type": "object",
+            "required": [
+              "external_ids",
+              "files",
+              "locked_fields"
+            ],
+            "properties": {
+              "external_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ExternalId"
+                }
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LinkedFile"
+                }
+              },
+              "locked_fields": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "original_title": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "overview": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "primary_provider": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "refresh_error": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "refreshed_at": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64"
+              }
+            }
+          }
+        ]
+      },
+      "MovieSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "availability",
+          "monitored",
+          "wanted",
+          "versions",
+          "genres",
+          "artwork"
+        ],
+        "properties": {
+          "artwork": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "availability": {
+            "$ref": "#/components/schemas/Availability"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "monitored": {
+            "type": "boolean"
+          },
+          "release": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Release, Unix seconds."
+          },
+          "runtime_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          },
+          "versions": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Present files: versions and editions."
+          },
+          "wanted": {
+            "type": "boolean"
+          },
+          "watch": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/WatchState"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
           }
         }
       },
@@ -2389,6 +3173,18 @@
           }
         }
       },
+      "Rematch": {
+        "type": "object",
+        "required": [
+          "provider_id"
+        ],
+        "properties": {
+          "provider_id": {
+            "type": "string",
+            "description": "The provider's ID for the right series."
+          }
+        }
+      },
       "RenameLibrary": {
         "type": "object",
         "required": [
@@ -2642,6 +3438,34 @@
           }
         }
       },
+      "SearchResults": {
+        "type": "object",
+        "required": [
+          "series",
+          "movies",
+          "episodes"
+        ],
+        "properties": {
+          "episodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EpisodeHit"
+            }
+          },
+          "movies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MovieSummary"
+            }
+          },
+          "series": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesSummary"
+            }
+          }
+        }
+      },
       "SeriesDetail": {
         "allOf": [
           {
@@ -2654,7 +3478,8 @@
               "monitored",
               "quality_profiles",
               "views",
-              "locations"
+              "locations",
+              "locked_fields"
             ],
             "properties": {
               "external_ids": {
@@ -2668,6 +3493,20 @@
                 "items": {
                   "$ref": "#/components/schemas/Location"
                 }
+              },
+              "locked_fields": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Fields metadata refreshes never overwrite."
+              },
+              "match_view": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The view filenames are numbered in, if set; otherwise the default first."
               },
               "monitored": {
                 "type": "boolean",
@@ -2698,6 +3537,19 @@
                   "$ref": "#/components/schemas/QualityProfile"
                 }
               },
+              "refresh_error": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "refreshed_at": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64"
+              },
               "selected_view": {
                 "type": [
                   "string",
@@ -2721,11 +3573,26 @@
           "id",
           "title",
           "counts",
-          "new_episodes"
+          "new_episodes",
+          "genres",
+          "artwork"
         ],
         "properties": {
+          "artwork": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Artwork kinds available from `/api/artwork/{id}/{kind}`: poster, backdrop."
+          },
           "counts": {
             "$ref": "#/components/schemas/StateCounts"
+          },
+          "genres": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "id": {
             "type": "integer",
@@ -2828,6 +3695,25 @@
           "wanted": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "Tags": {
+        "type": "object",
+        "required": [
+          "source",
+          "tags"
+        ],
+        "properties": {
+          "source": {
+            "type": "string",
+            "description": "Who sets them, e.g. `animefillerlist`. Replaces that source's tags only."
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

@@ -1,5 +1,6 @@
-import type { SeriesSummary } from '../api/client'
-import { seriesTone, weekday } from '../lib/format'
+import { artworkUrl, type MovieSummary, type SeriesSummary } from '../api/client'
+import { CoverImage } from './Artwork'
+import { airWeekday, seriesTone } from '../lib/format'
 import type { Mode } from '../lib/prefs'
 import { Link } from './Link'
 import styles from './Poster.module.css'
@@ -15,7 +16,7 @@ function posterBadge(s: SeriesSummary, now = Date.now() / 1000): string | null {
     next.number?.number === 1 &&
     next.number.season
   ) {
-    return `New season ${weekday(next.airs_at)}`
+    return `New season ${airWeekday(next.airs_at, next.airs_time_known)}`
   }
   return s.new_episodes > 0 ? `${s.new_episodes} new` : null
 }
@@ -33,8 +34,9 @@ export function Poster({ series: s, mode }: { series: SeriesSummary; mode: Mode 
   return (
     <Link to={`/tv/${s.id}`} className={styles.poster}>
       <div className={styles.art} style={{ background: seriesTone(s.title) }}>
+        <CoverImage src={artworkUrl(s, 'poster')} alt={s.title} />
         {badge && <span className={styles.badge}>{badge}</span>}
-        <span className={styles.title}>{s.title}</span>
+        {!s.artwork.includes('poster') && <span className={styles.title}>{s.title}</span>}
       </div>
       {mode === 'manage' && (
         <div className={styles.bar} aria-hidden="true">
@@ -43,6 +45,48 @@ export function Poster({ series: s, mode }: { series: SeriesSummary; mode: Mode 
         </div>
       )}
       <span className={styles.line}>{line}</span>
+    </Link>
+  )
+}
+
+function runtime(seconds: number | null | undefined) {
+  if (!seconds) {
+    return null
+  }
+  const m = Math.round(seconds / 60)
+  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`
+}
+
+export function MoviePoster({ movie: m, mode }: { movie: MovieSummary; mode: Mode }) {
+  const line =
+    mode === 'manage'
+      ? [m.availability.replace('_', ' '), m.versions > 1 ? `${m.versions} versions` : null]
+          .filter(Boolean)
+          .join(' · ')
+      : [m.year, runtime(m.runtime_seconds)].filter(Boolean).join(' · ')
+  const available = m.availability === 'available'
+  return (
+    <Link to={`/movies/${m.id}`} className={styles.poster}>
+      <div className={styles.art} style={{ background: seriesTone(m.title) }}>
+        <CoverImage src={artworkUrl(m, 'poster')} alt={m.title} />
+        {m.watch?.played && <span className={styles.badge}>Watched</span>}
+        {!m.artwork.includes('poster') && <span className={styles.title}>{m.title}</span>}
+      </div>
+      {mode === 'manage' && (
+        <div className={styles.bar} aria-hidden="true">
+          <div
+            style={{
+              width: '100%',
+              background: available
+                ? 'var(--state-available)'
+                : m.availability === 'missing'
+                  ? 'var(--state-missing)'
+                  : 'transparent',
+            }}
+          />
+        </div>
+      )}
+      <span className={styles.line}>{line || '\u00a0'}</span>
     </Link>
   )
 }

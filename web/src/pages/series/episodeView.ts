@@ -39,7 +39,7 @@ export function episodeView(
   const played = watch?.played ?? false
   const left = watch && !played ? minutesLeft(e.runtime_seconds, watch.position_seconds) : null
   const meta = [
-    airDate(e.airs_at),
+    airDate(e.airs_at, e.airs_time_known),
     mode === 'watch' && played ? 'watched' : null,
     mode === 'watch' && left ? `${left} min left` : null,
   ]

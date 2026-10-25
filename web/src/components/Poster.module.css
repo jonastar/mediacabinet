@@ -8,6 +8,8 @@
 }
 
 .art {
+  position: relative;
+  overflow: hidden;
   aspect-ratio: 2 / 3;
   border-radius: 12px;
   display: flex;
@@ -17,6 +19,7 @@
 }
 
 .badge {
+  position: relative;
   align-self: flex-start;
   padding: 3px 9px;
   border-radius: var(--radius-pill);
@@ -27,6 +30,7 @@
 }
 
 .title {
+  position: relative;
   margin-top: auto;
   font-size: 17px;
   font-weight: 800;

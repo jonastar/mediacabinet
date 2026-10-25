@@ -9,8 +9,14 @@ export function usePath(): string {
   return useSyncExternalStore(subscribe, () => window.location.pathname)
 }
 
+/** A query string parameter of the current URL. */
+export function useQueryParam(name: string): string | null {
+  const search = useSyncExternalStore(subscribe, () => window.location.search)
+  return new URLSearchParams(search).get(name)
+}
+
 export function navigate(to: string) {
-  if (to === window.location.pathname) {
+  if (to === window.location.pathname + window.location.search) {
     return
   }
   window.history.pushState(null, '', to)

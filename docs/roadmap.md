@@ -76,10 +76,10 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Review queue actions: accept, accept and pin, reject, pick another candidate, ignore file
 - [x] Decide: match confidence thresholds global, per root or per source
 - [x] UI: Review queue (path segments by template token, fact tiles, candidates with confidence)
-- [ ] UI: Series Manage panels for metadata and orderings (edit details, lock fields, change match)
-- [ ] UI: Movies library and movie page
-- [ ] UI: real artwork (hero backdrop with scrim, posters, thumbnails)
-- [ ] UI: search
+- [x] UI: Series Manage panels for metadata and orderings (edit details, lock fields, change match)
+- [x] UI: Movies library and movie page
+- [x] UI: real artwork (hero backdrop with scrim, posters, thumbnails)
+- [x] UI: search
 
 ## Phase 5 — Derived state
 

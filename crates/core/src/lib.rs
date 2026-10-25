@@ -7,4 +7,5 @@ pub mod events;
 pub mod layout;
 pub mod library;
 pub mod metadata;
+pub mod parse;
 pub mod scan;

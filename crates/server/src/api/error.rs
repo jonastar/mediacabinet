@@ -2,6 +2,7 @@ use axum::Json;
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use cabinet_core::catalog::CatalogError;
+use cabinet_core::library::LibraryError;
 use serde::Serialize;
 use utoipa::ToSchema;
 
@@ -15,6 +16,7 @@ pub struct ErrorBody {
 pub enum ApiError {
     NotFound,
     BadRequest(String),
+    Conflict(String),
     Internal(String),
 }
 
@@ -23,6 +25,7 @@ impl IntoResponse for ApiError {
         let (status, error) = match self {
             ApiError::NotFound => (StatusCode::NOT_FOUND, "not found".to_string()),
             ApiError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
+            ApiError::Conflict(message) => (StatusCode::CONFLICT, message),
             ApiError::Internal(message) => {
                 tracing::error!(error = message, "request failed");
                 (
@@ -41,6 +44,17 @@ impl From<CatalogError> for ApiError {
             CatalogError::NotFound => ApiError::NotFound,
             CatalogError::InvalidView(_) => ApiError::BadRequest(err.to_string()),
             CatalogError::Db(e) => ApiError::Internal(e.to_string()),
+        }
+    }
+}
+
+impl From<LibraryError> for ApiError {
+    fn from(err: LibraryError) -> Self {
+        match err {
+            LibraryError::NotFound => ApiError::NotFound,
+            LibraryError::Invalid(m) => ApiError::BadRequest(m),
+            LibraryError::Conflict(m) => ApiError::Conflict(m),
+            LibraryError::Db(e) => ApiError::Internal(e.to_string()),
         }
     }
 }

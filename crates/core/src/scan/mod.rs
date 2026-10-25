@@ -6,6 +6,7 @@
 mod hash;
 mod plan;
 mod probe;
+mod service;
 mod sidecar;
 mod walk;
 
@@ -23,6 +24,7 @@ use plan::{Existing, MatchKind, Plan};
 
 pub use hash::partial_hash;
 pub use probe::{Probe, ProbeError, Prober, Stream};
+pub use service::{Phase, ScanProgress, ScanService, Trigger};
 pub use walk::{Found, Walk, walk};
 
 #[derive(Debug, thiserror::Error)]
@@ -316,6 +318,16 @@ pub async fn probe_root(
     root_id: i64,
     prober: &Prober,
 ) -> Result<ProbeReport, ProbeRootError> {
+    probe_root_with_progress(pool, root_id, prober, |_, _| ()).await
+}
+
+/// `probe_root`, calling `progress(done, total)` as files finish.
+pub async fn probe_root_with_progress(
+    pool: &SqlitePool,
+    root_id: i64,
+    prober: &Prober,
+    progress: impl Fn(usize, usize),
+) -> Result<ProbeReport, ProbeRootError> {
     let root: String = sqlx::query_scalar("SELECT path FROM library_root WHERE id = ?")
         .bind(root_id)
         .fetch_optional(pool)
@@ -331,6 +343,8 @@ pub async fn probe_root(
     .fetch_all(pool)
     .await?;
 
+    let total = pending.len();
+    progress(0, total);
     let mut results = futures::stream::iter(pending)
         .map(|(id, path)| {
             let full = root.join(&path);
@@ -340,6 +354,7 @@ pub async fn probe_root(
 
     let mut report = ProbeReport::default();
     while let Some((id, path, result)) = results.next().await {
+        progress(report.probed + report.failed + 1, total);
         match result {
             Ok(probe) => {
                 save_probe(pool, id, &probe).await?;

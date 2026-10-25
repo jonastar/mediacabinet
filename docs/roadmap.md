@@ -42,11 +42,11 @@ Real API, seeded data. Seeing and testing the design early.
 
 ## Phase 3 — Library management
 
-- [ ] Library and root management API (create, edit, remove; write policy; import target)
-- [ ] Layout templates: parse and validate, and propose one from existing folders
-- [ ] Group: find each file's series folder from the template; grouping levels as hints
-- [ ] Scan orchestration: one scan per root at a time, scheduled scans, scan on demand
-- [ ] Filesystem watching (notify) to rescan changed paths quickly
+- [x] Library and root management API (create, edit, remove; write policy; import target)
+- [x] Layout templates: parse and validate, and propose one from existing folders
+- [x] Group: find each file's series folder from the template; grouping levels as hints
+- [x] Scan orchestration: one scan per root at a time, scheduled scans, scan on demand
+- [x] Filesystem watching (notify) to rescan changed paths quickly
 - [ ] Large-library test: scan time and memory for ~50k files
 - [ ] UI: Libraries and roots (write policy, coloured template, offline state, "where would a new file go")
 - [ ] UI: scan progress and results

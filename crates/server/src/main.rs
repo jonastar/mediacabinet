@@ -1,5 +1,6 @@
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::time::Duration;
 
 use anyhow::Context;
 use tracing_subscriber::EnvFilter;
@@ -10,6 +11,16 @@ mod web;
 #[derive(Clone)]
 pub struct AppState {
     pub db: sqlx::SqlitePool,
+    pub scans: cabinet_core::scan::ScanService,
+}
+
+fn env_number(name: &str, default: u64) -> anyhow::Result<u64> {
+    match std::env::var(name) {
+        Ok(v) => v
+            .parse()
+            .with_context(|| format!("{name} must be a whole number")),
+        Err(_) => Ok(default),
+    }
 }
 
 #[tokio::main]
@@ -41,7 +52,23 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    let app = api::router(AppState { db })
+    let prober = cabinet_core::scan::Prober {
+        program: std::env::var("CABINET_FFPROBE")
+            .unwrap_or_else(|_| "ffprobe".into())
+            .into(),
+        ..Default::default()
+    };
+    let scans = cabinet_core::scan::ScanService::new(db.clone(), prober);
+    scans.recover().await?;
+    let interval = env_number("CABINET_SCAN_INTERVAL_MINUTES", 360)?;
+    if interval > 0 {
+        scans.spawn_scheduler(Duration::from_secs(interval * 60));
+    }
+    if env_number("CABINET_WATCH", 1)? == 1 {
+        scans.spawn_watcher(Duration::from_secs(10));
+    }
+
+    let app = api::router(AppState { db, scans })
         .fallback(web::serve)
         .layer(tower_http::trace::TraceLayer::new_for_http());
 

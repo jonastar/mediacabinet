@@ -12,6 +12,7 @@ use crate::AppState;
 
 mod catalog;
 mod error;
+mod library;
 
 pub use error::ApiError;
 
@@ -27,7 +28,16 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(catalog::series_detail))
         .routes(routes!(catalog::series_episodes))
         .routes(routes!(catalog::set_series_view))
-        .routes(routes!(catalog::set_item_monitor));
+        .routes(routes!(catalog::set_item_monitor))
+        .routes(routes!(library::list_libraries, library::create_library))
+        .routes(routes!(library::rename_library, library::delete_library))
+        .routes(routes!(library::add_root))
+        .routes(routes!(library::update_root, library::remove_root))
+        .routes(routes!(library::scan_root))
+        .routes(routes!(library::propose_template))
+        .routes(routes!(library::check_template))
+        .routes(routes!(library::list_folders))
+        .routes(routes!(library::placement_example));
     OpenApiRouter::with_openapi(ApiDoc::openapi()).nest("/api", api)
 }
 

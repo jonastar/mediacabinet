@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/api/folders": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Lists the subfolders of a server folder, for picking a root. */
+        get: operations["list_folders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/folders/propose": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checks a folder can be added and proposes a layout template from what's in it. */
+        post: operations["propose_template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/health": {
         parameters: {
             query?: never;
@@ -55,6 +89,109 @@ export interface paths {
          */
         put: operations["set_item_monitor"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/libraries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every library with its roots, file counts and scan state. */
+        get: operations["list_libraries"];
+        put?: never;
+        post: operations["create_library"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/libraries/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Deletes an empty library. Its folders must be removed first. */
+        delete: operations["delete_library"];
+        options?: never;
+        head?: never;
+        patch: operations["rename_library"];
+        trace?: never;
+    };
+    "/api/libraries/{id}/placement-example": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the next file for a series in this library would go, under each write policy. */
+        get: operations["placement_example"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/libraries/{id}/roots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Adds a folder to a library and starts its first scan. */
+        post: operations["add_root"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/roots/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Removes a folder from its library. Refused while its files are linked to items. */
+        delete: operations["remove_root"];
+        options?: never;
+        head?: never;
+        /** Changes a root's write policy, layout template or import target flag. */
+        patch: operations["update_root"];
+        trace?: never;
+    };
+    "/api/roots/{id}/scan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Scans a root now. */
+        post: operations["scan_root"];
         delete?: never;
         options?: never;
         head?: never;
@@ -132,10 +269,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/templates/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Validates a layout template and splits it for display, for live editing. */
+        post: operations["check_template"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AddRoot: {
+            is_import_target?: boolean;
+            layout_template: string;
+            /** @description Absolute path on the server. */
+            path: string;
+            /** @description `managed`, `adaptive` (default) or `read_only`. */
+            write_policy?: string;
+        };
         Attention: {
             /** Format: int64 */
             gap_series: number;
@@ -157,6 +319,11 @@ export interface components {
         };
         /** @enum {string} */
         Availability: "available" | "missing" | "not_acquired" | "upcoming" | "unknown";
+        CheckTemplate: {
+            /** @description `tv` or `movies`. */
+            kind: string;
+            template: string;
+        };
         ComingUp: {
             episode: components["schemas"]["EpisodeRef"];
             /** Format: int64 */
@@ -173,6 +340,11 @@ export interface components {
             series_id: number;
             series_title: string;
             view_name?: string | null;
+        };
+        CreateLibrary: {
+            /** @description `tv` or `movies`. */
+            kind: string;
+            name: string;
         };
         Episode: components["schemas"]["EpisodeRef"] & {
             availability: components["schemas"]["Availability"];
@@ -235,6 +407,25 @@ export interface components {
             /** Format: int64 */
             updated_at: number;
         };
+        FileCounts: {
+            /** Format: int64 */
+            ignored: number;
+            /** Format: int64 */
+            missing: number;
+            /** Format: int64 */
+            present: number;
+        };
+        FolderListing: {
+            /** @description Subfolder names, hidden ones left out. */
+            folders: string[];
+            parent?: string | null;
+            path: string;
+        };
+        FolderProposal: components["schemas"]["Proposal"] & {
+            /** @description The folder, resolved. */
+            path: string;
+            pieces: components["schemas"]["TemplatePiece"][];
+        };
         Health: {
             status: string;
             version: string;
@@ -245,6 +436,14 @@ export interface components {
             hero?: components["schemas"]["ContinueItem"] | null;
             keep_watching: components["schemas"]["ContinueItem"][];
             shows: components["schemas"]["SeriesSummary"][];
+        };
+        Library: {
+            /** Format: int64 */
+            id: number;
+            /** @description `tv` or `movies`. */
+            kind: string;
+            name: string;
+            roots: components["schemas"]["Root"][];
         };
         LinkedFile: {
             /** Format: double */
@@ -286,10 +485,103 @@ export interface components {
         };
         /** @enum {string} */
         NumberStyle: "season" | "absolute" | "playlist";
+        /** @enum {string} */
+        Phase: "walking" | "probing";
+        Placement: {
+            note: string;
+            /** @description Relative to the root; None when nothing is written to this root. */
+            path?: string | null;
+        };
+        PlacementExample: {
+            /** @description e.g. `S02E01`. */
+            episode_label: string;
+            episode_title: string;
+            /** @description The name the file arrives with. */
+            filename: string;
+            /** @description The series' stored folder on that root. */
+            location: string;
+            outcomes: components["schemas"]["PolicyPlacement"][];
+            root_path: string;
+            series_title: string;
+        };
+        PolicyPlacement: components["schemas"]["Placement"] & {
+            /** @description `managed`, `adaptive` or `read_only`. */
+            policy: string;
+        };
+        Proposal: {
+            /** @description Item folders it finds, e.g. "Night Harbor (2019)". */
+            examples: string[];
+            files: number;
+            /** @description Files the template groups into an item folder. */
+            grouped: number;
+            /** @description Why this template, in a sentence. */
+            reason: string;
+            template: string;
+        };
+        ProposeTemplate: {
+            /** @description `tv` or `movies`. */
+            kind: string;
+            path: string;
+        };
         QualityProfile: {
             /** Format: int64 */
             id: number;
             name: string;
+        };
+        RenameLibrary: {
+            name: string;
+        };
+        Root: {
+            files: components["schemas"]["FileCounts"];
+            /** Format: int64 */
+            id: number;
+            is_import_target: boolean;
+            last_scan?: components["schemas"]["ScanRun"] | null;
+            layout_template: string;
+            /** Format: int64 */
+            library_id: number;
+            /**
+             * Format: int64
+             * @description When a scan last found it unreachable; cleared by a successful scan.
+             */
+            offline_since?: number | null;
+            /** @description Whether the folder is reachable right now. */
+            online: boolean;
+            path: string;
+            scanning?: components["schemas"]["ScanProgress"] | null;
+            /** @description The template split for display. */
+            template_pieces: components["schemas"]["TemplatePiece"][];
+            /** @description `managed`, `adaptive` or `read_only`. */
+            write_policy: string;
+        };
+        ScanProgress: {
+            /** @description Files probed so far, during probing. */
+            done: number;
+            phase: components["schemas"]["Phase"];
+            /** @description Another scan is due when this one finishes. */
+            queued_again: boolean;
+            /** Format: int64 */
+            started_at: number;
+            total: number;
+            trigger: string;
+        };
+        ScanRun: {
+            error?: string | null;
+            /** Format: int64 */
+            finished_at?: number | null;
+            /** Format: int64 */
+            id: number;
+            report?: Record<string, never> | null;
+            /** Format: int64 */
+            started_at: number;
+            /** @description `running`, `ok` or `failed`. */
+            state: string;
+            /** @description `added`, `manual`, `scheduled` or `watch`. */
+            trigger: string;
+        };
+        ScanStarted: {
+            /** @description False when a scan was already running; one more runs after it. */
+            started: boolean;
         };
         SeriesDetail: components["schemas"]["SeriesSummary"] & {
             external_ids: components["schemas"]["ExternalId"][];
@@ -345,6 +637,29 @@ export interface components {
             /** Format: int64 */
             wanted: number;
         };
+        TemplateCheck: {
+            /** @description What's wrong, when it isn't valid. */
+            error?: string | null;
+            pieces: components["schemas"]["TemplatePiece"][];
+            /** @description The normalised template, when valid. */
+            template?: string | null;
+            valid: boolean;
+        };
+        TemplatePiece: {
+            role: components["schemas"]["TemplateRole"];
+            text: string;
+        };
+        /**
+         * @description How a piece of a template is shown: grouping levels, the item folder, levels
+         *     below it, or a `/` separator.
+         * @enum {string}
+         */
+        TemplateRole: "grouping" | "item" | "below" | "separator";
+        UpdateRoot: {
+            is_import_target?: boolean | null;
+            layout_template?: string | null;
+            write_policy?: string | null;
+        };
         View: {
             /** @description `ordering:<id>` or `playlist:<id>`. */
             id: string;
@@ -373,6 +688,75 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_folders: {
+        parameters: {
+            query?: {
+                /** @description Absolute path; defaults to `/`. */
+                path?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderListing"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    propose_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProposeTemplate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderProposal"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     health: {
         parameters: {
             query?: never;
@@ -431,6 +815,323 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_libraries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Library"][];
+                };
+            };
+        };
+    };
+    create_library: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateLibrary"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Library"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_library: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    rename_library: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RenameLibrary"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Library"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    placement_example: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlacementExample"] | null;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    add_root: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddRoot"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Root"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    remove_root: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_root: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRoot"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Root"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    scan_root: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScanStarted"];
+                };
             };
             404: {
                 headers: {
@@ -560,6 +1261,37 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    check_template: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CheckTemplate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateCheck"];
+                };
+            };
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };

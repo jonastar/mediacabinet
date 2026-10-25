@@ -9,6 +9,94 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/folders": {
+      "get": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Lists the subfolders of a server folder, for picking a root.",
+        "operationId": "list_folders",
+        "parameters": [
+          {
+            "name": "path",
+            "in": "query",
+            "description": "Absolute path; defaults to `/`.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderListing"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/folders/propose": {
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Checks a folder can be added and proposes a layout template from what's in it.",
+        "operationId": "propose_template",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProposeTemplate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderProposal"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/health": {
       "get": {
         "summary": "Liveness check that also confirms the database answers.",
@@ -76,6 +164,424 @@
         },
         "responses": {
           "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/libraries": {
+      "get": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Every library with its roots, file counts and scan state.",
+        "operationId": "list_libraries",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Library"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "operationId": "create_library",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateLibrary"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Library"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/libraries/{id}": {
+      "delete": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Deletes an empty library. Its folders must be removed first.",
+        "operationId": "delete_library",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "libraries"
+        ],
+        "operationId": "rename_library",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameLibrary"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Library"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/libraries/{id}/placement-example": {
+      "get": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Where the next file for a series in this library would go, under each write policy.",
+        "operationId": "placement_example",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/PlacementExample"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/libraries/{id}/roots": {
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Adds a folder to a library and starts its first scan.",
+        "operationId": "add_root",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddRoot"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Root"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/roots/{id}": {
+      "delete": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Removes a folder from its library. Refused while its files are linked to items.",
+        "operationId": "remove_root",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Changes a root's write policy, layout template or import target flag.",
+        "operationId": "update_root",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoot"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Root"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/roots/{id}/scan": {
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Scans a root now.",
+        "operationId": "scan_root",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScanStarted"
+                }
+              }
+            }
+          },
           "404": {
             "content": {
               "application/json": {
@@ -262,10 +768,72 @@
           }
         }
       }
+    },
+    "/api/templates/check": {
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Validates a layout template and splits it for display, for live editing.",
+        "operationId": "check_template",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckTemplate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateCheck"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AddRoot": {
+        "type": "object",
+        "required": [
+          "path",
+          "layout_template"
+        ],
+        "properties": {
+          "is_import_target": {
+            "type": "boolean"
+          },
+          "layout_template": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "description": "Absolute path on the server."
+          },
+          "write_policy": {
+            "type": "string",
+            "description": "`managed`, `adaptive` (default) or `read_only`."
+          }
+        }
+      },
       "Attention": {
         "type": "object",
         "required": [
@@ -328,6 +896,22 @@
           "unknown"
         ]
       },
+      "CheckTemplate": {
+        "type": "object",
+        "required": [
+          "template",
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "`tv` or `movies`."
+          },
+          "template": {
+            "type": "string"
+          }
+        }
+      },
       "ComingUp": {
         "type": "object",
         "required": [
@@ -381,6 +965,22 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "CreateLibrary": {
+        "type": "object",
+        "required": [
+          "name",
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "`tv` or `movies`."
+          },
+          "name": {
+            "type": "string"
           }
         }
       },
@@ -614,6 +1214,79 @@
           }
         }
       },
+      "FileCounts": {
+        "type": "object",
+        "required": [
+          "present",
+          "missing",
+          "ignored"
+        ],
+        "properties": {
+          "ignored": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "missing": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "present": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "FolderListing": {
+        "type": "object",
+        "required": [
+          "path",
+          "folders"
+        ],
+        "properties": {
+          "folders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Subfolder names, hidden ones left out."
+          },
+          "parent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
+      "FolderProposal": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Proposal"
+          },
+          {
+            "type": "object",
+            "required": [
+              "path",
+              "pieces"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "description": "The folder, resolved."
+              },
+              "pieces": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TemplatePiece"
+                }
+              }
+            }
+          }
+        ]
+      },
       "Health": {
         "type": "object",
         "required": [
@@ -668,6 +1341,34 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SeriesSummary"
+            }
+          }
+        }
+      },
+      "Library": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "roots"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`tv` or `movies`."
+          },
+          "name": {
+            "type": "string"
+          },
+          "roots": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Root"
             }
           }
         }
@@ -806,6 +1507,142 @@
           "playlist"
         ]
       },
+      "Phase": {
+        "type": "string",
+        "enum": [
+          "walking",
+          "probing"
+        ]
+      },
+      "Placement": {
+        "type": "object",
+        "required": [
+          "note"
+        ],
+        "properties": {
+          "note": {
+            "type": "string"
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Relative to the root; None when nothing is written to this root."
+          }
+        }
+      },
+      "PlacementExample": {
+        "type": "object",
+        "required": [
+          "series_title",
+          "episode_label",
+          "episode_title",
+          "filename",
+          "root_path",
+          "location",
+          "outcomes"
+        ],
+        "properties": {
+          "episode_label": {
+            "type": "string",
+            "description": "e.g. `S02E01`."
+          },
+          "episode_title": {
+            "type": "string"
+          },
+          "filename": {
+            "type": "string",
+            "description": "The name the file arrives with."
+          },
+          "location": {
+            "type": "string",
+            "description": "The series' stored folder on that root."
+          },
+          "outcomes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PolicyPlacement"
+            }
+          },
+          "root_path": {
+            "type": "string"
+          },
+          "series_title": {
+            "type": "string"
+          }
+        }
+      },
+      "PolicyPlacement": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Placement"
+          },
+          {
+            "type": "object",
+            "required": [
+              "policy"
+            ],
+            "properties": {
+              "policy": {
+                "type": "string",
+                "description": "`managed`, `adaptive` or `read_only`."
+              }
+            }
+          }
+        ]
+      },
+      "Proposal": {
+        "type": "object",
+        "required": [
+          "template",
+          "reason",
+          "files",
+          "grouped",
+          "examples"
+        ],
+        "properties": {
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Item folders it finds, e.g. \"Night Harbor (2019)\"."
+          },
+          "files": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "grouped": {
+            "type": "integer",
+            "description": "Files the template groups into an item folder.",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "description": "Why this template, in a sentence."
+          },
+          "template": {
+            "type": "string"
+          }
+        }
+      },
+      "ProposeTemplate": {
+        "type": "object",
+        "required": [
+          "path",
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "description": "`tv` or `movies`."
+          },
+          "path": {
+            "type": "string"
+          }
+        }
+      },
       "QualityProfile": {
         "type": "object",
         "required": [
@@ -819,6 +1656,191 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "RenameLibrary": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Root": {
+        "type": "object",
+        "required": [
+          "id",
+          "library_id",
+          "path",
+          "write_policy",
+          "layout_template",
+          "template_pieces",
+          "is_import_target",
+          "online",
+          "files"
+        ],
+        "properties": {
+          "files": {
+            "$ref": "#/components/schemas/FileCounts"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "is_import_target": {
+            "type": "boolean"
+          },
+          "last_scan": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ScanRun"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "layout_template": {
+            "type": "string"
+          },
+          "library_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "offline_since": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "When a scan last found it unreachable; cleared by a successful scan."
+          },
+          "online": {
+            "type": "boolean",
+            "description": "Whether the folder is reachable right now."
+          },
+          "path": {
+            "type": "string"
+          },
+          "scanning": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ScanProgress",
+                "description": "Set while a scan runs; filled in by whoever runs scans."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "template_pieces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplatePiece"
+            },
+            "description": "The template split for display."
+          },
+          "write_policy": {
+            "type": "string",
+            "description": "`managed`, `adaptive` or `read_only`."
+          }
+        }
+      },
+      "ScanProgress": {
+        "type": "object",
+        "required": [
+          "phase",
+          "done",
+          "total",
+          "started_at",
+          "trigger",
+          "queued_again"
+        ],
+        "properties": {
+          "done": {
+            "type": "integer",
+            "description": "Files probed so far, during probing.",
+            "minimum": 0
+          },
+          "phase": {
+            "$ref": "#/components/schemas/Phase"
+          },
+          "queued_again": {
+            "type": "boolean",
+            "description": "Another scan is due when this one finishes."
+          },
+          "started_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "trigger": {
+            "type": "string"
+          }
+        }
+      },
+      "ScanRun": {
+        "type": "object",
+        "required": [
+          "id",
+          "trigger",
+          "state",
+          "started_at"
+        ],
+        "properties": {
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "finished_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "report": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "started_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "state": {
+            "type": "string",
+            "description": "`running`, `ok` or `failed`."
+          },
+          "trigger": {
+            "type": "string",
+            "description": "`added`, `manual`, `scheduled` or `watch`."
+          }
+        }
+      },
+      "ScanStarted": {
+        "type": "object",
+        "required": [
+          "started"
+        ],
+        "properties": {
+          "started": {
+            "type": "boolean",
+            "description": "False when a scan was already running; one more runs after it."
           }
         }
       },
@@ -1008,6 +2030,86 @@
           "wanted": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "TemplateCheck": {
+        "type": "object",
+        "required": [
+          "valid",
+          "pieces"
+        ],
+        "properties": {
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What's wrong, when it isn't valid."
+          },
+          "pieces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TemplatePiece"
+            }
+          },
+          "template": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The normalised template, when valid."
+          },
+          "valid": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TemplatePiece": {
+        "type": "object",
+        "required": [
+          "text",
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "$ref": "#/components/schemas/TemplateRole"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
+      "TemplateRole": {
+        "type": "string",
+        "description": "How a piece of a template is shown: grouping levels, the item folder, levels\nbelow it, or a `/` separator.",
+        "enum": [
+          "grouping",
+          "item",
+          "below",
+          "separator"
+        ]
+      },
+      "UpdateRoot": {
+        "type": "object",
+        "properties": {
+          "is_import_target": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "layout_template": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "write_policy": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },

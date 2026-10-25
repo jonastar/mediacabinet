@@ -66,6 +66,9 @@ The rules beyond the formatters' defaults are listed in [CLAUDE.md](CLAUDE.md#co
 | --- | --- | --- |
 | `CABINET_DATA_DIR` | `./data` | Database and backups |
 | `CABINET_BIND` | `0.0.0.0:8420` | Listen address |
+| `CABINET_SCAN_INTERVAL_MINUTES` | `360` | Rescan each scanned root this often; `0` turns it off |
+| `CABINET_WATCH` | `1` | Rescan a root shortly after its files change; `0` turns it off |
+| `CABINET_FFPROBE` | `ffprobe` | ffprobe to run |
 | `RUST_LOG` | `info` | Log filter |
 
 The database is backed up to `cabinet.db.<timestamp>.bak` before any migration runs.

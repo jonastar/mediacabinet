@@ -23,13 +23,15 @@ async fn main() -> anyhow::Result<()> {
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
         .init();
 
-    let data_dir = PathBuf::from(std::env::var("CABINET_DATA_DIR").unwrap_or_else(|_| "./data".into()));
+    let data_dir =
+        PathBuf::from(std::env::var("CABINET_DATA_DIR").unwrap_or_else(|_| "./data".into()));
     let bind: SocketAddr = std::env::var("CABINET_BIND")
         .unwrap_or_else(|_| "0.0.0.0:8420".into())
         .parse()
         .context("CABINET_BIND must be an address like 0.0.0.0:8420")?;
 
-    std::fs::create_dir_all(&data_dir).with_context(|| format!("creating {}", data_dir.display()))?;
+    std::fs::create_dir_all(&data_dir)
+        .with_context(|| format!("creating {}", data_dir.display()))?;
     let db = cabinet_core::db::open(&data_dir.join("cabinet.db")).await?;
 
     let app = api::router(AppState { db })

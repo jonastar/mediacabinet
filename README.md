@@ -33,9 +33,19 @@ cd web && pnpm api:types   # writes src/api/openapi.json and src/api/schema.d.ts
 Checks:
 
 ```sh
-cargo test && cargo clippy --all-targets
-cd web && pnpm lint && pnpm build
+cargo fmt --check && cargo test && cargo clippy --all-targets
+cd web && pnpm format:check && pnpm lint && pnpm build
 ```
+
+## Code style
+
+Formatting is enforced by `cargo fmt` (Rust) and `pnpm format` (oxfmt and oxlint, web). Run them before committing. The pre-commit hook in `.githooks/` rejects unformatted code; enable it once per clone:
+
+```sh
+git config core.hooksPath .githooks
+```
+
+The rules beyond the formatters' defaults are listed in [CLAUDE.md](CLAUDE.md#code-style).
 
 ## Configuration
 

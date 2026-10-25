@@ -11,9 +11,15 @@ export default function App() {
 
   return (
     <main style={{ padding: 40 }}>
-      <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>Media Cabinet</h1>
+      <h1 style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em', margin: 0 }}>
+        Media Cabinet
+      </h1>
       <p style={{ color: 'var(--text-muted)' }}>
-        {error ? `Server unreachable: ${error}` : health ? `Server ${health.status} · v${health.version}` : 'Connecting…'}
+        {error
+          ? `Server unreachable: ${error}`
+          : health
+            ? `Server ${health.status} · v${health.version}`
+            : 'Connecting…'}
       </p>
     </main>
   )

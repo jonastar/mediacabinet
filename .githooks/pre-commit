@@ -1,0 +1,16 @@
+#!/bin/sh
+# Rejects commits that are not formatted or fail lint. Enable with:
+#   git config core.hooksPath .githooks
+set -e
+root=$(git rev-parse --show-toplevel)
+
+cargo fmt --manifest-path "$root/Cargo.toml" --all --check || {
+    echo "pre-commit: run 'cargo fmt'" >&2
+    exit 1
+}
+
+cd "$root/web"
+pnpm format:check && pnpm lint || {
+    echo "pre-commit: run 'pnpm format' in web/" >&2
+    exit 1
+}

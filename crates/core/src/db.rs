@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use sqlx::migrate::Migrator;
-use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions, SqliteSynchronous};
+use sqlx::sqlite::{
+    SqliteConnectOptions, SqliteJournalMode, SqlitePool, SqlitePoolOptions, SqliteSynchronous,
+};
 
 static MIGRATOR: Migrator = sqlx::migrate!("./migrations");
 
@@ -28,7 +30,10 @@ pub async fn open(path: &Path) -> Result<SqlitePool, DbError> {
         .synchronous(SqliteSynchronous::Normal)
         .foreign_keys(true)
         .busy_timeout(Duration::from_secs(5));
-    let pool = SqlitePoolOptions::new().max_connections(8).connect_with(options).await?;
+    let pool = SqlitePoolOptions::new()
+        .max_connections(8)
+        .connect_with(options)
+        .await?;
 
     if existed && has_pending_migrations(&pool).await {
         let backup = backup_path(path);
@@ -45,10 +50,11 @@ pub async fn open(path: &Path) -> Result<SqlitePool, DbError> {
 
 async fn has_pending_migrations(pool: &SqlitePool) -> bool {
     // A missing migrations table means nothing has been applied yet.
-    let applied: Vec<i64> = sqlx::query_scalar("SELECT version FROM _sqlx_migrations WHERE success")
-        .fetch_all(pool)
-        .await
-        .unwrap_or_default();
+    let applied: Vec<i64> =
+        sqlx::query_scalar("SELECT version FROM _sqlx_migrations WHERE success")
+            .fetch_all(pool)
+            .await
+            .unwrap_or_default();
     MIGRATOR.iter().any(|m| !applied.contains(&m.version))
 }
 
@@ -70,7 +76,10 @@ mod tests {
         let path = dir.join("cabinet.db");
 
         let pool = open(&path).await.unwrap();
-        let mode: String = sqlx::query_scalar("PRAGMA journal_mode").fetch_one(&pool).await.unwrap();
+        let mode: String = sqlx::query_scalar("PRAGMA journal_mode")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
         assert_eq!(mode, "wal");
         pool.close().await;
 

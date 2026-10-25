@@ -40,7 +40,11 @@ struct Health {
 async fn health(State(state): State<AppState>) -> Json<Health> {
     let ok = sqlx::query("SELECT 1").execute(&state.db).await.is_ok();
     Json(Health {
-        status: if ok { "ok" } else { "degraded" },
+        status: if ok {
+            "ok"
+        } else {
+            "degraded"
+        },
         version: env!("CARGO_PKG_VERSION"),
     })
 }

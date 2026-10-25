@@ -54,7 +54,6 @@ Real API, seeded data. Seeing and testing the design early.
 ## Phase 4 — Metadata and matching
 
 - [x] Provider client: TMDB (series, seasons, episodes, episode groups, movies)
-- [ ] Provider client: TVDB (season types as orderings)
 - [x] Import a series: items for every episode, orderings (aired default, DVD, absolute), external IDs
 - [x] Import a movie
 - [x] Cross-reference secondary provider IDs where they map cleanly
@@ -63,7 +62,6 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Refresh scheduling: ended and cancelled series less often
 - [x] Offline behaviour: cached metadata, refresh retries when providers are unreachable
 - [x] Item tags from external sources (filler lists), set through `PUT /items/{id}/tags`
-- [ ] AniDB support (decide: v1 or later)
 - [x] Identify series: explicit ID in path, `.nfo`, provider search with year hints
 - [x] Folder → series proposals in the review queue when unsure
 - [x] Filename parser (S/E, `1x01`, absolute, multi-episode, year, edition, part), test-first on a name corpus
@@ -140,6 +138,14 @@ Real API, seeded data. Seeing and testing the design early.
 - [ ] Upgrade test: migrate a large database from an older version, with backup
 - [ ] Install, configuration and \*arr setup docs
 - [ ] API reference from the OpenAPI spec
+
+## Later stage — more metadata providers
+
+TMDB is v1's only provider. These plug in behind the same `Provider` interface.
+
+- [ ] TVDB client (season types as orderings; needs a subscriber or project key)
+- [ ] AniDB client (its own episode numbering as an ordering)
+- [ ] Choosing the primary provider per library or series
 
 ## After v1
 

@@ -9,6 +9,11 @@ Self-hosted media library manager and streaming server. Rust backend (`crates/`)
 - After changing API handlers: `cd web && pnpm api:types`
 - Format before committing: `cargo fmt` and `cd web && pnpm format`
 
+## Database
+
+- Migrations in `crates/core/migrations` are append-only: never edit an applied one (existing databases fail their checksum). Add `NNNN_name.sql`.
+- Derived state (availability, wanted, gaps, next up) is computed, never stored.
+
 ## Web UI conventions
 
 - Plain React: routing in `web/src/lib/router.ts` (+ `components/Link.tsx`), data via `api/useApi.ts`, typed calls in `api/client.ts`. Add libraries only when needed.

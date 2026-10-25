@@ -6,6 +6,7 @@ use sqlx::SqliteConnection;
 
 pub const FILE_ADDED: &str = "file.added";
 pub const FILE_CHANGED: &str = "file.changed";
+pub const FILE_IGNORED: &str = "file.ignored";
 pub const FILE_MISSING: &str = "file.missing";
 pub const FILE_MOVED: &str = "file.moved";
 pub const FILE_RESTORED: &str = "file.restored";
@@ -14,6 +15,8 @@ pub const ITEM_REFRESHED: &str = "item.refreshed";
 pub const ITEM_UNWANTED: &str = "item.unwanted";
 pub const ITEM_WANTED: &str = "item.wanted";
 pub const LIBRARY_ADDED: &str = "library.added";
+pub const LINK_CREATED: &str = "link.created";
+pub const MATCH_NEEDS_REVIEW: &str = "match.needs_review";
 pub const LIBRARY_REMOVED: &str = "library.removed";
 pub const ROOT_ADDED: &str = "root.added";
 pub const ROOT_CHANGED: &str = "root.changed";

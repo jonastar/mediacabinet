@@ -120,7 +120,7 @@ async fn apply(
     unreadable: Walk,
 ) -> Result<ScanReport, ScanError> {
     let now = chrono::Utc::now().timestamp();
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
 
     // Missing first, then park moved rows on temporary paths, so swaps and files
     // moved onto a vanished file's path never collide on the unique path index.
@@ -381,7 +381,7 @@ pub async fn probe_root_with_progress(
 }
 
 async fn save_probe(pool: &SqlitePool, file_id: i64, probe: &Probe) -> Result<(), sqlx::Error> {
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
     sqlx::query("DELETE FROM media_stream WHERE file_id = ?")
         .bind(file_id)
         .execute(&mut *tx)

@@ -58,6 +58,15 @@ async fn has_pending_migrations(pool: &SqlitePool) -> bool {
     MIGRATOR.iter().any(|m| !applied.contains(&m.version))
 }
 
+/// Starts a transaction that will write. `BEGIN IMMEDIATE` takes the write lock
+/// up front, so concurrent writers wait (up to the busy timeout) instead of
+/// failing with "database is locked" when a read would upgrade to a write.
+pub async fn begin_write(
+    pool: &SqlitePool,
+) -> Result<sqlx::Transaction<'static, sqlx::Sqlite>, sqlx::Error> {
+    pool.begin_with("BEGIN IMMEDIATE").await
+}
+
 fn backup_path(path: &Path) -> PathBuf {
     let stamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ");
     let mut name = path.file_name().unwrap_or_default().to_os_string();

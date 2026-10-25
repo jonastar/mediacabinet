@@ -64,17 +64,17 @@ Real API, seeded data. Seeing and testing the design early.
 - [ ] Offline behaviour: cached metadata, refresh retries when providers are unreachable
 - [ ] Item tags from external sources (filler lists)
 - [ ] AniDB support (decide: v1 or later)
-- [ ] Identify series: explicit ID in path, `.nfo`, provider search with year hints
-- [ ] Folder → series proposals in the review queue when unsure
-- [ ] Filename parser (S/E, `1x01`, absolute, multi-episode, year, edition, part), test-first on a name corpus
-- [ ] Resolve parsed numbers against orderings (root or series setting, default, then others)
-- [ ] Sanity checks: runtime vs expected, episode title in the filename
-- [ ] Accept above threshold as `file_link`, otherwise `match_candidate`
-- [ ] Movies: editions, multi-part files, versions (4K and 1080p of one film)
-- [ ] Extras and junk: samples, trailers, featurettes ignored or linked as extras
-- [ ] Pinned links and user decisions survive every rescan
-- [ ] Review queue actions: accept, accept and pin, reject, pick another candidate, ignore file
-- [ ] Decide: match confidence thresholds global, per root or per source
+- [x] Identify series: explicit ID in path, `.nfo`, provider search with year hints
+- [x] Folder → series proposals in the review queue when unsure
+- [x] Filename parser (S/E, `1x01`, absolute, multi-episode, year, edition, part), test-first on a name corpus
+- [x] Resolve parsed numbers against orderings (root or series setting, default, then others)
+- [x] Sanity checks: runtime vs expected, episode title in the filename
+- [x] Accept above threshold as `file_link`, otherwise `match_candidate`
+- [x] Movies: editions, multi-part files, versions (4K and 1080p of one film)
+- [x] Extras and junk: samples, trailers, featurettes ignored or linked as extras
+- [x] Pinned links and user decisions survive every rescan
+- [x] Review queue actions: accept, accept and pin, reject, pick another candidate, ignore file
+- [x] Decide: match confidence thresholds global, per root or per source
 - [ ] UI: Review queue (path segments by template token, fact tiles, candidates with confidence)
 - [ ] UI: Series Manage panels for metadata and orderings (edit details, lock fields, change match)
 - [ ] UI: Movies library and movie page

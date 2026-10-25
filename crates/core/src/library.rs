@@ -213,7 +213,7 @@ pub async fn create(pool: &SqlitePool, name: &str, kind: &str) -> Result<Library
     if LibraryKind::parse(kind).is_none() {
         return invalid("A library holds either tv or movies.");
     }
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
     let id: i64 = sqlx::query_scalar("INSERT INTO library (name, kind) VALUES (?, ?) RETURNING id")
         .bind(name)
         .bind(kind)
@@ -252,7 +252,7 @@ pub async fn delete(pool: &SqlitePool, id: i64) -> Result<(), LibraryError> {
             "Remove the library's folders first.".into(),
         ));
     }
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
     let done = sqlx::query("DELETE FROM library WHERE id = ?")
         .bind(id)
         .execute(&mut *tx)
@@ -345,7 +345,7 @@ pub async fn add_root(
     }
     let path = check_folder(pool, new.path, None).await?;
 
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
     if new.is_import_target {
         sqlx::query("UPDATE library_root SET is_import_target = 0 WHERE library_id = ?")
             .bind(library_id)
@@ -413,7 +413,7 @@ pub async fn update_root(
         return invalid("A read-only folder can't be the import target.");
     }
 
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
     if import_target && !current.is_import_target {
         sqlx::query("UPDATE library_root SET is_import_target = 0 WHERE library_id = ?")
             .bind(current.library_id)
@@ -451,7 +451,7 @@ pub async fn remove_root(pool: &SqlitePool, id: i64) -> Result<(), LibraryError>
              Move or unlink them first; removing it would lose those matches."
         )));
     }
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
     sqlx::query("DELETE FROM match_candidate WHERE root_id = ?1 OR file_id IN (SELECT id FROM media_file WHERE root_id = ?1)")
         .bind(id)
         .execute(&mut *tx)

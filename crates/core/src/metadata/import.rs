@@ -222,7 +222,7 @@ pub async fn import_series(
     pool: &SqlitePool,
     data: &SeriesData,
 ) -> Result<ImportReport, ImportError> {
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
     let existing = find_primary(&mut tx, &data.provider, &data.id, "series").await?;
     let report = sync_series(&mut tx, existing, data).await?;
     tx.commit().await?;
@@ -235,7 +235,7 @@ pub async fn refresh_series(
     series_id: i64,
     data: &SeriesData,
 ) -> Result<ImportReport, ImportError> {
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
     if let Some(other) = find_primary(&mut tx, &data.provider, &data.id, "series").await?
         && other != series_id
     {
@@ -632,7 +632,7 @@ pub async fn import_movie(
     pool: &SqlitePool,
     data: &MovieData,
 ) -> Result<ImportReport, ImportError> {
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
     let mut report = ImportReport::default();
     let id = match find_primary(&mut tx, &data.provider, &data.id, "movie").await? {
         Some(id) => id,

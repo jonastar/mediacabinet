@@ -12,6 +12,29 @@ mod web;
 pub struct AppState {
     pub db: sqlx::SqlitePool,
     pub scans: cabinet_core::scan::ScanService,
+    pub provider: cabinet_core::metadata::Provider,
+    pub match_settings: cabinet_core::matcher::MatchSettings,
+}
+
+/// TMDB with CABINET_TMDB_KEY, or an offline catalog with CABINET_METADATA_CATALOG.
+fn metadata_provider() -> anyhow::Result<cabinet_core::metadata::Provider> {
+    use cabinet_core::metadata::{Provider, fake::Catalog, tmdb::Tmdb};
+    if let Ok(path) = std::env::var("CABINET_METADATA_CATALOG") {
+        let json = std::fs::read_to_string(&path).with_context(|| format!("reading {path}"))?;
+        let catalog = Catalog::from_json(&json).with_context(|| format!("parsing {path}"))?;
+        tracing::warn!(
+            path,
+            "using an offline metadata catalog instead of a provider"
+        );
+        return Ok(Provider::Fake(std::sync::Arc::new(catalog)));
+    }
+    match std::env::var("CABINET_TMDB_KEY") {
+        Ok(key) if !key.trim().is_empty() => Ok(Provider::Tmdb(Tmdb::new(key.trim()))),
+        _ => {
+            tracing::warn!("no metadata provider: set CABINET_TMDB_KEY to identify new folders");
+            Ok(Provider::None)
+        }
+    }
 }
 
 fn env_number(name: &str, default: u64) -> anyhow::Result<u64> {
@@ -58,7 +81,21 @@ async fn main() -> anyhow::Result<()> {
             .into(),
         ..Default::default()
     };
-    let scans = cabinet_core::scan::ScanService::new(db.clone(), prober);
+    let provider = metadata_provider()?;
+    let match_settings = cabinet_core::matcher::MatchSettings {
+        accept: match std::env::var("CABINET_MATCH_THRESHOLD") {
+            Ok(v) => v
+                .parse()
+                .context("CABINET_MATCH_THRESHOLD must be a number between 0 and 1")?,
+            Err(_) => cabinet_core::matcher::MatchSettings::default().accept,
+        },
+    };
+    let scans = cabinet_core::scan::ScanService::with_matching(
+        db.clone(),
+        prober,
+        provider.clone(),
+        match_settings,
+    );
     scans.recover().await?;
     let interval = env_number("CABINET_SCAN_INTERVAL_MINUTES", 360)?;
     if interval > 0 {
@@ -68,9 +105,14 @@ async fn main() -> anyhow::Result<()> {
         scans.spawn_watcher(Duration::from_secs(10));
     }
 
-    let app = api::router(AppState { db, scans })
-        .fallback(web::serve)
-        .layer(tower_http::trace::TraceLayer::new_for_http());
+    let app = api::router(AppState {
+        db,
+        scans,
+        provider,
+        match_settings,
+    })
+    .fallback(web::serve)
+    .layer(tower_http::trace::TraceLayer::new_for_http());
 
     let listener = tokio::net::TcpListener::bind(bind).await?;
     tracing::info!(%bind, data_dir = %data_dir.display(), "Media Cabinet listening");

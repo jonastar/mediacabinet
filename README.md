@@ -69,6 +69,9 @@ The rules beyond the formatters' defaults are listed in [CLAUDE.md](CLAUDE.md#co
 | `CABINET_SCAN_INTERVAL_MINUTES` | `360` | Rescan each scanned root this often; `0` turns it off |
 | `CABINET_WATCH` | `1` | Rescan a root shortly after its files change; `0` turns it off |
 | `CABINET_FFPROBE` | `ffprobe` | ffprobe to run |
+| `CABINET_TMDB_KEY` | none | TMDB API key (v3) or read access token (v4); needed to identify new folders |
+| `CABINET_METADATA_CATALOG` | none | Use an offline catalog instead of TMDB, e.g. `crates/core/tests/data/catalog.json` for the fixture library |
+| `CABINET_MATCH_THRESHOLD` | `0.85` | Matches at or above this confidence link automatically; below go to review |
 | `RUST_LOG` | `info` | Log filter |
 
 The database is backed up to `cabinet.db.<timestamp>.bak` before any migration runs.

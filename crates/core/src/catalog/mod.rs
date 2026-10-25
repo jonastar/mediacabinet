@@ -1087,7 +1087,7 @@ pub async fn set_monitored(
     item_id: i64,
     monitored: Option<bool>,
 ) -> Result<(), CatalogError> {
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
     let (kind, parent): (String, Option<i64>) =
         sqlx::query_as("SELECT kind, parent_id FROM item WHERE id = ?")
             .bind(item_id)

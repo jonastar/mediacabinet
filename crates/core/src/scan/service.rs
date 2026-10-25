@@ -22,6 +22,8 @@ use utoipa::ToSchema;
 
 use super::{ProbeRootError, Prober, ScanError, probe_root_with_progress, scan_root};
 use crate::events;
+use crate::matcher::{MatchSettings, match_root};
+use crate::metadata::Provider;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Trigger {
@@ -49,6 +51,8 @@ pub enum Phase {
     Walking,
     /// Reading streams from new and changed files.
     Probing,
+    /// Identifying folders and linking files to items.
+    Matching,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -71,6 +75,8 @@ struct Running {
 struct Inner {
     pool: SqlitePool,
     prober: Prober,
+    provider: Provider,
+    settings: MatchSettings,
     running: Mutex<HashMap<i64, Running>>,
 }
 
@@ -84,11 +90,24 @@ fn now() -> i64 {
 }
 
 impl ScanService {
+    /// Without a metadata provider, scans still link files in folders already
+    /// identified; new folders wait until a provider is configured.
     pub fn new(pool: SqlitePool, prober: Prober) -> ScanService {
+        ScanService::with_matching(pool, prober, Provider::None, MatchSettings::default())
+    }
+
+    pub fn with_matching(
+        pool: SqlitePool,
+        prober: Prober,
+        provider: Provider,
+        settings: MatchSettings,
+    ) -> ScanService {
         ScanService {
             inner: Arc::new(Inner {
                 pool,
                 prober,
+                provider,
+                settings,
                 running: Mutex::new(HashMap::new()),
             }),
         }
@@ -214,16 +233,31 @@ impl ScanService {
                         })
                     })
                     .await;
-                match probe {
-                    Ok(probe) => ("ok", Some(json!({ "scan": scan, "probe": probe })), None),
+                let (mut report, mut problem) = match probe {
+                    Ok(probe) => (json!({ "scan": scan, "probe": probe }), None),
                     // Files were still found; only stream details are missing.
                     Err(ProbeRootError::Unavailable(e)) => (
-                        "ok",
-                        Some(json!({ "scan": scan })),
+                        json!({ "scan": scan }),
                         Some(format!("Files scanned, but not probed: {e}")),
                     ),
-                    Err(e) => ("failed", Some(json!({ "scan": scan })), Some(e.to_string())),
+                    Err(e) => (json!({ "scan": scan }), Some(e.to_string())),
+                };
+                self.set_progress(root_id, |p| p.phase = Phase::Matching);
+                match match_root(pool, root_id, &self.inner.provider, self.inner.settings).await {
+                    Ok(matched) => {
+                        if let Some(e) = &matched.provider_error {
+                            problem.get_or_insert_with(|| {
+                                format!("Files scanned; identifying new folders failed: {e}")
+                            });
+                        }
+                        report["match"] = json!(matched);
+                    }
+                    Err(e) => {
+                        problem
+                            .get_or_insert_with(|| format!("Files scanned; matching failed: {e}"));
+                    }
                 }
+                ("ok", Some(report), problem)
             }
             Err(e @ (ScanError::RootUnreachable { .. } | ScanError::RootEmpty { .. })) => {
                 sqlx::query("UPDATE library_root SET offline_since = coalesce(offline_since, unixepoch()) WHERE id = ?")
@@ -238,7 +272,7 @@ impl ScanService {
             Err(e) => ("failed", None, Some(e.to_string())),
         };
 
-        let mut tx = pool.begin().await?;
+        let mut tx = crate::db::begin_write(pool).await?;
         sqlx::query("UPDATE scan_run SET state = ?, finished_at = unixepoch(), report = ?, error = ? WHERE id = ?")
             .bind(state)
             .bind(report.map(|r| r.to_string()))

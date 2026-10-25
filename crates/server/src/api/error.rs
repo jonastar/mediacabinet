@@ -17,6 +17,8 @@ pub enum ApiError {
     NotFound,
     BadRequest(String),
     Conflict(String),
+    /// A dependency such as the metadata provider is unavailable.
+    Unavailable(String),
     Internal(String),
 }
 
@@ -26,6 +28,7 @@ impl IntoResponse for ApiError {
             ApiError::NotFound => (StatusCode::NOT_FOUND, "not found".to_string()),
             ApiError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
             ApiError::Conflict(message) => (StatusCode::CONFLICT, message),
+            ApiError::Unavailable(message) => (StatusCode::SERVICE_UNAVAILABLE, message),
             ApiError::Internal(message) => {
                 tracing::error!(error = message, "request failed");
                 (

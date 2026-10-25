@@ -336,3 +336,58 @@ async fn the_watcher_rescans_after_changes() {
     assert_eq!(present, 2);
     assert!(scan_runs(&pool).await.iter().any(|r| r.0 == "watch"));
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn concurrent_scans_of_several_roots_dont_lock_each_other_out() {
+    let (dir, pool) = db().await;
+    let tv = library::create(&pool, "TV", "tv").await.unwrap();
+    let prober = Prober {
+        program: "/nonexistent/ffprobe".into(),
+        ..Prober::default()
+    };
+    let catalog =
+        cabinet_core::metadata::fake::Catalog::from_json(include_str!("data/catalog.json"))
+            .unwrap();
+    let provider = cabinet_core::metadata::Provider::Fake(std::sync::Arc::new(catalog));
+    let scans = ScanService::with_matching(pool.clone(), prober, provider, Default::default());
+    // Each root holds a different catalog series, so imports run side by side.
+    let shows = [
+        "Night Harbor (2019)",
+        "Glass Orchard (2021)",
+        "Lantern Street (2021)",
+        "Paper Moons (2008)",
+    ];
+    let mut roots = Vec::new();
+    for (r, show) in shows.iter().enumerate() {
+        let files: Vec<String> = (1..=6)
+            .map(|e| format!("{show}/Season 01/{show} - S01E{e:02}.mkv"))
+            .collect();
+        let refs: Vec<&str> = files.iter().map(String::as_str).collect();
+        let path = folder(dir.path(), &format!("root{r}"), &refs);
+        roots.push(
+            library::add_root(&pool, tv.id, new_root(&path))
+                .await
+                .unwrap()
+                .id,
+        );
+    }
+
+    for id in &roots {
+        scans.request(*id, Trigger::Manual);
+    }
+    for id in &roots {
+        scans.wait_idle(*id).await;
+    }
+
+    for (trigger, state, error) in scan_runs(&pool).await {
+        assert_eq!(state, "ok", "{trigger}: {error:?}");
+        // ffprobe is missing on purpose; any other problem is a failure.
+        let error = error.unwrap_or_default();
+        assert!(error.is_empty() || error.contains("not probed"), "{error}");
+    }
+    let links: i64 = sqlx::query_scalar("SELECT count(*) FROM file_link")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+    assert_eq!(links, 24);
+}

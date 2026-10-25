@@ -39,7 +39,7 @@ pub async fn seed(pool: &SqlitePool, media_dir: &Path, now: i64) -> Result<(), D
     std::fs::create_dir_all(&tv_root)?;
     let old_root = media_dir.join("old-nas-offline");
 
-    let mut tx = pool.begin().await?;
+    let mut tx = crate::db::begin_write(pool).await?;
     let mut s = Seeder { conn: &mut tx, now };
     s.exec("INSERT INTO app_user (id, name, is_admin) VALUES (1, 'demo', 1)")
         .await?;

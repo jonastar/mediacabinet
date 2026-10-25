@@ -216,10 +216,10 @@
   {
    "provider": "tmdb",
    "id": "99011",
-   "title": "Night Harbour",
+   "title": "Night Harbor",
    "original_title": null,
    "year": 2004,
-   "overview": "Night Harbour: an invented series for testing.",
+   "overview": "Night Harbor: an invented documentary series from 2004, for testing ambiguous titles.",
    "status": "ended",
    "genres": [
     "Documentary"

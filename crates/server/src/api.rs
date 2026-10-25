@@ -13,6 +13,7 @@ use crate::AppState;
 mod catalog;
 mod error;
 mod library;
+mod review;
 
 pub use error::ApiError;
 
@@ -37,7 +38,14 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(library::propose_template))
         .routes(routes!(library::check_template))
         .routes(routes!(library::list_folders))
-        .routes(routes!(library::placement_example));
+        .routes(routes!(library::placement_example))
+        .routes(routes!(review::queue))
+        .routes(routes!(review::accept))
+        .routes(routes!(review::reject))
+        .routes(routes!(review::link_file))
+        .routes(routes!(review::ignore_file))
+        .routes(routes!(review::identify_folder))
+        .routes(routes!(review::search));
     OpenApiRouter::with_openapi(ApiDoc::openapi()).nest("/api", api)
 }
 

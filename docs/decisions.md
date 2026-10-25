@@ -15,6 +15,10 @@ Settles the stack and the build-blocking open questions in `media-cabinet-handof
 | Streaming | In v1, with our own player. Web player first. |
 | Deployment | Both: a single binary with the UI embedded, and a Docker image that adds ffmpeg. |
 
+## Data model
+
+- Seasons are not items; they belong to an ordering (`ordering_season`). Season-level actions (monitor a season, mark it watched) are bulk actions on that season's episodes in a given ordering. Accepted trade-off: nothing can be stored on a season across orderings, and a rule like "monitor future episodes of Season 3" isn't supported. Add a season-scoped rule on `ordering_season` if that's ever needed.
+
 ## Backend stack
 
 | Concern | Choice | Notes |

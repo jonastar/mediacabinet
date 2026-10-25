@@ -22,8 +22,8 @@ Tick items as they land. Open questions from the spec are listed in the phase th
 - [x] Discover: walk roots, skip junk, record files
 - [x] File identity across renames, swaps and cross-device moves (inode, path, content hash)
 - [x] Missing and restored files; unreachable, empty and unreadable roots change nothing
-- [ ] Probe: ffprobe streams into `media_stream` for new and changed files
-- [ ] Sidecars: associate subtitles, `.nfo` and artwork with their videos
+- [x] Probe: ffprobe streams into `media_stream` for new and changed files
+- [x] Sidecars: associate subtitles, `.nfo` and artwork with their videos
 
 ## Phase 2 — Web UI foundation
 

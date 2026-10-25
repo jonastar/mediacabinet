@@ -36,6 +36,8 @@ pub struct Found {
 #[derive(Debug, Default)]
 pub struct Walk {
     pub files: Vec<Found>,
+    /// Subtitles, `.nfo` and artwork, as relative paths.
+    pub sidecars: Vec<String>,
     /// Relative paths that could not be read. Files known under them are left
     /// untouched, never marked missing.
     pub unreadable: Vec<String>,
@@ -82,7 +84,11 @@ pub fn walk(root: &Path) -> io::Result<Walk> {
                 continue;
             }
         };
-        if !entry.file_type().is_file() || !is_video(entry.path()) {
+        if !entry.file_type().is_file() {
+            continue;
+        }
+        let is_sidecar = super::sidecar::kind_of(entry.path()).is_some();
+        if !is_video(entry.path()) && !is_sidecar {
             continue;
         }
         let Some(relative_path) = relative(root, entry.path()) else {
@@ -90,6 +96,10 @@ pub fn walk(root: &Path) -> io::Result<Walk> {
             tracing::warn!(path = ?entry.path(), "skipping file with a non-UTF-8 name");
             continue;
         };
+        if is_sidecar {
+            walk.sidecars.push(relative_path);
+            continue;
+        }
         let metadata = match entry.metadata() {
             Ok(metadata) => metadata,
             Err(err) => {

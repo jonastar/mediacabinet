@@ -1,13 +1,18 @@
 //! Scanning: discover files on a root and keep their identity across renames and
-//! moves. See `plan` for how found files are matched to known ones.
+//! moves (see `plan`), attach sidecars, then probe new and changed files.
 //!
 //! Scans of the same root must not run concurrently; the caller serialises them.
 
 mod hash;
 mod plan;
+mod probe;
+mod sidecar;
 mod walk;
 
+use std::collections::HashMap;
 use std::path::PathBuf;
+
+use futures::StreamExt;
 
 use serde::Serialize;
 use serde_json::json;
@@ -17,6 +22,7 @@ use crate::events;
 use plan::{Existing, MatchKind, Plan};
 
 pub use hash::partial_hash;
+pub use probe::{Probe, ProbeError, Prober, Stream};
 pub use walk::{Found, Walk, walk};
 
 #[derive(Debug, thiserror::Error)]
@@ -51,6 +57,8 @@ pub struct ScanReport {
     /// Files and folders that couldn't be read; files known under them were left alone.
     pub unreadable: usize,
     pub skipped_non_utf8: usize,
+    /// Sidecars attached to a video after this scan.
+    pub sidecars: usize,
 }
 
 /// Scans one library root and records what changed, with events, in one transaction.
@@ -74,8 +82,8 @@ pub async fn scan_root(pool: &SqlitePool, root_id: i64) -> Result<ScanReport, Sc
     .collect();
     let known = existing.iter().filter(|r| r.status == "present").count();
 
-    let (plan, report) = tokio::task::spawn_blocking(move || {
-        let walk = walk::walk(&root).map_err(|source| ScanError::RootUnreachable {
+    let (plan, report, sidecars, unreadable) = tokio::task::spawn_blocking(move || {
+        let mut walk = walk::walk(&root).map_err(|source| ScanError::RootUnreachable {
             path: root.clone(),
             source,
         })?;
@@ -87,13 +95,18 @@ pub async fn scan_root(pool: &SqlitePool, root_id: i64) -> Result<ScanReport, Sc
             skipped_non_utf8: walk.skipped_non_utf8,
             ..ScanReport::default()
         };
+        let sidecars = std::mem::take(&mut walk.sidecars);
+        let unreadable = Walk {
+            unreadable: walk.unreadable.clone(),
+            ..Walk::default()
+        };
         let plan = plan::plan(existing, walk, &root, hash::partial_hash);
         report.unreadable += plan.unreadable_new;
-        Ok((plan, report))
+        Ok((plan, report, sidecars, unreadable))
     })
     .await??;
 
-    apply(pool, root_id, plan, report).await
+    apply(pool, root_id, plan, report, sidecars, unreadable).await
 }
 
 async fn apply(
@@ -101,6 +114,8 @@ async fn apply(
     root_id: i64,
     plan: Plan,
     mut report: ScanReport,
+    sidecars: Vec<String>,
+    unreadable: Walk,
 ) -> Result<ScanReport, ScanError> {
     let now = chrono::Utc::now().timestamp();
     let mut tx = pool.begin().await?;
@@ -137,19 +152,21 @@ async fn apply(
         };
         sqlx::query(
             "UPDATE media_file SET
-                 relative_path = ?, size = ?, mtime = ?, device_id = ?, inode = ?,
-                 content_hash = CASE WHEN ? THEN ? ELSE content_hash END,
+                 relative_path = ?3, size = ?4, mtime = ?5, device_id = ?6, inode = ?7,
+                 content_hash = CASE WHEN ?1 THEN ?2 ELSE content_hash END,
+                 probed_at = CASE WHEN ?1 THEN NULL ELSE probed_at END,
+                 probe_error = CASE WHEN ?1 THEN NULL ELSE probe_error END,
                  status = CASE WHEN status = 'ignored' THEN 'ignored' ELSE 'present' END,
-                 last_seen = ?
-             WHERE id = ?",
+                 last_seen = ?8
+             WHERE id = ?9",
         )
+        .bind(new_hash.is_some())
+        .bind(new_hash.flatten())
         .bind(&f.relative_path)
         .bind(f.size)
         .bind(f.mtime)
         .bind(f.device_id)
         .bind(f.inode)
-        .bind(new_hash.is_some())
-        .bind(new_hash.flatten())
         .bind(now)
         .bind(m.id)
         .execute(&mut *tx)
@@ -207,9 +224,186 @@ async fn apply(
         report.added += 1;
     }
 
+    report.sidecars = sync_sidecars(&mut tx, root_id, &sidecars, &unreadable).await?;
+
     tx.commit().await?;
     tracing::info!(root_id, ?report, "scan finished");
     Ok(report)
+}
+
+/// Makes the root's sidecar rows match what's on disk. Rows under unreadable folders
+/// are kept. Returns the number of sidecars attached.
+async fn sync_sidecars(
+    tx: &mut sqlx::SqliteConnection,
+    root_id: i64,
+    sidecars: &[String],
+    unreadable: &Walk,
+) -> Result<usize, sqlx::Error> {
+    let videos: Vec<(i64, String)> = sqlx::query_as(
+        "SELECT id, relative_path FROM media_file
+         WHERE root_id = ? AND status IN ('present', 'ignored')",
+    )
+    .bind(root_id)
+    .fetch_all(&mut *tx)
+    .await?;
+    let ids: HashMap<&str, i64> = videos.iter().map(|(id, p)| (p.as_str(), *id)).collect();
+    let paths: Vec<String> = videos.iter().map(|(_, p)| p.clone()).collect();
+    let assigned = sidecar::assign(&paths, sidecars);
+
+    let existing: Vec<(i64, String)> = sqlx::query_as(
+        "SELECT id, relative_path FROM sidecar WHERE root_id = ? AND location = 'root'",
+    )
+    .bind(root_id)
+    .fetch_all(&mut *tx)
+    .await?;
+    let keep: std::collections::HashSet<&str> =
+        assigned.iter().map(|a| a.relative_path.as_str()).collect();
+    for (id, path) in &existing {
+        if !keep.contains(path.as_str()) && !unreadable.is_unreadable(path) {
+            sqlx::query("DELETE FROM sidecar WHERE id = ?")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+        }
+    }
+
+    for a in &assigned {
+        sqlx::query(
+            "INSERT INTO sidecar
+                 (file_id, root_id, location, relative_path, kind, language, is_forced,
+                  is_hearing_impaired)
+             VALUES (?, ?, 'root', ?, ?, ?, ?, ?)
+             ON CONFLICT (root_id, location, relative_path) DO UPDATE SET
+                 file_id = excluded.file_id, kind = excluded.kind, language = excluded.language,
+                 is_forced = excluded.is_forced,
+                 is_hearing_impaired = excluded.is_hearing_impaired",
+        )
+        .bind(ids[a.video.as_str()])
+        .bind(root_id)
+        .bind(&a.relative_path)
+        .bind(a.kind)
+        .bind(&a.language)
+        .bind(a.is_forced)
+        .bind(a.is_hearing_impaired)
+        .execute(&mut *tx)
+        .await?;
+    }
+    Ok(assigned.len())
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum ProbeRootError {
+    #[error("library root {0} does not exist")]
+    RootNotFound(i64),
+    /// ffprobe couldn't be started at all; no files were marked as failed.
+    #[error(transparent)]
+    Unavailable(ProbeError),
+    #[error(transparent)]
+    Db(#[from] sqlx::Error),
+}
+
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize)]
+pub struct ProbeReport {
+    pub probed: usize,
+    pub failed: usize,
+}
+
+/// Probes the root's present files that haven't been probed since they were added
+/// or changed. A file that can't be probed records the error and isn't retried
+/// until its content changes.
+pub async fn probe_root(
+    pool: &SqlitePool,
+    root_id: i64,
+    prober: &Prober,
+) -> Result<ProbeReport, ProbeRootError> {
+    let root: String = sqlx::query_scalar("SELECT path FROM library_root WHERE id = ?")
+        .bind(root_id)
+        .fetch_optional(pool)
+        .await?
+        .ok_or(ProbeRootError::RootNotFound(root_id))?;
+    let root = PathBuf::from(root);
+    let pending: Vec<(i64, String)> = sqlx::query_as(
+        "SELECT id, relative_path FROM media_file
+         WHERE root_id = ? AND status = 'present' AND probed_at IS NULL
+         ORDER BY relative_path",
+    )
+    .bind(root_id)
+    .fetch_all(pool)
+    .await?;
+
+    let mut results = futures::stream::iter(pending)
+        .map(|(id, path)| {
+            let full = root.join(&path);
+            async move { (id, path, prober.probe(&full).await) }
+        })
+        .buffer_unordered(prober.concurrency.max(1));
+
+    let mut report = ProbeReport::default();
+    while let Some((id, path, result)) = results.next().await {
+        match result {
+            Ok(probe) => {
+                save_probe(pool, id, &probe).await?;
+                report.probed += 1;
+            }
+            Err(err @ ProbeError::Unavailable { .. }) => {
+                return Err(ProbeRootError::Unavailable(err));
+            }
+            Err(err) => {
+                tracing::warn!(path, error = %err, "probe failed");
+                sqlx::query(
+                    "UPDATE media_file SET probed_at = unixepoch(), probe_error = ? WHERE id = ?",
+                )
+                .bind(err.to_string())
+                .bind(id)
+                .execute(pool)
+                .await?;
+                report.failed += 1;
+            }
+        }
+    }
+    tracing::info!(root_id, ?report, "probe finished");
+    Ok(report)
+}
+
+async fn save_probe(pool: &SqlitePool, file_id: i64, probe: &Probe) -> Result<(), sqlx::Error> {
+    let mut tx = pool.begin().await?;
+    sqlx::query("DELETE FROM media_stream WHERE file_id = ?")
+        .bind(file_id)
+        .execute(&mut *tx)
+        .await?;
+    for s in &probe.streams {
+        sqlx::query(
+            "INSERT INTO media_stream
+                 (file_id, stream_index, kind, codec, language, channels, width, height,
+                  hdr_format, bitrate, is_default, is_forced)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(file_id)
+        .bind(s.index)
+        .bind(s.kind)
+        .bind(&s.codec)
+        .bind(&s.language)
+        .bind(s.channels)
+        .bind(s.width)
+        .bind(s.height)
+        .bind(&s.hdr_format)
+        .bind(s.bitrate)
+        .bind(s.is_default)
+        .bind(s.is_forced)
+        .execute(&mut *tx)
+        .await?;
+    }
+    sqlx::query(
+        "UPDATE media_file SET container = ?, duration_seconds = ?, probed_at = unixepoch(),
+             probe_error = NULL
+         WHERE id = ?",
+    )
+    .bind(&probe.container)
+    .bind(probe.duration_seconds)
+    .bind(file_id)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await
 }
 
 #[derive(sqlx::FromRow)]

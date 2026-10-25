@@ -348,3 +348,201 @@ impl Drop for Locked {
         let _ = fs::set_permissions(&self.0, fs::Permissions::from_mode(0o755));
     }
 }
+
+async fn sidecars(lib: &Lib) -> Vec<(String, String, Option<String>, bool)> {
+    sqlx::query_as(
+        "SELECT s.relative_path, f.relative_path, s.language, s.is_forced
+         FROM sidecar s JOIN media_file f ON f.id = s.file_id
+         ORDER BY s.relative_path",
+    )
+    .fetch_all(&lib.pool)
+    .await
+    .unwrap()
+}
+
+#[tokio::test]
+async fn sidecars_follow_the_files_on_disk() {
+    let lib = Lib::new().await;
+    lib.write("S1/e01.mkv", "1");
+    lib.write("S1/e01.en.srt", "sub");
+    lib.write("S1/e01.fr.forced.srt", "sub");
+    lib.write("S1/tvshow.nfo", "nfo");
+    assert_eq!(lib.scan().await.sidecars, 2);
+    assert_eq!(
+        sidecars(&lib).await,
+        [
+            (
+                "S1/e01.en.srt".into(),
+                "S1/e01.mkv".into(),
+                Some("eng".into()),
+                false
+            ),
+            (
+                "S1/e01.fr.forced.srt".into(),
+                "S1/e01.mkv".into(),
+                Some("fre".into()),
+                true
+            ),
+        ]
+    );
+
+    fs::remove_file(lib.path("S1/e01.fr.forced.srt")).unwrap();
+    lib.scan().await;
+    assert_eq!(sidecars(&lib).await.len(), 1);
+
+    // Renaming the video and its subtitle together keeps them attached.
+    fs::rename(lib.path("S1/e01.mkv"), lib.path("S1/Show - S01E01.mkv")).unwrap();
+    fs::rename(
+        lib.path("S1/e01.en.srt"),
+        lib.path("S1/Show - S01E01.en.srt"),
+    )
+    .unwrap();
+    lib.scan().await;
+    assert_eq!(
+        sidecars(&lib).await,
+        [(
+            "S1/Show - S01E01.en.srt".into(),
+            "S1/Show - S01E01.mkv".into(),
+            Some("eng".into()),
+            false
+        )]
+    );
+}
+
+fn has_ffmpeg() -> bool {
+    let ok = |program: &str| {
+        std::process::Command::new(program)
+            .arg("-version")
+            .output()
+            .is_ok_and(|o| o.status.success())
+    };
+    ok("ffmpeg") && ok("ffprobe")
+}
+
+/// A one-second clip with H.264 video and stereo AAC tagged as Japanese.
+fn make_clip(path: &Path, tone: u32) {
+    fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let status = std::process::Command::new("ffmpeg")
+        .args(["-nostdin", "-hide_banner", "-loglevel", "error", "-y"])
+        .args([
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=size=320x180:rate=24:duration=1",
+        ])
+        .args([
+            "-f",
+            "lavfi",
+            "-i",
+            &format!("sine=frequency={tone}:duration=1"),
+        ])
+        .args([
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-pix_fmt",
+            "yuv420p",
+        ])
+        .args(["-c:a", "aac", "-ac", "2", "-metadata:s:a:0", "language=jpn"])
+        .arg(path)
+        .status()
+        .unwrap();
+    assert!(status.success());
+}
+
+/// (kind, codec, width or channels, language)
+type StreamRow = (String, Option<String>, Option<i64>, Option<String>);
+
+#[tokio::test]
+async fn probes_new_and_changed_files() {
+    if !has_ffmpeg() {
+        eprintln!("skipping: ffmpeg not installed");
+        return;
+    }
+    let lib = Lib::new().await;
+    make_clip(&lib.path("e01.mkv"), 300);
+    lib.write("broken.mkv", "not a video");
+    lib.scan().await;
+    let prober = cabinet_core::scan::Prober::default();
+
+    let report = cabinet_core::scan::probe_root(&lib.pool, 1, &prober)
+        .await
+        .unwrap();
+    assert_eq!((report.probed, report.failed), (1, 1));
+
+    let id = lib.file_id("e01.mkv").await;
+    let streams: Vec<StreamRow> = sqlx::query_as(
+        "SELECT kind, codec, coalesce(width, channels), language
+         FROM media_stream WHERE file_id = ? ORDER BY stream_index",
+    )
+    .bind(id)
+    .fetch_all(&lib.pool)
+    .await
+    .unwrap();
+    assert_eq!(
+        streams,
+        [
+            ("video".into(), Some("h264".into()), Some(320), None),
+            (
+                "audio".into(),
+                Some("aac".into()),
+                Some(2),
+                Some("jpn".into())
+            ),
+        ]
+    );
+    let (duration, error): (f64, Option<String>) =
+        sqlx::query_as("SELECT duration_seconds, probe_error FROM media_file WHERE id = ?")
+            .bind(id)
+            .fetch_one(&lib.pool)
+            .await
+            .unwrap();
+    assert!((duration - 1.0).abs() < 0.1, "{duration}");
+    assert_eq!(error, None);
+    let broken: Option<String> =
+        sqlx::query_scalar("SELECT probe_error FROM media_file WHERE relative_path = 'broken.mkv'")
+            .fetch_one(&lib.pool)
+            .await
+            .unwrap();
+    assert!(broken.is_some());
+
+    // Nothing pending, so nothing probed again.
+    let report = cabinet_core::scan::probe_root(&lib.pool, 1, &prober)
+        .await
+        .unwrap();
+    assert_eq!((report.probed, report.failed), (0, 0));
+
+    // New content at the same path is probed again.
+    make_clip(&lib.path("e01.mkv"), 400);
+    assert_eq!(lib.scan().await.changed, 1);
+    let report = cabinet_core::scan::probe_root(&lib.pool, 1, &prober)
+        .await
+        .unwrap();
+    assert_eq!(report.probed, 1);
+}
+
+#[tokio::test]
+async fn missing_ffprobe_fails_without_marking_files() {
+    let lib = Lib::new().await;
+    lib.write("e01.mkv", "1");
+    lib.scan().await;
+    let prober = cabinet_core::scan::Prober {
+        program: "/nonexistent/ffprobe".into(),
+        ..Default::default()
+    };
+
+    let err = cabinet_core::scan::probe_root(&lib.pool, 1, &prober)
+        .await
+        .unwrap_err();
+
+    assert!(
+        matches!(err, cabinet_core::scan::ProbeRootError::Unavailable(_)),
+        "{err}"
+    );
+    let probed: Option<i64> = sqlx::query_scalar("SELECT probed_at FROM media_file")
+        .fetch_one(&lib.pool)
+        .await
+        .unwrap();
+    assert_eq!(probed, None);
+}

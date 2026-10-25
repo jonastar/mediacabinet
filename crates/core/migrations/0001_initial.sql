@@ -41,6 +41,11 @@ CREATE TABLE media_file (
     content_hash  TEXT,
     status        TEXT NOT NULL DEFAULT 'present'
                   CHECK (status IN ('present', 'missing', 'removed', 'ignored')),
+    -- From ffprobe. probed_at is null until probed, and reset when content changes.
+    container     TEXT,
+    duration_seconds REAL,
+    probed_at     INTEGER,
+    probe_error   TEXT,
     first_seen    INTEGER NOT NULL DEFAULT (unixepoch()),
     last_seen     INTEGER NOT NULL DEFAULT (unixepoch())
 ) STRICT;
@@ -70,12 +75,18 @@ CREATE TABLE media_stream (
 ) STRICT;
 
 CREATE TABLE sidecar (
-    id       INTEGER PRIMARY KEY,
-    file_id  INTEGER NOT NULL REFERENCES media_file (id) ON DELETE CASCADE,
-    -- Absolute: next to the video, or in the cache directory for read-only roots.
-    path     TEXT NOT NULL UNIQUE,
-    kind     TEXT NOT NULL CHECK (kind IN ('subtitle', 'nfo', 'artwork')),
-    language TEXT
+    id            INTEGER PRIMARY KEY,
+    file_id       INTEGER NOT NULL REFERENCES media_file (id) ON DELETE CASCADE,
+    root_id       INTEGER NOT NULL REFERENCES library_root (id) ON DELETE CASCADE,
+    -- 'root': next to the video, relative to the root. 'cache': in the cache
+    -- directory, for read-only roots.
+    location      TEXT NOT NULL DEFAULT 'root' CHECK (location IN ('root', 'cache')),
+    relative_path TEXT NOT NULL,
+    kind          TEXT NOT NULL CHECK (kind IN ('subtitle', 'nfo', 'artwork')),
+    language      TEXT,
+    is_forced     INTEGER NOT NULL DEFAULT 0 CHECK (is_forced IN (0, 1)),
+    is_hearing_impaired INTEGER NOT NULL DEFAULT 0 CHECK (is_hearing_impaired IN (0, 1)),
+    UNIQUE (root_id, location, relative_path)
 ) STRICT;
 
 CREATE INDEX sidecar_file ON sidecar (file_id);

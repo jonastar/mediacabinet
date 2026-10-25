@@ -30,13 +30,29 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     .await?;
 
     let report = cabinet_core::scan::scan_root(&pool, 1).await?;
-    let files: Vec<(String, String)> =
-        sqlx::query_as("SELECT status, relative_path FROM media_file ORDER BY relative_path")
-            .fetch_all(&pool)
-            .await?;
-    for (status, path) in files {
-        println!("{status:8} {path}");
+    let prober = cabinet_core::scan::Prober::default();
+    let probed = cabinet_core::scan::probe_root(&pool, 1, &prober).await?;
+    let files: Vec<(String, String, String)> = sqlx::query_as(
+        "SELECT f.status, f.relative_path,
+                coalesce((SELECT group_concat(
+                     s.kind || ':' || coalesce(s.codec, '?')
+                     || coalesce(' ' || s.width || 'x' || s.height, '')
+                     || coalesce(' ' || s.hdr_format, '')
+                     || coalesce(' ' || s.channels || 'ch', '')
+                     || coalesce(' ' || s.language, '')
+                     || CASE WHEN s.is_forced THEN ' forced' ELSE '' END, ', ')
+                     FROM media_stream s WHERE s.file_id = f.id), f.probe_error, '')
+                || coalesce((SELECT ' | sidecars: ' || group_concat(
+                     replace(c.relative_path, rtrim(c.relative_path, replace(c.relative_path, '/', '')), ''), ', ')
+                     FROM sidecar c WHERE c.file_id = f.id), '')
+         FROM media_file f ORDER BY f.relative_path",
+    )
+    .fetch_all(&pool)
+    .await?;
+    for (status, path, details) in files {
+        println!("{status:8} {path}\n         {details}");
     }
     println!("\n{}", serde_json::to_string_pretty(&report)?);
+    println!("{}", serde_json::to_string_pretty(&probed)?);
     Ok(())
 }

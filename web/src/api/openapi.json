@@ -53,6 +53,66 @@
         }
       }
     },
+    "/api/calendar": {
+      "get": {
+        "tags": [
+          "wanted"
+        ],
+        "summary": "Episodes and movie releases in a time range, by air time.",
+        "operationId": "calendar",
+        "parameters": [
+          {
+            "name": "from",
+            "in": "query",
+            "description": "Unix seconds; defaults to 7 days ago.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "to",
+            "in": "query",
+            "description": "Unix seconds; defaults to 28 days from now.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CalendarEntry"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/files/{id}/ignore": {
       "post": {
         "tags": [
@@ -404,6 +464,57 @@
         }
       }
     },
+    "/api/items/{id}/monitoring": {
+      "put": {
+        "tags": [
+          "wanted"
+        ],
+        "summary": "Sets a series' or movie's quality profile, and what a series' wanted follows.",
+        "operationId": "set_monitoring",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Monitoring"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/items/{id}/refresh": {
       "post": {
         "tags": [
@@ -451,6 +562,103 @@
             }
           },
           "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/status/{source}": {
+      "put": {
+        "tags": [
+          "wanted"
+        ],
+        "summary": "Sets an external tool's status for an item, e.g. Sonarr reporting a download.",
+        "operationId": "set_status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "source",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "wanted"
+        ],
+        "summary": "Clears an external tool's status for an item.",
+        "operationId": "clear_status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "source",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
             "content": {
               "application/json": {
                 "schema": {
@@ -912,6 +1120,29 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/quality-profiles": {
+      "get": {
+        "tags": [
+          "wanted"
+        ],
+        "summary": "Quality profiles: a resolution cutoff below which files are wanted as upgrades.",
+        "operationId": "quality_profiles",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/QualityProfile"
+                  }
                 }
               }
             }
@@ -1593,6 +1824,111 @@
           }
         }
       }
+    },
+    "/api/wanted": {
+      "get": {
+        "tags": [
+          "wanted"
+        ],
+        "summary": "Wanted episodes and movies with why they're wanted, their quality target and\nany external status. Filterable by library, series, reason and kind.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "library_id",
+            "in": "query",
+            "description": "Only this library.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "series_id",
+            "in": "query",
+            "description": "Only this series (its episodes).",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "description": "`missing`, `not_acquired` or `upgrade`.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "`episode` or `movie`.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WantedPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1690,6 +2026,71 @@
           "upcoming",
           "unknown"
         ]
+      },
+      "CalendarEntry": {
+        "type": "object",
+        "required": [
+          "item_id",
+          "kind",
+          "title",
+          "airs_at",
+          "airs_time_known",
+          "availability",
+          "monitored",
+          "wanted"
+        ],
+        "properties": {
+          "airs_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "airs_time_known": {
+            "type": "boolean"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/Availability"
+          },
+          "item_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`episode` or `movie`."
+          },
+          "monitored": {
+            "type": "boolean"
+          },
+          "number": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EpisodeNumber"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "series_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "series_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "wanted": {
+            "type": "boolean"
+          }
+        }
       },
       "Candidate": {
         "type": "object",
@@ -1874,6 +2275,13 @@
               },
               "wanted": {
                 "type": "boolean"
+              },
+              "wanted_reason": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "Why it's wanted: `missing`, `not_acquired` or `upgrade` (below the quality cutoff)."
               },
               "watch": {
                 "oneOf": [
@@ -2732,6 +3140,27 @@
           }
         }
       },
+      "Monitoring": {
+        "type": "object",
+        "description": "Monitoring settings. Leave a field out to keep it; send null to clear it.",
+        "properties": {
+          "quality_profile_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "A quality profile ID, or null for none."
+          },
+          "wanted_follows": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Series only: `playlist:<id>` that wanted follows, or null for all episodes."
+          }
+        }
+      },
       "MovieDetail": {
         "allOf": [
           {
@@ -3562,6 +3991,13 @@
                 "items": {
                   "$ref": "#/components/schemas/View"
                 }
+              },
+              "wanted_follows": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The playlist wanted follows (`playlist:<id>`), or none for all episodes."
               }
             }
           }
@@ -3698,6 +4134,33 @@
           }
         }
       },
+      "StatusUpdate": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "detail": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "JSON detail, e.g. `{\"progress\": 0.4, \"eta_seconds\": 540}`."
+          },
+          "expires_in_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Seconds until the status counts as stale. Default one hour, at most a week."
+          },
+          "status": {
+            "type": "string",
+            "description": "Free text. Well-known values the UI styles: searching, queued, downloading,\nimporting, failed."
+          }
+        }
+      },
       "Tags": {
         "type": "object",
         "required": [
@@ -3829,6 +4292,136 @@
           "source": {
             "type": "string",
             "description": "Where it comes from: a provider (`tmdb`), `user`, or `smart`/`manual` for playlists."
+          }
+        }
+      },
+      "WantedItem": {
+        "type": "object",
+        "required": [
+          "item_id",
+          "kind",
+          "title",
+          "airs_time_known",
+          "availability",
+          "reason",
+          "statuses",
+          "external_ids"
+        ],
+        "properties": {
+          "airs_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "airs_time_known": {
+            "type": "boolean"
+          },
+          "availability": {
+            "$ref": "#/components/schemas/Availability"
+          },
+          "best_height": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Height of the best present file (upgrades), and the cutoff it must reach."
+          },
+          "cutoff_height": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "external_ids": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": false,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Provider IDs, so acquisition tools can look the item up."
+          },
+          "item_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`episode` or `movie`."
+          },
+          "number": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EpisodeNumber",
+                "description": "Number in the series' default ordering."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "quality_profile": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string",
+            "description": "`missing`, `not_acquired` or `upgrade`."
+          },
+          "series_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "series_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalStatus"
+            },
+            "description": "Current external statuses (stale ones included, flagged)."
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "WantedPage": {
+        "type": "object",
+        "required": [
+          "items",
+          "total"
+        ],
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WantedItem"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },

@@ -32,7 +32,19 @@ export type MovieSummary = Schemas['MovieSummary']
 export type MovieDetail = Schemas['MovieDetail']
 export type SearchResults = Schemas['SearchResults']
 export type ImportReport = Schemas['ImportReport']
+export type WantedPage = Schemas['WantedPage']
+export type WantedItem = Schemas['WantedItem']
+export type CalendarEntry = Schemas['CalendarEntry']
+export type QualityProfile = Schemas['QualityProfile']
 export type LibraryKind = 'tv' | 'movies'
+
+export interface WantedQuery {
+  reason?: 'missing' | 'not_acquired' | 'upgrade'
+  series_id?: number
+  library_id?: number
+  limit?: number
+  offset?: number
+}
 
 export interface ItemEdit {
   title?: string
@@ -145,6 +157,22 @@ export const api = {
   rematchSeries: (seriesId: number, providerId: string) =>
     request<ImportReport>('POST', `/api/series/${seriesId}/rematch`, { provider_id: providerId }),
   rescanSeries: (seriesId: number) => request<void>('POST', `/api/series/${seriesId}/rescan`),
+  wanted: (q: WantedQuery = {}) => {
+    const params = new URLSearchParams()
+    for (const [k, v] of Object.entries(q)) {
+      if (v !== undefined) {
+        params.set(k, String(v))
+      }
+    }
+    return request<WantedPage>('GET', `/api/wanted?${params}`)
+  },
+  calendar: (from: number, to: number) =>
+    request<CalendarEntry[]>('GET', `/api/calendar?from=${from}&to=${to}`),
+  qualityProfiles: () => request<QualityProfile[]>('GET', '/api/quality-profiles'),
+  setMonitoring: (
+    itemId: number,
+    settings: { quality_profile_id?: number | null; wanted_follows?: string | null },
+  ) => request<void>('PUT', `/api/items/${itemId}/monitoring`, settings),
   placementExample: (libraryId: number) =>
     request<PlacementExample | null>('GET', `/api/libraries/${libraryId}/placement-example`),
 }

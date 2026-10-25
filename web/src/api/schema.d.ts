@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/calendar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Episodes and movie releases in a time range, by air time. */
+        get: operations["calendar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/files/{id}/ignore": {
         parameters: {
             query?: never;
@@ -179,6 +196,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/items/{id}/monitoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Sets a series' or movie's quality profile, and what a series' wanted follows. */
+        put: operations["set_monitoring"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/items/{id}/refresh": {
         parameters: {
             query?: never;
@@ -191,6 +225,24 @@ export interface paths {
         /** Fetches a series' or movie's metadata from its provider now. */
         post: operations["refresh_item"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}/status/{source}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Sets an external tool's status for an item, e.g. Sonarr reporting a download. */
+        put: operations["set_status"];
+        post?: never;
+        /** Clears an external tool's status for an item. */
+        delete: operations["clear_status"];
         options?: never;
         head?: never;
         patch?: never;
@@ -324,6 +376,23 @@ export interface paths {
         };
         /** A movie with its files (versions, editions and parts). */
         get: operations["movie_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/quality-profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Quality profiles: a resolution cutoff below which files are wanted as upgrades. */
+        get: operations["quality_profiles"];
         put?: never;
         post?: never;
         delete?: never;
@@ -590,6 +659,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/wanted": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Wanted episodes and movies with why they're wanted, their quality target and
+         *     any external status. Filterable by library, series, reason and kind.
+         */
+        get: operations["list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -627,6 +716,23 @@ export interface components {
         };
         /** @enum {string} */
         Availability: "available" | "missing" | "not_acquired" | "upcoming" | "unknown";
+        CalendarEntry: {
+            /** Format: int64 */
+            airs_at: number;
+            airs_time_known: boolean;
+            availability: components["schemas"]["Availability"];
+            /** Format: int64 */
+            item_id: number;
+            /** @description `episode` or `movie`. */
+            kind: string;
+            monitored: boolean;
+            number?: components["schemas"]["EpisodeNumber"] | null;
+            /** Format: int64 */
+            series_id?: number | null;
+            series_title?: string | null;
+            title: string;
+            wanted: boolean;
+        };
         Candidate: {
             /** Format: double */
             confidence: number;
@@ -681,6 +787,8 @@ export interface components {
             monitored: boolean;
             statuses: components["schemas"]["ExternalStatus"][];
             wanted: boolean;
+            /** @description Why it's wanted: `missing`, `not_acquired` or `upgrade` (below the quality cutoff). */
+            wanted_reason?: string | null;
             watch?: components["schemas"]["WatchState"] | null;
         };
         EpisodeHit: components["schemas"]["EpisodeRef"] & {
@@ -921,6 +1029,16 @@ export interface components {
             /** @description `ordering:<id>` of this series, or null to try the default first. */
             view?: string | null;
         };
+        /** @description Monitoring settings. Leave a field out to keep it; send null to clear it. */
+        Monitoring: {
+            /**
+             * Format: int64
+             * @description A quality profile ID, or null for none.
+             */
+            quality_profile_id?: number | null;
+            /** @description Series only: `playlist:<id>` that wanted follows, or null for all episodes. */
+            wanted_follows?: string | null;
+        };
         MovieDetail: components["schemas"]["MovieSummary"] & {
             external_ids: components["schemas"]["ExternalId"][];
             files: components["schemas"]["LinkedFile"][];
@@ -1137,6 +1255,8 @@ export interface components {
             /** @description The current user's view, or the default ordering. */
             selected_view?: string | null;
             views: components["schemas"]["View"][];
+            /** @description The playlist wanted follows (`playlist:<id>`), or none for all episodes. */
+            wanted_follows?: string | null;
         };
         SeriesSummary: {
             /** @description Artwork kinds available from `/api/artwork/{id}/{kind}`: poster, backdrop. */
@@ -1181,6 +1301,20 @@ export interface components {
             /** Format: int64 */
             wanted: number;
         };
+        StatusUpdate: {
+            /** @description JSON detail, e.g. `{"progress": 0.4, "eta_seconds": 540}`. */
+            detail?: Record<string, never> | null;
+            /**
+             * Format: int64
+             * @description Seconds until the status counts as stale. Default one hour, at most a week.
+             */
+            expires_in_seconds?: number | null;
+            /**
+             * @description Free text. Well-known values the UI styles: searching, queued, downloading,
+             *     importing, failed.
+             */
+            status: string;
+        };
         Tags: {
             /** @description Who sets them, e.g. `animefillerlist`. Replaces that source's tags only. */
             source: string;
@@ -1221,6 +1355,43 @@ export interface components {
             /** @description Where it comes from: a provider (`tmdb`), `user`, or `smart`/`manual` for playlists. */
             source: string;
         };
+        WantedItem: {
+            /** Format: int64 */
+            airs_at?: number | null;
+            airs_time_known: boolean;
+            availability: components["schemas"]["Availability"];
+            /**
+             * Format: int64
+             * @description Height of the best present file (upgrades), and the cutoff it must reach.
+             */
+            best_height?: number | null;
+            /** Format: int64 */
+            cutoff_height?: number | null;
+            /** @description Provider IDs, so acquisition tools can look the item up. */
+            external_ids: [
+                string,
+                string
+            ][];
+            /** Format: int64 */
+            item_id: number;
+            /** @description `episode` or `movie`. */
+            kind: string;
+            number?: components["schemas"]["EpisodeNumber"] | null;
+            quality_profile?: string | null;
+            /** @description `missing`, `not_acquired` or `upgrade`. */
+            reason: string;
+            /** Format: int64 */
+            series_id?: number | null;
+            series_title?: string | null;
+            /** @description Current external statuses (stale ones included, flagged). */
+            statuses: components["schemas"]["ExternalStatus"][];
+            title: string;
+        };
+        WantedPage: {
+            items: components["schemas"]["WantedItem"][];
+            /** Format: int64 */
+            total: number;
+        };
         WatchState: {
             /** Format: int64 */
             last_played_at?: number | null;
@@ -1258,6 +1429,38 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    calendar: {
+        parameters: {
+            query?: {
+                /** @description Unix seconds; defaults to 7 days ago. */
+                from?: number | null;
+                /** @description Unix seconds; defaults to 28 days from now. */
+                to?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CalendarEntry"][];
+                };
+            };
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1549,6 +1752,45 @@ export interface operations {
             };
         };
     };
+    set_monitoring: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Monitoring"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     refresh_item: {
         parameters: {
             query?: never;
@@ -1585,6 +1827,74 @@ export interface operations {
                 };
             };
             503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                source: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusUpdate"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    clear_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                source: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -1921,6 +2231,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    quality_profiles: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QualityProfile"][];
                 };
             };
         };
@@ -2434,6 +2763,44 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TemplateCheck"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: {
+                /** @description Only this library. */
+                library_id?: number | null;
+                /** @description Only this series (its episodes). */
+                series_id?: number | null;
+                /** @description `missing`, `not_acquired` or `upgrade`. */
+                reason?: string | null;
+                /** @description `episode` or `movie`. */
+                kind?: string | null;
+                limit?: number | null;
+                offset?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WantedPage"];
                 };
             };
             400: {

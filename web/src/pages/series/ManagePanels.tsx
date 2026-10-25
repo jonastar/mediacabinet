@@ -65,8 +65,17 @@ export function ManagePanels({ series, monitorPending, onToggleMonitor, onChange
         </label>
         <label className={styles.field}>
           Quality profile
-          <select value={series.quality_profile_id ?? ''} disabled title={NOT_BUILT}>
-            <option value="">None</option>
+          <select
+            value={series.quality_profile_id ?? ''}
+            onChange={(e) =>
+              act(() =>
+                api.setMonitoring(series.id, {
+                  quality_profile_id: e.target.value ? Number(e.target.value) : null,
+                }),
+              )
+            }
+          >
+            <option value="">None: any file will do</option>
             {series.quality_profiles.map((q) => (
               <option key={q.id} value={q.id}>
                 {q.name}
@@ -76,8 +85,20 @@ export function ManagePanels({ series, monitorPending, onToggleMonitor, onChange
         </label>
         <label className={styles.field}>
           Wanted follows
-          <select disabled title={NOT_BUILT}>
-            <option>All episodes</option>
+          <select
+            value={series.wanted_follows ?? ''}
+            onChange={(e) =>
+              act(() => api.setMonitoring(series.id, { wanted_follows: e.target.value || null }))
+            }
+          >
+            <option value="">All episodes</option>
+            {series.views
+              .filter((v) => v.kind === 'playlist')
+              .map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name} playlist
+                </option>
+              ))}
           </select>
         </label>
       </section>

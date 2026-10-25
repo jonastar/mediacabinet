@@ -153,7 +153,7 @@ struct WantedRow {
     cutoff_height: Option<i64>,
 }
 
-/// The library's wanted items, oldest air date first.
+/// The library's wanted items, by series (or movie) title, then episode order.
 pub async fn list(
     pool: &SqlitePool,
     filter: &WantedFilter,
@@ -207,7 +207,7 @@ pub async fn list(
          LEFT JOIN quality_profile qp ON qp.id = w.quality_profile_id
          {WHERE}
          GROUP BY w.item_id
-         ORDER BY i.airs_at IS NULL, i.airs_at, s.title, oe.position
+         ORDER BY coalesce(s.title, i.title) COLLATE NOCASE, w.parent_id, oe.position, i.airs_at
          LIMIT ?5 OFFSET ?6"
     )))
     .bind(filter.series_id)

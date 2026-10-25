@@ -90,8 +90,8 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Decide: own quality profiles fully, or share with the \*arrs
 - [x] Decide: can wanted follow a playlist (monitor only no-filler episodes)
 - [x] UI: switch the Series and Home pages to the derived views
-- [ ] UI: Series Manage panel for monitoring (quality profile, wanted follows)
-- [ ] UI: Wanted and Calendar screens
+- [x] UI: Series Manage panel for monitoring (quality profile, wanted follows)
+- [x] UI: Wanted and Calendar screens
 
 ## Phase 6 — Integration API and events
 

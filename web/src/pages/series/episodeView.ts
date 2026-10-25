@@ -55,8 +55,14 @@ export function episodeView(
       ].join(' · ')
     : null
   const tech =
-    [filesSummary(e.files), matchSummary(e.files), statusText].filter(Boolean).join('  ·  ') ||
-    'no file linked'
+    [
+      filesSummary(e.files),
+      matchSummary(e.files),
+      e.wanted_reason === 'upgrade' ? 'upgrade wanted: below the quality cutoff' : null,
+      statusText,
+    ]
+      .filter(Boolean)
+      .join('  ·  ') || 'no file linked'
 
   const hasArt = e.availability === 'available'
   return {

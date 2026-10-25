@@ -1,13 +1,15 @@
 import { Shell } from './components/Shell'
+import { CalendarPage } from './pages/CalendarPage'
 import { HomePage } from './pages/HomePage'
 import { LibrariesPage } from './pages/LibrariesPage'
 import { MoviePage } from './pages/MoviePage'
 import { MoviesPage } from './pages/MoviesPage'
 import { SearchPage } from './pages/SearchPage'
 import { ReviewPage } from './pages/ReviewPage'
-import { NotFoundPage, PlaceholderPage } from './pages/PlaceholderPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 import { SeriesPage } from './pages/SeriesPage'
 import { ShowsPage } from './pages/ShowsPage'
+import { WantedPage } from './pages/WantedPage'
 import { match, usePath } from './lib/router'
 
 function Page({ path }: { path: string }) {
@@ -20,6 +22,12 @@ function Page({ path }: { path: string }) {
   const movie = match('/movies/:id', path)
   if (movie && /^\d+$/.test(movie.id)) {
     return <MoviePage key={movie.id} id={Number(movie.id)} />
+  }
+  if (path === '/wanted') {
+    return <WantedPage />
+  }
+  if (path === '/calendar') {
+    return <CalendarPage />
   }
   if (path === '/search') {
     return <SearchPage />
@@ -37,14 +45,6 @@ function Page({ path }: { path: string }) {
   if (series && /^\d+$/.test(series.id)) {
     // Keyed so switching series starts from a clean state.
     return <SeriesPage key={series.id} id={Number(series.id)} />
-  }
-  const placeholders: Record<string, [string, string]> = {
-    '/calendar': ['Calendar', 'Phase 5'],
-    '/wanted': ['Wanted', 'Phase 5'],
-  }
-  const placeholder = placeholders[path.replace(/\/+$/, '')]
-  if (placeholder) {
-    return <PlaceholderPage title={placeholder[0]} phase={placeholder[1]} />
   }
   return <NotFoundPage />
 }

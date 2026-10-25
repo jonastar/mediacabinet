@@ -62,6 +62,8 @@ The rules beyond the formatters' defaults are listed in [CLAUDE.md](CLAUDE.md#co
 
 ## Configuration
 
+Set these in the environment, or in a `.env` file in the working directory (gitignored; environment variables take precedence).
+
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `CABINET_DATA_DIR` | `./data` | Database and backups |

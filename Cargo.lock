@@ -1225,6 +1225,7 @@ dependencies = [
  "anyhow",
  "axum",
  "cabinet-core",
+ "dotenvy",
  "mime_guess",
  "reqwest",
  "rust-embed",

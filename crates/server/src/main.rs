@@ -55,9 +55,16 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    // Local development settings; real environment variables win.
+    let env_file = dotenvy::dotenv().ok();
+
     tracing_subscriber::fmt()
         .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
         .init();
+
+    if let Some(path) = env_file {
+        tracing::info!(path = %path.display(), "loaded settings from .env");
+    }
 
     let data_dir =
         PathBuf::from(std::env::var("CABINET_DATA_DIR").unwrap_or_else(|_| "./data".into()));

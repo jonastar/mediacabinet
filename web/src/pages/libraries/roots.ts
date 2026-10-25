@@ -44,7 +44,9 @@ export function rootStatus(r: Root): { text: string; tone: 'ok' | 'busy' | 'bad'
   }
   if (!last) {
     return {
-      text: `Online · ${files.present ? count(files.present, 'file') : 'not scanned yet'}`,
+      text: files.present
+        ? `Online · ${count(files.present, 'file')} · never scanned`
+        : 'Online · not scanned yet',
       tone: 'idle',
     }
   }

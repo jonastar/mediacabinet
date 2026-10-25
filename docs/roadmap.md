@@ -47,7 +47,7 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Group: find each file's series folder from the template; grouping levels as hints
 - [x] Scan orchestration: one scan per root at a time, scheduled scans, scan on demand
 - [x] Filesystem watching (notify) to rescan changed paths quickly
-- [ ] Large-library test: scan time and memory for ~50k files
+- [x] Large-library test: scan time and memory for ~50k files (`docs/benchmarks.md`)
 - [ ] UI: Libraries and roots (write policy, coloured template, offline state, "where would a new file go")
 - [ ] UI: scan progress and results
 

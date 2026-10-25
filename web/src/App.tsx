@@ -1,6 +1,7 @@
 import { Shell } from './components/Shell'
 import { HomePage } from './pages/HomePage'
 import { LibrariesPage } from './pages/LibrariesPage'
+import { ReviewPage } from './pages/ReviewPage'
 import { NotFoundPage, PlaceholderPage } from './pages/PlaceholderPage'
 import { SeriesPage } from './pages/SeriesPage'
 import { ShowsPage } from './pages/ShowsPage'
@@ -9,6 +10,9 @@ import { match, usePath } from './lib/router'
 function Page({ path }: { path: string }) {
   if (path === '/') {
     return <HomePage />
+  }
+  if (path === '/review') {
+    return <ReviewPage />
   }
   if (path === '/libraries') {
     return <LibrariesPage />
@@ -25,7 +29,6 @@ function Page({ path }: { path: string }) {
     '/movies': ['Movies', 'Phase 4'],
     '/calendar': ['Calendar', 'Phase 5'],
     '/wanted': ['Wanted', 'Phase 5'],
-    '/review': ['Review queue', 'Phase 4'],
   }
   const placeholder = placeholders[path.replace(/\/+$/, '')]
   if (placeholder) {

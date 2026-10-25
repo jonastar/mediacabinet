@@ -22,6 +22,12 @@ export type TemplateCheck = Schemas['TemplateCheck']
 export type FolderListing = Schemas['FolderListing']
 export type PlacementExample = Schemas['PlacementExample']
 export type ScanProgress = Schemas['ScanProgress']
+export type ReviewQueue = Schemas['ReviewQueue']
+export type FolderReview = Schemas['FolderReview']
+export type FileReview = Schemas['FileReview']
+export type Candidate = Schemas['Candidate']
+export type SearchResult = Schemas['SearchResult']
+export type PathPiece = Schemas['PathPiece']
 export type LibraryKind = 'tv' | 'movies'
 export type WritePolicy = 'managed' | 'adaptive' | 'read_only'
 
@@ -93,6 +99,24 @@ export const api = {
     request<TemplateCheck>('POST', '/api/templates/check', { template, kind }),
   folders: (path: string) =>
     request<FolderListing>('GET', `/api/folders?path=${encodeURIComponent(path)}`),
+  review: () => request<ReviewQueue>('GET', '/api/review'),
+  acceptCandidate: (id: number, pin: boolean) =>
+    request<void>('POST', `/api/review/candidates/${id}/accept`, { pin }),
+  rejectCandidate: (id: number) => request<void>('POST', `/api/review/candidates/${id}/reject`),
+  linkFile: (fileId: number, itemIds: number[], pin: boolean) =>
+    request<void>('POST', `/api/files/${fileId}/link`, { item_ids: itemIds, pin }),
+  ignoreFile: (fileId: number) => request<void>('POST', `/api/files/${fileId}/ignore`),
+  identifyFolder: (rootId: number, folderPath: string, providerId: string) =>
+    request<void>('POST', '/api/review/folders/identify', {
+      root_id: rootId,
+      folder_path: folderPath,
+      provider_id: providerId,
+    }),
+  searchMetadata: (kind: LibraryKind, query: string, year?: number | null) =>
+    request<SearchResult[]>(
+      'GET',
+      `/api/metadata/search?kind=${kind}&query=${encodeURIComponent(query)}${year ? `&year=${year}` : ''}`,
+    ),
   placementExample: (libraryId: number) =>
     request<PlacementExample | null>('GET', `/api/libraries/${libraryId}/placement-example`),
 }

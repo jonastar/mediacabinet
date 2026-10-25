@@ -9,6 +9,89 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/files/{id}/ignore": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Excludes a file from matching (samples, junk).",
+        "operationId": "ignore_file",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/{id}/link": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Links a file to items chosen by hand.",
+        "operationId": "link_file",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkFile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/folders": {
       "get": {
         "tags": [
@@ -456,6 +539,220 @@
         }
       }
     },
+    "/api/metadata/search": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Searches the metadata provider.",
+        "operationId": "search",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "`tv` or `movies`.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "query",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SearchResult"
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Folders to identify, files to confirm, and files nothing matched.",
+        "operationId": "queue",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewQueue"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review/candidates/{id}/accept": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Accepts a candidate: links the file, or identifies the folder and matches its files.",
+        "operationId": "accept",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Accept"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review/candidates/{id}/reject": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "operationId": "reject",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review/folders/identify": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Identifies a folder by hand: imports the chosen series or movie and matches its files.",
+        "operationId": "identify_folder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdentifyFolder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/roots/{id}": {
       "delete": {
         "tags": [
@@ -811,6 +1108,15 @@
   },
   "components": {
     "schemas": {
+      "Accept": {
+        "type": "object",
+        "properties": {
+          "pin": {
+            "type": "boolean",
+            "description": "Pin the resulting link so rescans never change it."
+          }
+        }
+      },
       "AddRoot": {
         "type": "object",
         "required": [
@@ -895,6 +1201,58 @@
           "upcoming",
           "unknown"
         ]
+      },
+      "Candidate": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "confidence",
+          "source",
+          "reason"
+        ],
+        "properties": {
+          "confidence": {
+            "type": "number",
+            "format": "double"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "item_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "File candidates: the item."
+          },
+          "provider": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Folder candidates: the provider and its ID."
+          },
+          "provider_value": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "description": "`path_id`, `nfo`, `parser`, `search` or `ai`."
+          },
+          "title": {
+            "type": "string",
+            "description": "A title to show: the provider's, or the episode's with its number."
+          }
+        }
       },
       "CheckTemplate": {
         "type": "object",
@@ -1214,6 +1572,19 @@
           }
         }
       },
+      "Extra": {
+        "type": "string",
+        "enum": [
+          "sample",
+          "trailer",
+          "featurette",
+          "behind_the_scenes",
+          "deleted_scene",
+          "interview",
+          "short",
+          "other"
+        ]
+      },
       "FileCounts": {
         "type": "object",
         "required": [
@@ -1233,6 +1604,93 @@
           "present": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "FileReview": {
+        "type": "object",
+        "required": [
+          "file_id",
+          "root_id",
+          "root_path",
+          "kind",
+          "relative_path",
+          "path_pieces",
+          "parsed",
+          "candidates"
+        ],
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Candidate"
+            }
+          },
+          "duration_seconds": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "file_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "folder_hints": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Hints",
+                "description": "What the folder name says, for searching."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "item_folder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The series or movie folder the template puts it in; for a loose movie, the\nfile itself. None for a TV file outside any series folder."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`tv` or `movies`."
+          },
+          "parent_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "The series or movie its folder belongs to, if known."
+          },
+          "parent_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "parsed": {
+            "$ref": "#/components/schemas/Parsed"
+          },
+          "path_pieces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PathPiece"
+            }
+          },
+          "relative_path": {
+            "type": "string"
+          },
+          "root_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "root_path": {
+            "type": "string"
           }
         }
       },
@@ -1287,6 +1745,54 @@
           }
         ]
       },
+      "FolderReview": {
+        "type": "object",
+        "required": [
+          "root_id",
+          "root_path",
+          "folder_path",
+          "kind",
+          "path_pieces",
+          "hints",
+          "files",
+          "candidates"
+        ],
+        "properties": {
+          "candidates": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Candidate"
+            }
+          },
+          "files": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "folder_path": {
+            "type": "string"
+          },
+          "hints": {
+            "$ref": "#/components/schemas/Hints"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`tv` or `movies`."
+          },
+          "path_pieces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PathPiece"
+            }
+          },
+          "root_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "root_path": {
+            "type": "string"
+          }
+        }
+      },
       "Health": {
         "type": "object",
         "required": [
@@ -1299,6 +1805,55 @@
           },
           "version": {
             "type": "string"
+          }
+        }
+      },
+      "Hints": {
+        "type": "object",
+        "required": [
+          "title",
+          "ids"
+        ],
+        "properties": {
+          "genre": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": false,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "(provider, id) pairs found in the path."
+          },
+          "season": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "title": {
+            "type": "string",
+            "description": "The item's name from its folder, without year or IDs."
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
           }
         }
       },
@@ -1345,6 +1900,27 @@
           }
         }
       },
+      "IdentifyFolder": {
+        "type": "object",
+        "required": [
+          "root_id",
+          "folder_path",
+          "provider_id"
+        ],
+        "properties": {
+          "folder_path": {
+            "type": "string"
+          },
+          "provider_id": {
+            "type": "string",
+            "description": "The provider's ID for the series or movie."
+          },
+          "root_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "Library": {
         "type": "object",
         "required": [
@@ -1370,6 +1946,25 @@
             "items": {
               "$ref": "#/components/schemas/Root"
             }
+          }
+        }
+      },
+      "LinkFile": {
+        "type": "object",
+        "required": [
+          "item_ids"
+        ],
+        "properties": {
+          "item_ids": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Episodes (several for a multi-episode file) or a movie."
+          },
+          "pin": {
+            "type": "boolean"
           }
         }
       },
@@ -1507,11 +2102,146 @@
           "playlist"
         ]
       },
+      "Parsed": {
+        "type": "object",
+        "required": [
+          "episodes",
+          "absolute",
+          "ids"
+        ],
+        "properties": {
+          "absolute": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Absolute numbers, when the name has no season (typical for anime)."
+          },
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Date-numbered episodes (daily shows)."
+          },
+          "edition": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "episode_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "episodes": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Episode numbers within `season`; several for multi-episode files."
+          },
+          "extra": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Extra"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": false,
+              "prefixItems": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Provider IDs written in the name: (provider, id)."
+          },
+          "part": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "For movies split over several files: cd1, part2…"
+          },
+          "release_group": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resolution": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "season": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "version": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "PathPiece": {
+        "type": "object",
+        "required": [
+          "text",
+          "role"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "The template level this path component sits at; `file` for the file name."
+          },
+          "text": {
+            "type": "string"
+          }
+        }
+      },
       "Phase": {
         "type": "string",
         "enum": [
           "walking",
-          "probing"
+          "probing",
+          "matching"
         ]
       },
       "Placement": {
@@ -1667,6 +2397,36 @@
         "properties": {
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "ReviewQueue": {
+        "type": "object",
+        "required": [
+          "folders",
+          "files",
+          "unmatched"
+        ],
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileReview"
+            },
+            "description": "Files with pending candidates."
+          },
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FolderReview"
+            }
+          },
+          "unmatched": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FileReview"
+            },
+            "description": "Files with nothing to propose: no numbers that fit, or no identified folder."
           }
         }
       },
@@ -1841,6 +2601,44 @@
           "started": {
             "type": "boolean",
             "description": "False when a scan was already running; one more runs after it."
+          }
+        }
+      },
+      "SearchResult": {
+        "type": "object",
+        "required": [
+          "provider",
+          "id",
+          "title"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "original_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "overview": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provider": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
           }
         }
       },

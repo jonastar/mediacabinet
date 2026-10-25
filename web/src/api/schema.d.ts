@@ -4,6 +4,40 @@
  */
 
 export interface paths {
+    "/api/files/{id}/ignore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Excludes a file from matching (samples, junk). */
+        post: operations["ignore_file"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/{id}/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Links a file to items chosen by hand. */
+        post: operations["link_file"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/folders": {
         parameters: {
             query?: never;
@@ -163,6 +197,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/metadata/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Searches the metadata provider. */
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Folders to identify, files to confirm, and files nothing matched. */
+        get: operations["queue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/review/candidates/{id}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accepts a candidate: links the file, or identifies the folder and matches its files. */
+        post: operations["accept"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/review/candidates/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/review/folders/identify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Identifies a folder by hand: imports the chosen series or movie and matches its files. */
+        post: operations["identify_folder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/roots/{id}": {
         parameters: {
             query?: never;
@@ -290,6 +408,10 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Accept: {
+            /** @description Pin the resulting link so rescans never change it. */
+            pin?: boolean;
+        };
         AddRoot: {
             is_import_target?: boolean;
             layout_template: string;
@@ -319,6 +441,25 @@ export interface components {
         };
         /** @enum {string} */
         Availability: "available" | "missing" | "not_acquired" | "upcoming" | "unknown";
+        Candidate: {
+            /** Format: double */
+            confidence: number;
+            /** Format: int64 */
+            id: number;
+            /**
+             * Format: int64
+             * @description File candidates: the item.
+             */
+            item_id?: number | null;
+            /** @description Folder candidates: the provider and its ID. */
+            provider?: string | null;
+            provider_value?: string | null;
+            reason: string;
+            /** @description `path_id`, `nfo`, `parser`, `search` or `ai`. */
+            source: string;
+            /** @description A title to show: the provider's, or the episode's with its number. */
+            title: string;
+        };
         CheckTemplate: {
             /** @description `tv` or `movies`. */
             kind: string;
@@ -407,6 +548,8 @@ export interface components {
             /** Format: int64 */
             updated_at: number;
         };
+        /** @enum {string} */
+        Extra: "sample" | "trailer" | "featurette" | "behind_the_scenes" | "deleted_scene" | "interview" | "short" | "other";
         FileCounts: {
             /** Format: int64 */
             ignored: number;
@@ -414,6 +557,33 @@ export interface components {
             missing: number;
             /** Format: int64 */
             present: number;
+        };
+        FileReview: {
+            candidates: components["schemas"]["Candidate"][];
+            /** Format: double */
+            duration_seconds?: number | null;
+            /** Format: int64 */
+            file_id: number;
+            folder_hints?: components["schemas"]["Hints"] | null;
+            /**
+             * @description The series or movie folder the template puts it in; for a loose movie, the
+             *     file itself. None for a TV file outside any series folder.
+             */
+            item_folder?: string | null;
+            /** @description `tv` or `movies`. */
+            kind: string;
+            /**
+             * Format: int64
+             * @description The series or movie its folder belongs to, if known.
+             */
+            parent_id?: number | null;
+            parent_title?: string | null;
+            parsed: components["schemas"]["Parsed"];
+            path_pieces: components["schemas"]["PathPiece"][];
+            relative_path: string;
+            /** Format: int64 */
+            root_id: number;
+            root_path: string;
         };
         FolderListing: {
             /** @description Subfolder names, hidden ones left out. */
@@ -426,9 +596,36 @@ export interface components {
             path: string;
             pieces: components["schemas"]["TemplatePiece"][];
         };
+        FolderReview: {
+            candidates: components["schemas"]["Candidate"][];
+            /** Format: int64 */
+            files: number;
+            folder_path: string;
+            hints: components["schemas"]["Hints"];
+            /** @description `tv` or `movies`. */
+            kind: string;
+            path_pieces: components["schemas"]["PathPiece"][];
+            /** Format: int64 */
+            root_id: number;
+            root_path: string;
+        };
         Health: {
             status: string;
             version: string;
+        };
+        Hints: {
+            genre?: string | null;
+            /** @description (provider, id) pairs found in the path. */
+            ids: [
+                string,
+                string
+            ][];
+            /** Format: int64 */
+            season?: number | null;
+            /** @description The item's name from its folder, without year or IDs. */
+            title: string;
+            /** Format: int64 */
+            year?: number | null;
         };
         Home: {
             attention: components["schemas"]["Attention"];
@@ -437,6 +634,13 @@ export interface components {
             keep_watching: components["schemas"]["ContinueItem"][];
             shows: components["schemas"]["SeriesSummary"][];
         };
+        IdentifyFolder: {
+            folder_path: string;
+            /** @description The provider's ID for the series or movie. */
+            provider_id: string;
+            /** Format: int64 */
+            root_id: number;
+        };
         Library: {
             /** Format: int64 */
             id: number;
@@ -444,6 +648,11 @@ export interface components {
             kind: string;
             name: string;
             roots: components["schemas"]["Root"][];
+        };
+        LinkFile: {
+            /** @description Episodes (several for a multi-episode file) or a movie. */
+            item_ids: number[];
+            pin?: boolean;
         };
         LinkedFile: {
             /** Format: double */
@@ -485,8 +694,43 @@ export interface components {
         };
         /** @enum {string} */
         NumberStyle: "season" | "absolute" | "playlist";
+        Parsed: {
+            /** @description Absolute numbers, when the name has no season (typical for anime). */
+            absolute: number[];
+            /** @description Date-numbered episodes (daily shows). */
+            date?: string | null;
+            edition?: string | null;
+            episode_title?: string | null;
+            /** @description Episode numbers within `season`; several for multi-episode files. */
+            episodes: number[];
+            extra?: components["schemas"]["Extra"] | null;
+            /** @description Provider IDs written in the name: (provider, id). */
+            ids: [
+                string,
+                string
+            ][];
+            /**
+             * Format: int64
+             * @description For movies split over several files: cd1, part2…
+             */
+            part?: number | null;
+            release_group?: string | null;
+            resolution?: string | null;
+            /** Format: int64 */
+            season?: number | null;
+            title?: string | null;
+            /** Format: int64 */
+            version?: number | null;
+            /** Format: int64 */
+            year?: number | null;
+        };
+        PathPiece: {
+            /** @description The template level this path component sits at; `file` for the file name. */
+            role: string;
+            text: string;
+        };
         /** @enum {string} */
-        Phase: "walking" | "probing";
+        Phase: "walking" | "probing" | "matching";
         Placement: {
             note: string;
             /** @description Relative to the root; None when nothing is written to this root. */
@@ -530,6 +774,13 @@ export interface components {
         };
         RenameLibrary: {
             name: string;
+        };
+        ReviewQueue: {
+            /** @description Files with pending candidates. */
+            files: components["schemas"]["FileReview"][];
+            folders: components["schemas"]["FolderReview"][];
+            /** @description Files with nothing to propose: no numbers that fit, or no identified folder. */
+            unmatched: components["schemas"]["FileReview"][];
         };
         Root: {
             files: components["schemas"]["FileCounts"];
@@ -582,6 +833,15 @@ export interface components {
         ScanStarted: {
             /** @description False when a scan was already running; one more runs after it. */
             started: boolean;
+        };
+        SearchResult: {
+            id: string;
+            original_title?: string | null;
+            overview?: string | null;
+            provider: string;
+            title: string;
+            /** Format: int64 */
+            year?: number | null;
         };
         SeriesDetail: components["schemas"]["SeriesSummary"] & {
             external_ids: components["schemas"]["ExternalId"][];
@@ -688,6 +948,72 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    ignore_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    link_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkFile"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     list_folders: {
         parameters: {
             query?: {
@@ -1029,6 +1355,168 @@ export interface operations {
                 };
             };
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query: {
+                /** @description `tv` or `movies`. */
+                kind: string;
+                query: string;
+                year?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResult"][];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    queue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewQueue"];
+                };
+            };
+        };
+    };
+    accept: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Accept"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    reject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    identify_folder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IdentifyFolder"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

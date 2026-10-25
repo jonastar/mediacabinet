@@ -65,7 +65,15 @@ pub struct FolderReview {
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct FileReview {
     pub file_id: i64,
+    pub root_id: i64,
     pub root_path: String,
+    /// `tv` or `movies`.
+    pub kind: String,
+    /// The series or movie folder the template puts it in; for a loose movie, the
+    /// file itself. None for a TV file outside any series folder.
+    pub item_folder: Option<String>,
+    /// What the folder name says, for searching.
+    pub folder_hints: Option<layout::Hints>,
     pub relative_path: String,
     pub path_pieces: Vec<PathPiece>,
     pub parsed: Parsed,
@@ -345,9 +353,21 @@ pub async fn queue(pool: &SqlitePool) -> Result<ReviewQueue, ReviewError> {
         if !pending && in_queued_folder {
             continue;
         }
+        let group = template
+            .as_ref()
+            .and_then(|t| layout::group(t, &relative_path));
+        let (item_folder, folder_hints) = match group {
+            Some(g) => (Some(g.item_folder), Some(g.hints)),
+            None if root.kind == "movies" => (Some(relative_path.clone()), None),
+            None => (None, None),
+        };
         let review = FileReview {
             file_id,
+            root_id,
             root_path: root.path.clone(),
+            kind: root.kind.clone(),
+            item_folder,
+            folder_hints,
             path_pieces: pieces(template.as_ref(), &relative_path),
             relative_path: relative_path.clone(),
             parsed: parse(name),

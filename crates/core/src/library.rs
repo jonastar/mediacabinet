@@ -496,6 +496,17 @@ pub struct PlacementExample {
     pub outcomes: Vec<PolicyPlacement>,
 }
 
+#[derive(sqlx::FromRow)]
+struct ExampleRow {
+    series_id: i64,
+    series: String,
+    year: Option<i64>,
+    location: String,
+    root_id: i64,
+    episode_id: i64,
+    episode_title: String,
+}
+
 /// "Where does a new file go?": the next episode a series in this library doesn't
 /// have, placed under each write policy on the root holding the series' folder.
 pub async fn placement_example(
@@ -504,8 +515,9 @@ pub async fn placement_example(
 ) -> Result<Option<PlacementExample>, LibraryError> {
     let library = get(pool, library_id).await?;
     let kind = kind_of(&library.kind);
-    let candidate: Option<(i64, String, Option<i64>, String, i64, i64, String)> = sqlx::query_as(
-        "SELECT s.id, s.title, s.year, sl.path, r.id, e.id, e.title
+    let candidate: Option<ExampleRow> = sqlx::query_as(
+        "SELECT s.id AS series_id, s.title AS series, s.year, sl.path AS location, r.id AS root_id,
+                e.id AS episode_id, e.title AS episode_title
          FROM series_location sl
          JOIN library_root r ON r.id = sl.root_id
          JOIN item s ON s.id = sl.series_item_id
@@ -521,7 +533,15 @@ pub async fn placement_example(
     .bind(library_id)
     .fetch_optional(pool)
     .await?;
-    let Some((series_id, series, year, location, root_id, episode_id, episode_title)) = candidate
+    let Some(ExampleRow {
+        series_id,
+        series,
+        year,
+        location,
+        root_id,
+        episode_id,
+        episode_title,
+    }) = candidate
     else {
         return Ok(None);
     };

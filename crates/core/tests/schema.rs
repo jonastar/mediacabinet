@@ -152,16 +152,23 @@ async fn only_primary_external_ids_are_unique() {
 }
 
 #[tokio::test]
-async fn removed_files_free_their_path() {
+async fn only_present_files_hold_their_path() {
     let (_dir, pool) = db().await;
     seed(&pool).await;
     let insert = "INSERT INTO media_file (root_id, relative_path, size, mtime)
                   VALUES (1, 'Show/Season 01/e01.mkv', 1, 1)";
     exec(&pool, insert).await.unwrap();
     assert_rejected(&pool, insert).await;
-    exec(&pool, "UPDATE media_file SET status = 'removed'")
+    exec(&pool, "UPDATE media_file SET status = 'missing'")
         .await
         .unwrap();
+    exec(&pool, insert).await.unwrap();
+    exec(
+        &pool,
+        "UPDATE media_file SET status = 'removed' WHERE status = 'present'",
+    )
+    .await
+    .unwrap();
     exec(&pool, insert).await.unwrap();
 }
 

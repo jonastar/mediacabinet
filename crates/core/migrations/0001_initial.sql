@@ -45,9 +45,11 @@ CREATE TABLE media_file (
     last_seen     INTEGER NOT NULL DEFAULT (unixepoch())
 ) STRICT;
 
--- Removed files keep their rows (and history), so a new file may reuse the path.
+-- Only present files hold their path. Missing and removed rows keep theirs as
+-- history, so a file moved or copied onto that path can take it over.
 CREATE UNIQUE INDEX media_file_path
-    ON media_file (root_id, relative_path) WHERE status <> 'removed';
+    ON media_file (root_id, relative_path) WHERE status = 'present';
+CREATE INDEX media_file_root_path ON media_file (root_id, relative_path);
 CREATE INDEX media_file_inode ON media_file (device_id, inode);
 CREATE INDEX media_file_hash ON media_file (content_hash) WHERE content_hash IS NOT NULL;
 

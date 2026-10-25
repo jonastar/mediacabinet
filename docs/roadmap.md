@@ -81,15 +81,15 @@ Real API, seeded data. Seeing and testing the design early.
 
 ## Phase 5 — Derived state
 
-- [ ] Availability per item (available, missing, not acquired, upcoming, unknown)
-- [ ] Monitor inheritance (series → episode) and quality profiles
-- [ ] Wanted: monitored and not available, or below cutoff; `item.wanted` and `item.unwanted` events
-- [ ] Gaps within an ordering or playlist
-- [ ] Next airing, in the user's time zone
-- [ ] Custom status from external tools, with expiry and stale display
-- [ ] Decide: own quality profiles fully, or share with the \*arrs
-- [ ] Decide: can wanted follow a playlist (monitor only no-filler episodes)
-- [ ] UI: switch the Series and Home pages to the derived views
+- [x] Availability per item (available, missing, not acquired, upcoming, unknown)
+- [x] Monitor inheritance (series → episode) and quality profiles
+- [x] Wanted: monitored and not available, or below cutoff; `item.wanted` and `item.unwanted` events
+- [x] Gaps within an ordering or playlist
+- [x] Next airing, in the user's time zone
+- [x] Custom status from external tools, with expiry and stale display
+- [x] Decide: own quality profiles fully, or share with the \*arrs
+- [x] Decide: can wanted follow a playlist (monitor only no-filler episodes)
+- [x] UI: switch the Series and Home pages to the derived views
 - [ ] UI: Series Manage panel for monitoring (quality profile, wanted follows)
 - [ ] UI: Wanted and Calendar screens
 

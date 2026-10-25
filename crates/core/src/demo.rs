@@ -43,13 +43,7 @@ pub async fn seed(pool: &SqlitePool, media_dir: &Path, now: i64) -> Result<(), D
     let mut s = Seeder { conn: &mut tx, now };
     s.exec("INSERT INTO app_user (id, name, is_admin) VALUES (1, 'demo', 1)")
         .await?;
-    s.exec(
-        "INSERT INTO quality_profile (id, name, rules) VALUES
-             (1, 'HD 1080p', '{\"cutoff\": \"1080p\"}'),
-             (2, 'UHD 2160p', '{\"cutoff\": \"2160p\"}'),
-             (3, 'Any', '{}')",
-    )
-    .await?;
+    // Quality profiles come from migration 0004; the demo uses HD 1080p.
     s.exec("INSERT INTO library (id, name, kind) VALUES (1, 'TV Shows', 'tv')")
         .await?;
     let template = "{series}/Season {season:00}/{filename}";
@@ -60,6 +54,9 @@ pub async fn seed(pool: &SqlitePool, media_dir: &Path, now: i64) -> Result<(), D
     for show in OTHER_SHOWS {
         other_show(&mut s, tv, show).await?;
     }
+    // Start the wanted snapshot from the seeded state, as a real library would be
+    // after its first scans.
+    crate::wanted::sync_events(&mut tx).await?;
     tx.commit().await?;
     Ok(())
 }
@@ -116,7 +113,8 @@ impl Seeder<'_> {
         .await?;
         self.external_id(id, "tmdb", tmdb, true).await?;
         sqlx::query(
-            "INSERT INTO monitor (item_id, monitored, quality_profile_id) VALUES (?, 1, 1)",
+            "INSERT INTO monitor (item_id, monitored, quality_profile_id)
+             VALUES (?, 1, (SELECT id FROM quality_profile WHERE name = 'HD 1080p'))",
         )
         .bind(id)
         .execute(&mut *self.conn)

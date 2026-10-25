@@ -51,9 +51,7 @@ pub async fn list_movies(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<MovieSummary>>, ApiError> {
     let user = user(&state).await?;
-    Ok(Json(
-        movies::list_movies(&state.db, user, catalog::now()).await?,
-    ))
+    Ok(Json(movies::list_movies(&state.db, user).await?))
 }
 
 /// A movie with its files (versions, editions and parts).
@@ -69,9 +67,7 @@ pub async fn movie_detail(
     Path(id): Path<i64>,
 ) -> Result<Json<MovieDetail>, ApiError> {
     let user = user(&state).await?;
-    Ok(Json(
-        movies::movie_detail(&state.db, id, user, catalog::now()).await?,
-    ))
+    Ok(Json(movies::movie_detail(&state.db, id, user).await?))
 }
 
 #[derive(Deserialize, IntoParams)]

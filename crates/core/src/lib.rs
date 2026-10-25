@@ -11,3 +11,4 @@ pub mod matcher;
 pub mod metadata;
 pub mod parse;
 pub mod scan;
+pub mod wanted;

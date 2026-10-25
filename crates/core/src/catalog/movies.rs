@@ -4,7 +4,7 @@ use serde::Serialize;
 use sqlx::{SqliteConnection, SqlitePool};
 use utoipa::ToSchema;
 
-use super::rules::{self, Availability};
+use super::rules::Availability;
 use super::{CatalogError, EpisodeRef, ExternalId, LinkedFile, SeriesSummary, WatchState};
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -70,8 +70,9 @@ struct MovieRow {
     runtime_seconds: Option<i64>,
     airs_at: Option<i64>,
     present: i64,
-    missing: i64,
-    monitored: Option<bool>,
+    availability: String,
+    monitored: bool,
+    wanted_reason: Option<String>,
     position_seconds: Option<f64>,
     played: Option<bool>,
     last_played_at: Option<i64>,
@@ -80,22 +81,18 @@ struct MovieRow {
 const MOVIE_SELECT: &str = "SELECT i.id, i.title, i.year, i.runtime_seconds, i.airs_at,
         (SELECT count(*) FROM file_link l JOIN media_file f ON f.id = l.file_id
          WHERE l.item_id = i.id AND f.status = 'present') AS present,
-        (SELECT count(*) FROM file_link l JOIN media_file f ON f.id = l.file_id
-         WHERE l.item_id = i.id AND f.status = 'missing') AS missing,
-        m.monitored, s.position_seconds, s.played, s.last_played_at
+        st.availability, st.monitored, w.reason AS wanted_reason,
+        s.position_seconds, s.played, s.last_played_at
      FROM item i
-     LEFT JOIN monitor m ON m.item_id = i.id
+     JOIN item_state st ON st.item_id = i.id
+     LEFT JOIN item_wanted w ON w.item_id = i.id
      LEFT JOIN user_item_state s ON s.item_id = i.id AND s.user_id = ?1
      WHERE i.kind = 'movie'";
 
-async fn summary(
-    conn: &mut SqliteConnection,
-    row: MovieRow,
-    now: i64,
-) -> Result<MovieSummary, sqlx::Error> {
+async fn summary(conn: &mut SqliteConnection, row: MovieRow) -> Result<MovieSummary, sqlx::Error> {
     let (genres, artwork) = super::genres_and_artwork(conn, row.id).await?;
-    let availability = rules::availability(row.present, row.missing, row.airs_at, now);
-    let monitored = row.monitored.unwrap_or(false);
+    let availability = Availability::parse(&row.availability);
+    let monitored = row.monitored;
     Ok(MovieSummary {
         id: row.id,
         title: row.title,
@@ -104,7 +101,7 @@ async fn summary(
         release: row.airs_at,
         availability,
         monitored,
-        wanted: rules::wanted(monitored, availability),
+        wanted: row.wanted_reason.is_some(),
         versions: row.present,
         watch: row.position_seconds.map(|position_seconds| WatchState {
             position_seconds,
@@ -119,7 +116,6 @@ async fn summary(
 pub async fn list_movies(
     pool: &SqlitePool,
     user: Option<i64>,
-    now: i64,
 ) -> Result<Vec<MovieSummary>, CatalogError> {
     let mut conn = pool.acquire().await?;
     let rows: Vec<MovieRow> = sqlx::query_as(sqlx::AssertSqlSafe(format!(
@@ -130,7 +126,7 @@ pub async fn list_movies(
     .await?;
     let mut out = Vec::with_capacity(rows.len());
     for row in rows {
-        out.push(summary(&mut conn, row, now).await?);
+        out.push(summary(&mut conn, row).await?);
     }
     Ok(out)
 }
@@ -139,7 +135,6 @@ pub async fn movie_detail(
     pool: &SqlitePool,
     id: i64,
     user: Option<i64>,
-    now: i64,
 ) -> Result<MovieDetail, CatalogError> {
     let mut conn = pool.acquire().await?;
     let row: MovieRow =
@@ -149,7 +144,7 @@ pub async fn movie_detail(
             .fetch_optional(&mut *conn)
             .await?
             .ok_or(CatalogError::NotFound)?;
-    let summary = summary(&mut conn, row, now).await?;
+    let summary = summary(&mut conn, row).await?;
     let extra: MovieExtra = sqlx::query_as(
         "SELECT original_title, overview, primary_provider, metadata_locked, refreshed_at, refresh_error
          FROM item WHERE id = ?",
@@ -260,7 +255,7 @@ pub async fn search(
     .await?;
     let mut movies = Vec::new();
     for row in rows {
-        movies.push(summary(&mut conn, row, now).await?);
+        movies.push(summary(&mut conn, row).await?);
     }
 
     let hits: Vec<EpisodeHitRow> = sqlx::query_as(

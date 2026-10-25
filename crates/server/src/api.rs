@@ -15,6 +15,7 @@ mod error;
 mod items;
 mod library;
 mod review;
+mod wanted;
 
 pub use error::ApiError;
 
@@ -57,7 +58,12 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(items::refresh_item))
         .routes(routes!(items::set_match_ordering))
         .routes(routes!(items::rematch_series))
-        .routes(routes!(items::rescan_series));
+        .routes(routes!(items::rescan_series))
+        .routes(routes!(wanted::list))
+        .routes(routes!(wanted::calendar))
+        .routes(routes!(wanted::set_status, wanted::clear_status))
+        .routes(routes!(wanted::set_monitoring))
+        .routes(routes!(wanted::quality_profiles));
     OpenApiRouter::with_openapi(ApiDoc::openapi()).nest("/api", api)
 }
 

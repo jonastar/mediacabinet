@@ -24,6 +24,7 @@ pub const ROOT_CHANGED: &str = "root.changed";
 pub const ROOT_REMOVED: &str = "root.removed";
 pub const SCAN_FINISHED: &str = "scan.finished";
 pub const SERIES_REFRESHED: &str = "series.refreshed";
+pub const STATUS_CHANGED: &str = "status.changed";
 
 pub async fn emit(
     conn: &mut SqliteConnection,

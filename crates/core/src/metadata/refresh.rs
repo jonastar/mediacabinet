@@ -74,8 +74,9 @@ pub async fn refresh_item(
             Err(e) => Err(e.into()),
         }
     };
-    if let Err(e) = &result {
-        record_refresh_error(pool, item, &e.to_string()).await?;
+    match &result {
+        Ok(_) => crate::wanted::sync_after_change(pool).await,
+        Err(e) => record_refresh_error(pool, item, &e.to_string()).await?,
     }
     result
 }

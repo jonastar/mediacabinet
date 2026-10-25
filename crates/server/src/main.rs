@@ -114,6 +114,8 @@ async fn main() -> anyhow::Result<()> {
         scans.spawn_watcher(Duration::from_secs(10));
     }
 
+    // Episodes that air become wanted without anything else changing.
+    cabinet_core::wanted::spawn_syncer(db.clone(), Duration::from_secs(60));
     cabinet_core::metadata::refresh::spawn_refresher(
         db.clone(),
         provider.clone(),

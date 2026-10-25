@@ -273,6 +273,7 @@ impl ScanService {
         };
 
         let mut tx = crate::db::begin_write(pool).await?;
+        crate::wanted::sync_events(&mut tx).await?;
         sqlx::query("UPDATE scan_run SET state = ?, finished_at = unixepoch(), report = ?, error = ? WHERE id = ?")
             .bind(state)
             .bind(report.map(|r| r.to_string()))

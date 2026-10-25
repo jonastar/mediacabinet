@@ -154,6 +154,8 @@ pub async fn set_tags(
         json!({ "item_id": item, "tags": tags, "source": source }),
     )
     .await?;
+    // Tags decide smart playlist membership, and so what a playlist-following series wants.
+    crate::wanted::sync_events(&mut tx).await?;
     tx.commit().await?;
     Ok(())
 }

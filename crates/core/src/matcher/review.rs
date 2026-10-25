@@ -446,6 +446,7 @@ pub async fn accept(
         }
         _ => return Err(ReviewError::Invalid("Malformed candidate.".into())),
     }
+    crate::wanted::sync_after_change(pool).await;
     Ok(())
 }
 
@@ -496,6 +497,7 @@ pub async fn link_file(
         .bind(file)
         .execute(pool)
         .await?;
+    crate::wanted::sync_after_change(pool).await;
     Ok(())
 }
 
@@ -515,6 +517,7 @@ pub async fn ignore_file(pool: &SqlitePool, file: i64) -> Result<(), ReviewError
         .execute(&mut *tx)
         .await?;
     events::emit(&mut tx, events::FILE_IGNORED, json!({ "file_id": file })).await?;
+    crate::wanted::sync_events(&mut tx).await?;
     tx.commit().await?;
     Ok(())
 }
@@ -577,5 +580,6 @@ pub async fn identify_as(
     match_root(pool, root, provider, settings)
         .await
         .map_err(|e| ReviewError::Invalid(e.to_string()))?;
+    crate::wanted::sync_after_change(pool).await;
     Ok(item)
 }

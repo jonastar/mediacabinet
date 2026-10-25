@@ -12,7 +12,6 @@ use serde_json::json;
 use sqlx::{SqliteConnection, SqlitePool};
 use utoipa::ToSchema;
 
-use crate::events;
 pub use rules::Availability;
 
 /// Episodes airing within this window count as "coming up".
@@ -173,6 +172,8 @@ pub struct SeriesDetail {
     /// The current user's view, or the default ordering.
     pub selected_view: Option<String>,
     pub locations: Vec<Location>,
+    /// The playlist wanted follows (`playlist:<id>`), or none for all episodes.
+    pub wanted_follows: Option<String>,
     /// Fields metadata refreshes never overwrite.
     pub locked_fields: Vec<String>,
     /// The view filenames are numbered in, if set; otherwise the default first.
@@ -230,6 +231,8 @@ pub struct Episode {
     pub availability: Availability,
     pub monitored: bool,
     pub wanted: bool,
+    /// Why it's wanted: `missing`, `not_acquired` or `upgrade` (below the quality cutoff).
+    pub wanted_reason: Option<String>,
     pub is_filler: bool,
     pub is_gap: bool,
     pub watch: Option<WatchState>,
@@ -303,6 +306,7 @@ struct SeriesRow {
     quality_profile_id: Option<i64>,
     metadata_locked: String,
     match_ordering_id: Option<i64>,
+    wanted_playlist_id: Option<i64>,
     refreshed_at: Option<i64>,
     refresh_error: Option<String>,
 }
@@ -314,9 +318,10 @@ struct EpisodeRow {
     airs_at: Option<i64>,
     airs_tz: Option<String>,
     runtime_seconds: Option<i64>,
-    present: i64,
-    missing: i64,
-    monitored: Option<bool>,
+    /// From the `item_state` and `item_wanted` views.
+    availability: String,
+    monitored: bool,
+    wanted_reason: Option<String>,
     position_seconds: Option<f64>,
     played: Option<bool>,
     last_played_at: Option<i64>,
@@ -343,7 +348,7 @@ impl Loaded {
     ) -> Result<Loaded, CatalogError> {
         let series: SeriesRow = sqlx::query_as(
             "SELECT i.id, i.title, i.year, i.overview, i.series_status, i.primary_provider,
-                    m.monitored, m.quality_profile_id, i.metadata_locked, i.match_ordering_id,
+                    m.monitored, m.quality_profile_id, i.metadata_locked, i.match_ordering_id, i.wanted_playlist_id,
                     i.refreshed_at, i.refresh_error
              FROM item i LEFT JOIN monitor m ON m.item_id = i.id
              WHERE i.id = ? AND i.kind = 'series'",
@@ -355,18 +360,15 @@ impl Loaded {
 
         let episodes: Vec<EpisodeRow> = sqlx::query_as(
             "SELECT e.id, e.title, e.airs_at, e.airs_tz, e.runtime_seconds,
-                    (SELECT count(*) FROM file_link l JOIN media_file f ON f.id = l.file_id
-                     WHERE l.item_id = e.id AND f.status = 'present') AS present,
-                    (SELECT count(*) FROM file_link l JOIN media_file f ON f.id = l.file_id
-                     WHERE l.item_id = e.id AND f.status = 'missing') AS missing,
-                    m.monitored,
+                    st.availability, st.monitored, w.reason AS wanted_reason,
                     s.position_seconds, s.played, s.last_played_at,
                     EXISTS (SELECT 1 FROM item_tag t WHERE t.item_id = e.id AND t.tag = 'filler')
                         AS is_filler,
                     (SELECT max(f.first_seen) FROM file_link l JOIN media_file f ON f.id = l.file_id
                      WHERE l.item_id = e.id AND f.status = 'present') AS newest_file
              FROM item e
-             LEFT JOIN monitor m ON m.item_id = e.id
+             JOIN item_state st ON st.item_id = e.id
+             LEFT JOIN item_wanted w ON w.item_id = e.id
              LEFT JOIN user_item_state s ON s.item_id = e.id AND s.user_id = ?
              WHERE e.parent_id = ?",
         )
@@ -399,11 +401,11 @@ impl Loaded {
     }
 
     fn availability(&self, e: &EpisodeRow) -> Availability {
-        rules::availability(e.present, e.missing, e.airs_at, self.now)
+        Availability::parse(&e.availability)
     }
 
     fn monitored(&self, e: &EpisodeRow) -> bool {
-        rules::monitored(e.monitored, self.series.monitored)
+        e.monitored
     }
 
     fn played(e: &EpisodeRow) -> bool {
@@ -421,7 +423,7 @@ impl Loaded {
                 Availability::Upcoming => c.upcoming += 1,
                 Availability::Unknown => c.unknown += 1,
             }
-            if rules::wanted(self.monitored(e), a) {
+            if e.wanted_reason.is_some() {
                 c.wanted += 1;
             }
             c.total += 1;
@@ -831,6 +833,10 @@ pub async fn series_detail(
         selected_view: resolved.view.map(|v| v.id),
         views,
         locations,
+        wanted_follows: loaded
+            .series
+            .wanted_playlist_id
+            .map(|p| ViewRef::Playlist(p).key()),
         locked_fields: serde_json::from_str(&loaded.series.metadata_locked).unwrap_or_default(),
         match_view: loaded
             .series
@@ -923,7 +929,8 @@ pub async fn episodes(
                 episode: loaded.episode_ref(e, number.clone()),
                 availability: *a,
                 monitored,
-                wanted: rules::wanted(monitored, *a),
+                wanted: e.wanted_reason.is_some(),
+                wanted_reason: e.wanted_reason.clone(),
                 is_filler: e.is_filler,
                 is_gap: *gap,
                 watch: e.position_seconds.map(|position_seconds| WatchState {
@@ -1100,7 +1107,7 @@ pub async fn home(pool: &SqlitePool, user: Option<i64>, now: i64) -> Result<Home
     attention.status_sources.sort();
 
     drop(conn);
-    let movies = movies::list_movies(pool, user, now).await?;
+    let movies = movies::list_movies(pool, user).await?;
     Ok(Home {
         movies,
         hero: keep_watching.first().cloned(),
@@ -1152,39 +1159,20 @@ pub async fn set_view(
 }
 
 /// Sets an item's own monitored flag (`None` inherits from the parent), and emits
-/// `item.wanted` / `item.unwanted` for every episode whose wanted state changes.
+/// `item.wanted` / `item.unwanted` for every item whose wanted state changes.
 pub async fn set_monitored(
     pool: &SqlitePool,
     item_id: i64,
     monitored: Option<bool>,
 ) -> Result<(), CatalogError> {
     let mut tx = crate::db::begin_write(pool).await?;
-    let (kind, parent): (String, Option<i64>) =
-        sqlx::query_as("SELECT kind, parent_id FROM item WHERE id = ?")
-            .bind(item_id)
-            .fetch_optional(&mut *tx)
-            .await?
-            .ok_or(CatalogError::NotFound)?;
-    let series = match kind.as_str() {
-        "series" => Some(item_id),
-        "episode" => parent,
-        _ => None,
-    };
-
-    let wanted_now = |loaded: &Loaded| -> HashSet<i64> {
-        loaded
-            .episodes
-            .values()
-            .filter(|e| rules::wanted(loaded.monitored(e), loaded.availability(e)))
-            .map(|e| e.id)
-            .collect()
-    };
-    let now = now();
-    let before = match series {
-        Some(s) => wanted_now(&Loaded::load(&mut tx, s, None, now).await?),
-        None => HashSet::new(),
-    };
-
+    let exists: bool = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM item WHERE id = ?)")
+        .bind(item_id)
+        .fetch_one(&mut *tx)
+        .await?;
+    if !exists {
+        return Err(CatalogError::NotFound);
+    }
     sqlx::query(
         "INSERT INTO monitor (item_id, monitored) VALUES (?, ?)
          ON CONFLICT (item_id) DO UPDATE SET monitored = excluded.monitored",
@@ -1193,23 +1181,7 @@ pub async fn set_monitored(
     .bind(monitored)
     .execute(&mut *tx)
     .await?;
-
-    if let Some(s) = series {
-        let after = wanted_now(&Loaded::load(&mut tx, s, None, now).await?);
-        let mut changes: Vec<(i64, &str)> = after
-            .difference(&before)
-            .map(|id| (*id, events::ITEM_WANTED))
-            .chain(
-                before
-                    .difference(&after)
-                    .map(|id| (*id, events::ITEM_UNWANTED)),
-            )
-            .collect();
-        changes.sort();
-        for (id, kind) in changes {
-            events::emit(&mut tx, kind, json!({ "item_id": id, "series_id": s })).await?;
-        }
-    }
+    crate::wanted::sync_events(&mut tx).await?;
     tx.commit().await?;
     Ok(())
 }

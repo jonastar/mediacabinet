@@ -29,6 +29,13 @@ Settles the stack and the build-blocking open questions in `media-cabinet-handof
 - Matching uses the provider's search API, not TMDB's daily ID exports: the exports hold only the original-language title and popularity (no year, no translations), so they can't identify most folders. They may later serve as an offline ID check or popularity tie-breaker.
 - Write transactions use `BEGIN IMMEDIATE` (`db::begin_write`) so concurrent scans wait for the lock instead of failing.
 
+## Wanted and quality
+
+- Availability, resolved monitoring and wanted are SQL views (`item_state`, `item_wanted`, migration 0004): one definition for every screen and the API. Gaps and up next depend on an ordering and stay in Rust (`catalog::rules`).
+- Quality profiles are ours but deliberately small: a resolution cutoff (`{"cutoff": "1080p"}`). Available files below it are wanted as upgrades; heights are compared with a 0.7 allowance so wide films (1920×800) count as 1080p. The \*arrs keep their own detailed profiles for choosing releases; `/wanted` reports our cutoff so they can map it.
+- Wanted can follow a playlist (e.g. no filler): a series' `wanted_playlist_id` limits wanted to that playlist's episodes. Monitoring stays per item.
+- `item.wanted` / `item.unwanted` events come from diffing `item_wanted` against `wanted_snapshot`, right after changes that affect it and every minute for changes time makes (episodes airing).
+
 ## Backend stack
 
 | Concern | Choice | Notes |

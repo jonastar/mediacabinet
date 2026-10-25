@@ -70,8 +70,10 @@ async fn aired_order_matches_the_mockup() {
             list.counts.not_acquired,
             list.counts.wanted
         ),
-        (7, 1, 2, 3)
+        (7, 1, 2, 4)
     );
+    // Bathhouse Detour is 720p under an HD 1080p profile: wanted as an upgrade.
+    assert_eq!(list.entries[5].wanted_reason.as_deref(), Some("upgrade"));
     assert_eq!(list.gaps, 2);
 }
 
@@ -134,17 +136,26 @@ async fn unmonitoring_an_episode_lowers_wanted_and_emits_an_event() {
         .episode
         .item_id;
 
+    let before: i64 = sqlx::query_scalar("SELECT max(id) FROM event")
+        .fetch_one(&pool)
+        .await
+        .unwrap();
     catalog::set_monitored(&pool, mountain_road, Some(false))
         .await
         .unwrap();
 
     let list = episodes(&pool, kitsune, aired).await;
-    assert_eq!(list.counts.wanted, 2);
+    assert_eq!(
+        list.counts.wanted, 3,
+        "two unavailable episodes and one 720p upgrade"
+    );
     assert!(!list.entries[4].monitored);
-    let events: Vec<(String, String)> = sqlx::query_as("SELECT type, payload FROM event")
-        .fetch_all(&pool)
-        .await
-        .unwrap();
+    let events: Vec<(String, String)> =
+        sqlx::query_as("SELECT type, payload FROM event WHERE id > ?")
+            .bind(before)
+            .fetch_all(&pool)
+            .await
+            .unwrap();
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].0, "item.unwanted");
     assert!(events[0].1.contains(&mountain_road.to_string()));
@@ -187,7 +198,7 @@ async fn home_matches_the_mockup() {
     assert_eq!(home.shows.len(), 8);
 
     let a = home.attention;
-    assert_eq!((a.missing_files, a.wanted, a.in_progress), (7, 20, 1));
+    assert_eq!((a.missing_files, a.wanted, a.in_progress), (7, 21, 1));
     assert_eq!(a.offline_roots.len(), 1);
     assert_eq!(a.status_sources, ["sonarr"]);
 }

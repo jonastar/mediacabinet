@@ -24,6 +24,12 @@
   --state-neutral: #b5bac3;
   --state-neutral-bg: #22262e;
 
+  /* Layout template levels. */
+  --template-grouping: #9cc3ff;
+  --template-item: #f5d08a;
+  --template-below: #c9cdd4;
+  --template-separator: #5c6270;
+
   --font-ui: 'Manrope Variable', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
 

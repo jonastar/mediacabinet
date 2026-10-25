@@ -14,6 +14,29 @@ export type LinkedFile = Schemas['LinkedFile']
 export type ExternalStatus = Schemas['ExternalStatus']
 export type View = Schemas['View']
 export type Availability = Schemas['Availability']
+export type Library = Schemas['Library']
+export type Root = Schemas['Root']
+export type TemplatePiece = Schemas['TemplatePiece']
+export type FolderProposal = Schemas['FolderProposal']
+export type TemplateCheck = Schemas['TemplateCheck']
+export type FolderListing = Schemas['FolderListing']
+export type PlacementExample = Schemas['PlacementExample']
+export type ScanProgress = Schemas['ScanProgress']
+export type LibraryKind = 'tv' | 'movies'
+export type WritePolicy = 'managed' | 'adaptive' | 'read_only'
+
+export interface NewRoot {
+  path: string
+  write_policy: WritePolicy
+  layout_template: string
+  is_import_target: boolean
+}
+
+export interface RootChanges {
+  write_policy?: WritePolicy
+  layout_template?: string
+  is_import_target?: boolean
+}
 
 export class ApiError extends Error {
   readonly status: number
@@ -53,4 +76,23 @@ export const api = {
   setView: (id: number, view: string) => request<void>('PUT', `/api/series/${id}/view`, { view }),
   setMonitored: (itemId: number, monitored: boolean | null) =>
     request<void>('PUT', `/api/items/${itemId}/monitor`, { monitored }),
+
+  libraries: () => request<Library[]>('GET', '/api/libraries'),
+  createLibrary: (name: string, kind: LibraryKind) =>
+    request<Library>('POST', '/api/libraries', { name, kind }),
+  deleteLibrary: (id: number) => request<void>('DELETE', `/api/libraries/${id}`),
+  addRoot: (libraryId: number, root: NewRoot) =>
+    request<Root>('POST', `/api/libraries/${libraryId}/roots`, root),
+  updateRoot: (id: number, changes: RootChanges) =>
+    request<Root>('PATCH', `/api/roots/${id}`, changes),
+  removeRoot: (id: number) => request<void>('DELETE', `/api/roots/${id}`),
+  scanRoot: (id: number) => request<{ started: boolean }>('POST', `/api/roots/${id}/scan`),
+  propose: (path: string, kind: LibraryKind) =>
+    request<FolderProposal>('POST', '/api/folders/propose', { path, kind }),
+  checkTemplate: (template: string, kind: LibraryKind) =>
+    request<TemplateCheck>('POST', '/api/templates/check', { template, kind }),
+  folders: (path: string) =>
+    request<FolderListing>('GET', `/api/folders?path=${encodeURIComponent(path)}`),
+  placementExample: (libraryId: number) =>
+    request<PlacementExample | null>('GET', `/api/libraries/${libraryId}/placement-example`),
 }

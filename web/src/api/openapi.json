@@ -25,10 +25,595 @@
           }
         }
       }
+    },
+    "/api/home": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Everything the home screen shows: continue watching, coming up, shows, and\nwhat needs attention.",
+        "operationId": "home",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Home"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/monitor": {
+      "put": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Sets whether a series or episode is monitored. Emits `item.wanted` and\n`item.unwanted` for episodes whose wanted state changes.",
+        "operationId": "set_item_monitor",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetMonitor"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/series": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "All series, by title.",
+        "operationId": "list_series",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SeriesSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/series/{id}": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "A series with its orderings, playlists, metadata and locations.",
+        "operationId": "series_detail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SeriesDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/series/{id}/episodes": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "A series' episodes in one ordering or playlist, with availability, files,\nwatch state, gaps and up next.",
+        "operationId": "series_episodes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "description": "`ordering:<id>` or `playlist:<id>`. Defaults to the user's view, then the default ordering.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EpisodeList"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/series/{id}/view": {
+      "put": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Sets the ordering or playlist that drives the user's \"next up\" for a series.",
+        "operationId": "set_series_view",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetView"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "Attention": {
+        "type": "object",
+        "required": [
+          "review",
+          "missing_files",
+          "offline_roots",
+          "wanted",
+          "in_progress",
+          "status_sources",
+          "gaps",
+          "gap_series"
+        ],
+        "properties": {
+          "gap_series": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "gaps": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "in_progress": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Wanted items an external tool is working on."
+          },
+          "missing_files": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "offline_roots": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "review": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status_sources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "wanted": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "Availability": {
+        "type": "string",
+        "enum": [
+          "available",
+          "missing",
+          "not_acquired",
+          "upcoming",
+          "unknown"
+        ]
+      },
+      "ComingUp": {
+        "type": "object",
+        "required": [
+          "series_id",
+          "series_title",
+          "episode"
+        ],
+        "properties": {
+          "episode": {
+            "$ref": "#/components/schemas/EpisodeRef"
+          },
+          "series_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "series_title": {
+            "type": "string"
+          }
+        }
+      },
+      "ContinueItem": {
+        "type": "object",
+        "required": [
+          "series_id",
+          "series_title",
+          "episode",
+          "position_seconds",
+          "last_played_at"
+        ],
+        "properties": {
+          "episode": {
+            "$ref": "#/components/schemas/EpisodeRef"
+          },
+          "last_played_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "position_seconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "series_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "series_title": {
+            "type": "string"
+          },
+          "view_name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Episode": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/EpisodeRef"
+          },
+          {
+            "type": "object",
+            "required": [
+              "availability",
+              "monitored",
+              "wanted",
+              "is_filler",
+              "is_gap",
+              "files",
+              "statuses"
+            ],
+            "properties": {
+              "availability": {
+                "$ref": "#/components/schemas/Availability"
+              },
+              "files": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/LinkedFile"
+                }
+              },
+              "is_filler": {
+                "type": "boolean"
+              },
+              "is_gap": {
+                "type": "boolean"
+              },
+              "monitored": {
+                "type": "boolean"
+              },
+              "statuses": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ExternalStatus"
+                }
+              },
+              "wanted": {
+                "type": "boolean"
+              },
+              "watch": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/WatchState"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "EpisodeList": {
+        "type": "object",
+        "required": [
+          "entries",
+          "counts",
+          "gaps"
+        ],
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/StateCounts",
+            "description": "Over this view's entries."
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Episode"
+            }
+          },
+          "gaps": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "up_next": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Index into `entries`.",
+            "minimum": 0
+          },
+          "view": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "EpisodeNumber": {
+        "type": "object",
+        "description": "An episode's number in one ordering or playlist. Formatting is up to the client.",
+        "required": [
+          "style"
+        ],
+        "properties": {
+          "number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "season": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "style": {
+            "$ref": "#/components/schemas/NumberStyle"
+          }
+        }
+      },
+      "EpisodeRef": {
+        "type": "object",
+        "required": [
+          "item_id",
+          "title"
+        ],
+        "properties": {
+          "airs_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Unix seconds, UTC."
+          },
+          "item_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "number": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EpisodeNumber"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "runtime_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
+      "ErrorBody": {
+        "type": "object",
+        "description": "Error body for every non-2xx response.",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "ExternalId": {
+        "type": "object",
+        "required": [
+          "provider",
+          "value",
+          "is_primary"
+        ],
+        "properties": {
+          "is_primary": {
+            "type": "boolean"
+          },
+          "provider": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        }
+      },
+      "ExternalStatus": {
+        "type": "object",
+        "required": [
+          "source",
+          "status",
+          "updated_at",
+          "expires_at",
+          "stale"
+        ],
+        "properties": {
+          "detail": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "expires_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "source": {
+            "type": "string"
+          },
+          "stale": {
+            "type": "boolean",
+            "description": "Past its expiry: the tool stopped reporting."
+          },
+          "status": {
+            "type": "string"
+          },
+          "updated_at": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "Health": {
         "type": "object",
         "required": [
@@ -41,6 +626,446 @@
           },
           "version": {
             "type": "string"
+          }
+        }
+      },
+      "Home": {
+        "type": "object",
+        "required": [
+          "keep_watching",
+          "coming_up",
+          "shows",
+          "attention"
+        ],
+        "properties": {
+          "attention": {
+            "$ref": "#/components/schemas/Attention"
+          },
+          "coming_up": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComingUp"
+            }
+          },
+          "hero": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ContinueItem",
+                "description": "The most recently watched series' next episode."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "keep_watching": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContinueItem"
+            }
+          },
+          "shows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeriesSummary"
+            }
+          }
+        }
+      },
+      "LinkedFile": {
+        "type": "object",
+        "required": [
+          "file_id",
+          "root_path",
+          "relative_path",
+          "status",
+          "size",
+          "last_seen",
+          "link_source",
+          "confidence",
+          "pinned"
+        ],
+        "properties": {
+          "confidence": {
+            "type": "number",
+            "format": "double"
+          },
+          "container": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "edition": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "file_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "hdr_format": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "height": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "last_seen": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "link_source": {
+            "type": "string",
+            "description": "How it was matched: `path_id`, `nfo`, `parser`, `ai` or `user`."
+          },
+          "pinned": {
+            "type": "boolean"
+          },
+          "relative_path": {
+            "type": "string"
+          },
+          "root_path": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "status": {
+            "type": "string",
+            "description": "`present`, `missing` or `ignored`."
+          },
+          "video_codec": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "width": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "Location": {
+        "type": "object",
+        "required": [
+          "root_id",
+          "root_path",
+          "path",
+          "is_primary",
+          "write_policy",
+          "online",
+          "file_count"
+        ],
+        "properties": {
+          "file_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "is_primary": {
+            "type": "boolean"
+          },
+          "online": {
+            "type": "boolean",
+            "description": "Whether the root folder is reachable right now."
+          },
+          "path": {
+            "type": "string",
+            "description": "Relative to the root."
+          },
+          "root_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "root_path": {
+            "type": "string"
+          },
+          "write_policy": {
+            "type": "string"
+          }
+        }
+      },
+      "NumberStyle": {
+        "type": "string",
+        "enum": [
+          "season",
+          "absolute",
+          "playlist"
+        ]
+      },
+      "QualityProfile": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "SeriesDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SeriesSummary"
+          },
+          {
+            "type": "object",
+            "required": [
+              "external_ids",
+              "monitored",
+              "quality_profiles",
+              "views",
+              "locations"
+            ],
+            "properties": {
+              "external_ids": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ExternalId"
+                }
+              },
+              "locations": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Location"
+                }
+              },
+              "monitored": {
+                "type": "boolean",
+                "description": "The series' own setting; episodes inherit it unless set themselves."
+              },
+              "overview": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "primary_provider": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "quality_profile_id": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "format": "int64"
+              },
+              "quality_profiles": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/QualityProfile"
+                }
+              },
+              "selected_view": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The current user's view, or the default ordering."
+              },
+              "views": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/View"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "SeriesSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "counts",
+          "new_episodes"
+        ],
+        "properties": {
+          "counts": {
+            "$ref": "#/components/schemas/StateCounts"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "new_episodes": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Available, unplayed episodes whose file arrived in the last 7 days."
+          },
+          "next_airing": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EpisodeRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "series_status": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`continuing`, `ended` or `cancelled`."
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "SetMonitor": {
+        "type": "object",
+        "properties": {
+          "monitored": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "`null` inherits from the parent (an episode from its series)."
+          }
+        }
+      },
+      "SetView": {
+        "type": "object",
+        "required": [
+          "view"
+        ],
+        "properties": {
+          "view": {
+            "type": "string",
+            "description": "`ordering:<id>` or `playlist:<id>` of this series."
+          }
+        }
+      },
+      "StateCounts": {
+        "type": "object",
+        "required": [
+          "available",
+          "missing",
+          "not_acquired",
+          "upcoming",
+          "unknown",
+          "wanted",
+          "total"
+        ],
+        "properties": {
+          "available": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "missing": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "not_acquired": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "unknown": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "upcoming": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "wanted": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "View": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "source",
+          "is_default",
+          "shared"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "`ordering:<id>` or `playlist:<id>`."
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string",
+            "description": "Ordering kind (`aired`, `dvd`, `absolute`, `story`, `custom`) or `playlist`."
+          },
+          "name": {
+            "type": "string"
+          },
+          "shared": {
+            "type": "boolean",
+            "description": "Playlists: visible to every user."
+          },
+          "source": {
+            "type": "string",
+            "description": "Where it comes from: a provider (`tmdb`), `user`, or `smart`/`manual` for playlists."
+          }
+        }
+      },
+      "WatchState": {
+        "type": "object",
+        "required": [
+          "position_seconds",
+          "played"
+        ],
+        "properties": {
+          "last_played_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "played": {
+            "type": "boolean"
+          },
+          "position_seconds": {
+            "type": "number",
+            "format": "double"
           }
         }
       }

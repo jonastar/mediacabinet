@@ -21,13 +21,348 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/home": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Everything the home screen shows: continue watching, coming up, shows, and
+         *     what needs attention.
+         */
+        get: operations["home"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}/monitor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Sets whether a series or episode is monitored. Emits `item.wanted` and
+         *     `item.unwanted` for episodes whose wanted state changes.
+         */
+        put: operations["set_item_monitor"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** All series, by title. */
+        get: operations["list_series"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/series/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A series with its orderings, playlists, metadata and locations. */
+        get: operations["series_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/series/{id}/episodes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A series' episodes in one ordering or playlist, with availability, files,
+         *     watch state, gaps and up next.
+         */
+        get: operations["series_episodes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/series/{id}/view": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Sets the ordering or playlist that drives the user's "next up" for a series. */
+        put: operations["set_series_view"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        Attention: {
+            /** Format: int64 */
+            gap_series: number;
+            /** Format: int64 */
+            gaps: number;
+            /**
+             * Format: int64
+             * @description Wanted items an external tool is working on.
+             */
+            in_progress: number;
+            /** Format: int64 */
+            missing_files: number;
+            offline_roots: string[];
+            /** Format: int64 */
+            review: number;
+            status_sources: string[];
+            /** Format: int64 */
+            wanted: number;
+        };
+        /** @enum {string} */
+        Availability: "available" | "missing" | "not_acquired" | "upcoming" | "unknown";
+        ComingUp: {
+            episode: components["schemas"]["EpisodeRef"];
+            /** Format: int64 */
+            series_id: number;
+            series_title: string;
+        };
+        ContinueItem: {
+            episode: components["schemas"]["EpisodeRef"];
+            /** Format: int64 */
+            last_played_at: number;
+            /** Format: double */
+            position_seconds: number;
+            /** Format: int64 */
+            series_id: number;
+            series_title: string;
+            view_name?: string | null;
+        };
+        Episode: components["schemas"]["EpisodeRef"] & {
+            availability: components["schemas"]["Availability"];
+            files: components["schemas"]["LinkedFile"][];
+            is_filler: boolean;
+            is_gap: boolean;
+            monitored: boolean;
+            statuses: components["schemas"]["ExternalStatus"][];
+            wanted: boolean;
+            watch?: components["schemas"]["WatchState"] | null;
+        };
+        EpisodeList: {
+            /** @description Over this view's entries. */
+            counts: components["schemas"]["StateCounts"];
+            entries: components["schemas"]["Episode"][];
+            /** Format: int64 */
+            gaps: number;
+            /** @description Index into `entries`. */
+            up_next?: number | null;
+            view?: string | null;
+        };
+        /** @description An episode's number in one ordering or playlist. Formatting is up to the client. */
+        EpisodeNumber: {
+            /** Format: int64 */
+            number?: number | null;
+            /** Format: int64 */
+            season?: number | null;
+            style: components["schemas"]["NumberStyle"];
+        };
+        EpisodeRef: {
+            /**
+             * Format: int64
+             * @description Unix seconds, UTC.
+             */
+            airs_at?: number | null;
+            /** Format: int64 */
+            item_id: number;
+            number?: components["schemas"]["EpisodeNumber"] | null;
+            /** Format: int64 */
+            runtime_seconds?: number | null;
+            title: string;
+        };
+        /** @description Error body for every non-2xx response. */
+        ErrorBody: {
+            error: string;
+        };
+        ExternalId: {
+            is_primary: boolean;
+            provider: string;
+            value: string;
+        };
+        ExternalStatus: {
+            detail?: Record<string, never> | null;
+            /** Format: int64 */
+            expires_at: number;
+            source: string;
+            /** @description Past its expiry: the tool stopped reporting. */
+            stale: boolean;
+            status: string;
+            /** Format: int64 */
+            updated_at: number;
+        };
         Health: {
             status: string;
             version: string;
+        };
+        Home: {
+            attention: components["schemas"]["Attention"];
+            coming_up: components["schemas"]["ComingUp"][];
+            hero?: components["schemas"]["ContinueItem"] | null;
+            keep_watching: components["schemas"]["ContinueItem"][];
+            shows: components["schemas"]["SeriesSummary"][];
+        };
+        LinkedFile: {
+            /** Format: double */
+            confidence: number;
+            container?: string | null;
+            edition?: string | null;
+            /** Format: int64 */
+            file_id: number;
+            hdr_format?: string | null;
+            /** Format: int64 */
+            height?: number | null;
+            /** Format: int64 */
+            last_seen: number;
+            /** @description How it was matched: `path_id`, `nfo`, `parser`, `ai` or `user`. */
+            link_source: string;
+            pinned: boolean;
+            relative_path: string;
+            root_path: string;
+            /** Format: int64 */
+            size: number;
+            /** @description `present`, `missing` or `ignored`. */
+            status: string;
+            video_codec?: string | null;
+            /** Format: int64 */
+            width?: number | null;
+        };
+        Location: {
+            /** Format: int64 */
+            file_count: number;
+            is_primary: boolean;
+            /** @description Whether the root folder is reachable right now. */
+            online: boolean;
+            /** @description Relative to the root. */
+            path: string;
+            /** Format: int64 */
+            root_id: number;
+            root_path: string;
+            write_policy: string;
+        };
+        /** @enum {string} */
+        NumberStyle: "season" | "absolute" | "playlist";
+        QualityProfile: {
+            /** Format: int64 */
+            id: number;
+            name: string;
+        };
+        SeriesDetail: components["schemas"]["SeriesSummary"] & {
+            external_ids: components["schemas"]["ExternalId"][];
+            locations: components["schemas"]["Location"][];
+            /** @description The series' own setting; episodes inherit it unless set themselves. */
+            monitored: boolean;
+            overview?: string | null;
+            primary_provider?: string | null;
+            /** Format: int64 */
+            quality_profile_id?: number | null;
+            quality_profiles: components["schemas"]["QualityProfile"][];
+            /** @description The current user's view, or the default ordering. */
+            selected_view?: string | null;
+            views: components["schemas"]["View"][];
+        };
+        SeriesSummary: {
+            counts: components["schemas"]["StateCounts"];
+            /** Format: int64 */
+            id: number;
+            /**
+             * Format: int64
+             * @description Available, unplayed episodes whose file arrived in the last 7 days.
+             */
+            new_episodes: number;
+            next_airing?: components["schemas"]["EpisodeRef"] | null;
+            /** @description `continuing`, `ended` or `cancelled`. */
+            series_status?: string | null;
+            title: string;
+            /** Format: int64 */
+            year?: number | null;
+        };
+        SetMonitor: {
+            /** @description `null` inherits from the parent (an episode from its series). */
+            monitored?: boolean | null;
+        };
+        SetView: {
+            /** @description `ordering:<id>` or `playlist:<id>` of this series. */
+            view: string;
+        };
+        StateCounts: {
+            /** Format: int64 */
+            available: number;
+            /** Format: int64 */
+            missing: number;
+            /** Format: int64 */
+            not_acquired: number;
+            /** Format: int64 */
+            total: number;
+            /** Format: int64 */
+            unknown: number;
+            /** Format: int64 */
+            upcoming: number;
+            /** Format: int64 */
+            wanted: number;
+        };
+        View: {
+            /** @description `ordering:<id>` or `playlist:<id>`. */
+            id: string;
+            is_default: boolean;
+            /** @description Ordering kind (`aired`, `dvd`, `absolute`, `story`, `custom`) or `playlist`. */
+            kind: string;
+            name: string;
+            /** @description Playlists: visible to every user. */
+            shared: boolean;
+            /** @description Where it comes from: a provider (`tmdb`), `user`, or `smart`/`manual` for playlists. */
+            source: string;
+        };
+        WatchState: {
+            /** Format: int64 */
+            last_played_at?: number | null;
+            played: boolean;
+            /** Format: double */
+            position_seconds: number;
         };
     };
     responses: never;
@@ -53,6 +388,183 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    home: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Home"];
+                };
+            };
+        };
+    };
+    set_item_monitor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetMonitor"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_series: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeriesSummary"][];
+                };
+            };
+        };
+    };
+    series_detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SeriesDetail"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    series_episodes: {
+        parameters: {
+            query?: {
+                /** @description `ordering:<id>` or `playlist:<id>`. Defaults to the user's view, then the default ordering. */
+                view?: string | null;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EpisodeList"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_series_view: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetView"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
                 };
             };
         };

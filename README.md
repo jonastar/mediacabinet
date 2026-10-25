@@ -30,6 +30,13 @@ A fake library for testing (about 40 short clips covering the spec's layouts, na
 scripts/make-fixtures.sh            # writes fixtures/media (gitignored); --force to regenerate
 ```
 
+Demo data matching the design mockups, in its own data folder (it refuses a database that already has libraries):
+
+```sh
+CABINET_DATA_DIR=./data-demo cargo run -p media-cabinet -- seed-demo
+CABINET_DATA_DIR=./data-demo cargo run -p media-cabinet
+```
+
 After changing API handlers, regenerate the frontend types:
 
 ```sh

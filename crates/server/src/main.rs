@@ -34,6 +34,13 @@ async fn main() -> anyhow::Result<()> {
         .with_context(|| format!("creating {}", data_dir.display()))?;
     let db = cabinet_core::db::open(&data_dir.join("cabinet.db")).await?;
 
+    if std::env::args().nth(1).as_deref() == Some("seed-demo") {
+        let media = data_dir.join("demo-media");
+        cabinet_core::demo::seed(&db, &media, cabinet_core::catalog::now()).await?;
+        println!("Seeded demo data into {}", data_dir.display());
+        return Ok(());
+    }
+
     let app = api::router(AppState { db })
         .fallback(web::serve)
         .layer(tower_http::trace::TraceLayer::new_for_http());

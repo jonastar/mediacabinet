@@ -29,9 +29,9 @@ Tick items as they land. Open questions from the spec are listed in the phase th
 
 Real API, seeded data. Seeing and testing the design early.
 
-- [ ] Dev seed command: the mockups' sample series, episodes, orderings, files and watch state
-- [ ] Read API for the UI: series list, series detail with episodes per ordering, home rails
-- [ ] Simple availability and next up in the read API (replaced by Phase 5's derived views)
+- [x] Dev seed command: the mockups' sample series, episodes, orderings, files and watch state
+- [x] Read API for the UI: series list, series detail with episodes per ordering, home rails
+- [x] Simple availability and next up in the read API (replaced by Phase 5's derived views)
 - [ ] Routing and data fetching conventions; API types generated from OpenAPI
 - [ ] App shell: sidebar, Media Cabinet branding, app-wide Watch / Manage mode for admins (remembered)
 - [ ] Shared components: segmented controls, state badges, cards, rails, posters, progress bars

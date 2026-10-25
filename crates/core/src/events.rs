@@ -9,6 +9,8 @@ pub const FILE_CHANGED: &str = "file.changed";
 pub const FILE_MISSING: &str = "file.missing";
 pub const FILE_MOVED: &str = "file.moved";
 pub const FILE_RESTORED: &str = "file.restored";
+pub const ITEM_UNWANTED: &str = "item.unwanted";
+pub const ITEM_WANTED: &str = "item.wanted";
 
 pub async fn emit(
     conn: &mut SqliteConnection,

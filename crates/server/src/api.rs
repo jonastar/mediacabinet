@@ -10,12 +10,24 @@ use utoipa_axum::routes;
 
 use crate::AppState;
 
+mod catalog;
+mod error;
+
+pub use error::ApiError;
+
 #[derive(OpenApi)]
 #[openapi(info(title = "Media Cabinet API"))]
 struct ApiDoc;
 
 fn routes() -> OpenApiRouter<AppState> {
-    let api = OpenApiRouter::new().routes(routes!(health));
+    let api = OpenApiRouter::new()
+        .routes(routes!(health))
+        .routes(routes!(catalog::home))
+        .routes(routes!(catalog::list_series))
+        .routes(routes!(catalog::series_detail))
+        .routes(routes!(catalog::series_episodes))
+        .routes(routes!(catalog::set_series_view))
+        .routes(routes!(catalog::set_item_monitor));
     OpenApiRouter::with_openapi(ApiDoc::openapi()).nest("/api", api)
 }
 

@@ -191,3 +191,94 @@ async fn home_matches_the_mockup() {
     assert_eq!(a.offline_roots.len(), 1);
     assert_eq!(a.status_sources, ["sonarr"]);
 }
+
+#[tokio::test]
+async fn edits_locks_tags_and_matching_ordering() {
+    use cabinet_core::items::{self, ItemEdit};
+    let (_dir, pool, kitsune) = demo().await;
+
+    items::edit(
+        &pool,
+        kitsune,
+        ItemEdit {
+            title: Some("Kitsune Road (TV)".into()),
+            lock: true,
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+    let detail = catalog::series_detail(&pool, kitsune, Some(1), catalog::now())
+        .await
+        .unwrap();
+    assert_eq!(detail.summary.title, "Kitsune Road (TV)");
+    assert_eq!(detail.locked_fields, ["title"]);
+    assert!(
+        items::edit(
+            &pool,
+            kitsune,
+            ItemEdit {
+                title: Some("  ".into()),
+                ..Default::default()
+            }
+        )
+        .await
+        .is_err()
+    );
+
+    // An external tool marks the finale as filler.
+    let aired = view_id(&pool, kitsune, "Aired").await;
+    let foxfire = episodes(&pool, kitsune, aired).await.entries[7]
+        .episode
+        .item_id;
+    items::set_tags(&pool, foxfire, "animefillerlist", &["filler".into()])
+        .await
+        .unwrap();
+    assert!(episodes(&pool, kitsune, aired).await.entries[7].is_filler);
+    let no_filler = view_id(&pool, kitsune, "No filler").await;
+    assert_eq!(episodes(&pool, kitsune, no_filler).await.entries.len(), 9);
+
+    let absolute = match view_id(&pool, kitsune, "Absolute").await {
+        ViewRef::Ordering(id) => id,
+        _ => unreachable!(),
+    };
+    items::set_match_ordering(&pool, kitsune, Some(absolute))
+        .await
+        .unwrap();
+    let detail = catalog::series_detail(&pool, kitsune, Some(1), catalog::now())
+        .await
+        .unwrap();
+    assert_eq!(detail.match_view, Some(format!("ordering:{absolute}")));
+    let other_series: i64 =
+        sqlx::query_scalar("SELECT id FROM ordering WHERE series_id <> ? LIMIT 1")
+            .bind(kitsune)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert!(
+        items::set_match_ordering(&pool, kitsune, Some(other_series))
+            .await
+            .is_err()
+    );
+}
+
+#[tokio::test]
+async fn search_finds_series_and_episodes() {
+    let (_dir, pool, _) = demo().await;
+    let results = catalog::movies::search(&pool, "kitsune", Some(1), catalog::now())
+        .await
+        .unwrap();
+    assert_eq!(results.series.len(), 1);
+    let results = catalog::movies::search(&pool, "two tails", Some(1), catalog::now())
+        .await
+        .unwrap();
+    assert_eq!(results.episodes.len(), 1);
+    assert_eq!(results.episodes[0].series_title, "Kitsune Road");
+    let results = catalog::movies::search(&pool, "100%_", Some(1), catalog::now())
+        .await
+        .unwrap();
+    assert!(
+        results.series.is_empty() && results.episodes.is_empty(),
+        "wildcards are literal"
+    );
+}

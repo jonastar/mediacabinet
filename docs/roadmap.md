@@ -60,9 +60,9 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Cross-reference secondary provider IDs where they map cleanly
 - [x] Refresh: match by primary ID, reconcile by position, title and date, never duplicate
 - [x] Refresh: new episodes, provider-deleted episodes flagged (`removed_upstream_at`), locked fields kept
-- [ ] Refresh scheduling: ended and cancelled series less often
-- [ ] Offline behaviour: cached metadata, refresh retries when providers are unreachable
-- [ ] Item tags from external sources (filler lists)
+- [x] Refresh scheduling: ended and cancelled series less often
+- [x] Offline behaviour: cached metadata, refresh retries when providers are unreachable
+- [x] Item tags from external sources (filler lists), set through `PUT /items/{id}/tags`
 - [ ] AniDB support (decide: v1 or later)
 - [x] Identify series: explicit ID in path, `.nfo`, provider search with year hints
 - [x] Folder → series proposals in the review queue when unsure

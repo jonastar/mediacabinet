@@ -12,6 +12,7 @@ use crate::AppState;
 
 mod catalog;
 mod error;
+mod items;
 mod library;
 mod review;
 
@@ -45,7 +46,18 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(review::link_file))
         .routes(routes!(review::ignore_file))
         .routes(routes!(review::identify_folder))
-        .routes(routes!(review::search));
+        .routes(routes!(review::search))
+        .routes(routes!(items::list_movies))
+        .routes(routes!(items::movie_detail))
+        .routes(routes!(items::search))
+        .routes(routes!(items::artwork))
+        .routes(routes!(items::edit_item))
+        .routes(routes!(items::set_locks))
+        .routes(routes!(items::set_tags))
+        .routes(routes!(items::refresh_item))
+        .routes(routes!(items::set_match_ordering))
+        .routes(routes!(items::rematch_series))
+        .routes(routes!(items::rescan_series));
     OpenApiRouter::with_openapi(ApiDoc::openapi()).nest("/api", api)
 }
 

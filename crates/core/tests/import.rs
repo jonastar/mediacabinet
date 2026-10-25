@@ -262,3 +262,41 @@ async fn imports_movies() {
         1
     );
 }
+
+#[tokio::test]
+async fn refresh_schedule_and_failures() {
+    use cabinet_core::metadata::Provider;
+    use cabinet_core::metadata::refresh::{due, refresh_item};
+    use std::sync::Arc;
+
+    let (_dir, pool) = db().await;
+    let series = import_series(&pool, &night_harbor()).await.unwrap().item_id;
+    let ended = import_series(&pool, &catalog().series("99031").unwrap().clone())
+        .await
+        .unwrap()
+        .item_id;
+    let now = cabinet_core::catalog::now();
+
+    assert!(
+        due(&pool, "tmdb", now).await.unwrap().is_empty(),
+        "just imported"
+    );
+    // A day later the continuing series is due; the ended one waits a week.
+    assert_eq!(due(&pool, "tmdb", now + 86400 + 1).await.unwrap(), [series]);
+    assert_eq!(due(&pool, "tmdb", now + 8 * 86400).await.unwrap().len(), 2);
+
+    let provider = Provider::Fake(Arc::new(catalog()));
+    refresh_item(&pool, &provider, series).await.unwrap();
+
+    // The provider no longer knows it: the error is recorded and the data kept.
+    let empty = Provider::Fake(Arc::new(Catalog::default()));
+    assert!(refresh_item(&pool, &empty, ended).await.is_err());
+    let (title, error): (String, Option<String>) =
+        sqlx::query_as("SELECT title, refresh_error FROM item WHERE id = ?")
+            .bind(ended)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(title, "Paper Moons");
+    assert!(error.is_some());
+}

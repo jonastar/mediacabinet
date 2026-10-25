@@ -2,6 +2,7 @@
 //! the home screen. Derived state is computed here from links, file status and
 //! dates (see `rules`), never stored.
 
+pub mod movies;
 pub mod rules;
 
 use std::collections::{HashMap, HashSet};
@@ -96,6 +97,8 @@ pub struct EpisodeRef {
     pub number: Option<EpisodeNumber>,
     /// Unix seconds, UTC.
     pub airs_at: Option<i64>,
+    /// False when the provider only gave a date: show the date without a time.
+    pub airs_time_known: bool,
     pub runtime_seconds: Option<i64>,
 }
 
@@ -110,6 +113,9 @@ pub struct SeriesSummary {
     pub next_airing: Option<EpisodeRef>,
     /// Available, unplayed episodes whose file arrived in the last 7 days.
     pub new_episodes: i64,
+    pub genres: Vec<String>,
+    /// Artwork kinds available from `/api/artwork/{id}/{kind}`: poster, backdrop.
+    pub artwork: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -167,6 +173,12 @@ pub struct SeriesDetail {
     /// The current user's view, or the default ordering.
     pub selected_view: Option<String>,
     pub locations: Vec<Location>,
+    /// Fields metadata refreshes never overwrite.
+    pub locked_fields: Vec<String>,
+    /// The view filenames are numbered in, if set; otherwise the default first.
+    pub match_view: Option<String>,
+    pub refreshed_at: Option<i64>,
+    pub refresh_error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -271,6 +283,7 @@ pub struct Home {
     pub keep_watching: Vec<ContinueItem>,
     pub coming_up: Vec<ComingUp>,
     pub shows: Vec<SeriesSummary>,
+    pub movies: Vec<movies::MovieSummary>,
     pub attention: Attention,
 }
 
@@ -286,6 +299,10 @@ struct SeriesRow {
     primary_provider: Option<String>,
     monitored: Option<bool>,
     quality_profile_id: Option<i64>,
+    metadata_locked: String,
+    match_ordering_id: Option<i64>,
+    refreshed_at: Option<i64>,
+    refresh_error: Option<String>,
 }
 
 #[derive(sqlx::FromRow, Clone)]
@@ -293,6 +310,7 @@ struct EpisodeRow {
     id: i64,
     title: String,
     airs_at: Option<i64>,
+    airs_tz: Option<String>,
     runtime_seconds: Option<i64>,
     present: i64,
     missing: i64,
@@ -307,6 +325,8 @@ struct EpisodeRow {
 /// One series with all its episodes and the user's state, loaded once.
 struct Loaded {
     series: SeriesRow,
+    genres: Vec<String>,
+    artwork: Vec<String>,
     episodes: HashMap<i64, EpisodeRow>,
     tags: HashMap<i64, HashSet<String>>,
     now: i64,
@@ -321,7 +341,8 @@ impl Loaded {
     ) -> Result<Loaded, CatalogError> {
         let series: SeriesRow = sqlx::query_as(
             "SELECT i.id, i.title, i.year, i.overview, i.series_status, i.primary_provider,
-                    m.monitored, m.quality_profile_id
+                    m.monitored, m.quality_profile_id, i.metadata_locked, i.match_ordering_id,
+                    i.refreshed_at, i.refresh_error
              FROM item i LEFT JOIN monitor m ON m.item_id = i.id
              WHERE i.id = ? AND i.kind = 'series'",
         )
@@ -331,7 +352,7 @@ impl Loaded {
         .ok_or(CatalogError::NotFound)?;
 
         let episodes: Vec<EpisodeRow> = sqlx::query_as(
-            "SELECT e.id, e.title, e.airs_at, e.runtime_seconds,
+            "SELECT e.id, e.title, e.airs_at, e.airs_tz, e.runtime_seconds,
                     (SELECT count(*) FROM file_link l JOIN media_file f ON f.id = l.file_id
                      WHERE l.item_id = e.id AND f.status = 'present') AS present,
                     (SELECT count(*) FROM file_link l JOIN media_file f ON f.id = l.file_id
@@ -364,8 +385,11 @@ impl Loaded {
             tags.entry(id).or_default().insert(tag);
         }
 
+        let (genres, artwork) = genres_and_artwork(&mut *conn, series_id).await?;
         Ok(Loaded {
             series,
+            genres,
+            artwork,
             episodes: episodes.into_iter().map(|e| (e.id, e)).collect(),
             tags,
             now,
@@ -409,6 +433,7 @@ impl Loaded {
             title: e.title.clone(),
             number,
             airs_at: e.airs_at,
+            airs_time_known: e.airs_tz.is_some(),
             runtime_seconds: e.runtime_seconds,
         }
     }
@@ -440,8 +465,28 @@ impl Loaded {
             counts: self.counts(self.episodes.values()),
             next_airing: self.next_airing(numbers),
             new_episodes,
+            genres: self.genres.clone(),
+            artwork: self.artwork.clone(),
         }
     }
+}
+
+async fn genres_and_artwork(
+    conn: &mut SqliteConnection,
+    item: i64,
+) -> Result<(Vec<String>, Vec<String>), sqlx::Error> {
+    let genres: Vec<String> = sqlx::query_scalar(
+        "SELECT substr(tag, 7) FROM item_tag WHERE item_id = ? AND tag LIKE 'genre:%' ORDER BY rowid",
+    )
+    .bind(item)
+    .fetch_all(&mut *conn)
+    .await?;
+    let artwork: Vec<String> =
+        sqlx::query_scalar("SELECT kind FROM item_artwork WHERE item_id = ? ORDER BY kind")
+            .bind(item)
+            .fetch_all(&mut *conn)
+            .await?;
+    Ok((genres, artwork))
 }
 
 /// A view resolved to its entries, in order.
@@ -775,6 +820,13 @@ pub async fn series_detail(
         selected_view: resolved.view.map(|v| v.id),
         views,
         locations,
+        locked_fields: serde_json::from_str(&loaded.series.metadata_locked).unwrap_or_default(),
+        match_view: loaded
+            .series
+            .match_ordering_id
+            .map(|o| ViewRef::Ordering(o).key()),
+        refreshed_at: loaded.series.refreshed_at,
+        refresh_error: loaded.series.refresh_error.clone(),
     })
 }
 
@@ -887,7 +939,7 @@ pub async fn episodes(
 }
 
 #[derive(sqlx::FromRow)]
-struct FileRow {
+pub(crate) struct FileRow {
     item_id: i64,
     file_id: i64,
     root_path: String,
@@ -1031,7 +1083,10 @@ pub async fn home(pool: &SqlitePool, user: Option<i64>, now: i64) -> Result<Home
         .unwrap_or_default();
     attention.status_sources.sort();
 
+    drop(conn);
+    let movies = movies::list_movies(pool, user, now).await?;
     Ok(Home {
+        movies,
         hero: keep_watching.first().cloned(),
         keep_watching,
         coming_up,

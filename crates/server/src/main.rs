@@ -6,6 +6,7 @@ use anyhow::Context;
 use tracing_subscriber::EnvFilter;
 
 mod api;
+mod artwork;
 mod web;
 
 #[derive(Clone)]
@@ -14,6 +15,7 @@ pub struct AppState {
     pub scans: cabinet_core::scan::ScanService,
     pub provider: cabinet_core::metadata::Provider,
     pub match_settings: cabinet_core::matcher::MatchSettings,
+    pub artwork: artwork::ArtworkCache,
 }
 
 /// TMDB with CABINET_TMDB_KEY, or an offline catalog with CABINET_METADATA_CATALOG.
@@ -105,11 +107,18 @@ async fn main() -> anyhow::Result<()> {
         scans.spawn_watcher(Duration::from_secs(10));
     }
 
+    cabinet_core::metadata::refresh::spawn_refresher(
+        db.clone(),
+        provider.clone(),
+        Duration::from_secs(10 * 60),
+    );
+
     let app = api::router(AppState {
         db,
         scans,
         provider,
         match_settings,
+        artwork: artwork::ArtworkCache::new(data_dir.join("artwork")),
     })
     .fallback(web::serve)
     .layer(tower_http::trace::TraceLayer::new_for_http());

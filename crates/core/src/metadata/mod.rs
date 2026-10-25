@@ -6,6 +6,7 @@
 pub mod fake;
 pub mod import;
 pub mod model;
+pub mod refresh;
 pub mod tmdb;
 
 use std::sync::Arc;

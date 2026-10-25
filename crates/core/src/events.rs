@@ -11,6 +11,7 @@ pub const FILE_MISSING: &str = "file.missing";
 pub const FILE_MOVED: &str = "file.moved";
 pub const FILE_RESTORED: &str = "file.restored";
 pub const ITEM_ADDED: &str = "item.added";
+pub const ITEM_EDITED: &str = "item.edited";
 pub const ITEM_REFRESHED: &str = "item.refreshed";
 pub const ITEM_UNWANTED: &str = "item.unwanted";
 pub const ITEM_WANTED: &str = "item.wanted";

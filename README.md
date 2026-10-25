@@ -1,6 +1,6 @@
 # Media Cabinet
 
-A self-hosted media library manager and streaming server. See [docs/decisions.md](docs/decisions.md) for the stack, and `media-cabinet-handoff/` for the product spec and designs.
+A self-hosted media library manager and streaming server. See [docs/roadmap.md](docs/roadmap.md) for progress toward v1, [docs/decisions.md](docs/decisions.md) for the stack, and `media-cabinet-handoff/` for the product spec and designs.
 
 ## Layout
 

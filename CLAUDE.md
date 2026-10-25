@@ -1,6 +1,6 @@
 # Media Cabinet
 
-Self-hosted media library manager and streaming server. Rust backend (`crates/`), React + TypeScript web UI (`web/`). The stack and its reasons are in `docs/decisions.md`; the product spec and designs are in `media-cabinet-handoff/`.
+Self-hosted media library manager and streaming server. Rust backend (`crates/`), React + TypeScript web UI (`web/`). The stack and its reasons are in `docs/decisions.md`; progress toward v1 is tracked in `docs/roadmap.md` (tick items when they land); the product spec and designs are in `media-cabinet-handoff/`.
 
 ## Commands
 

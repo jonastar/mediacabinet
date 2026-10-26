@@ -116,6 +116,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Episodes that air become wanted without anything else changing.
     cabinet_core::wanted::spawn_syncer(db.clone(), Duration::from_secs(60));
+    cabinet_core::webhooks::Deliverer::new(db.clone()).spawn(Duration::from_secs(2));
     cabinet_core::metadata::refresh::spawn_refresher(
         db.clone(),
         provider.clone(),

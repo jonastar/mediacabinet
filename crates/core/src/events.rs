@@ -37,3 +37,49 @@ pub async fn emit(
         .fetch_one(conn)
         .await
 }
+
+#[derive(Debug, Clone, serde::Serialize, utoipa::ToSchema)]
+pub struct EventRecord {
+    /// Increasing, never reused: a consumer's cursor.
+    pub id: i64,
+    #[serde(rename = "type")]
+    pub kind: String,
+    #[schema(value_type = Object)]
+    pub payload: Value,
+    pub created_at: i64,
+}
+
+/// Events after `cursor`, oldest first, optionally only some types.
+pub async fn since(
+    pool: &sqlx::SqlitePool,
+    cursor: i64,
+    limit: i64,
+    types: &[String],
+) -> Result<Vec<EventRecord>, sqlx::Error> {
+    let rows: Vec<(i64, String, String, i64)> = sqlx::query_as(
+        "SELECT id, type, payload, created_at FROM event
+         WHERE id > ?1 AND (?2 = '[]' OR type IN (SELECT value FROM json_each(?2)))
+         ORDER BY id LIMIT ?3",
+    )
+    .bind(cursor)
+    .bind(serde_json::json!(types).to_string())
+    .bind(limit.clamp(1, 1000))
+    .fetch_all(pool)
+    .await?;
+    Ok(rows
+        .into_iter()
+        .map(|(id, kind, payload, created_at)| EventRecord {
+            id,
+            kind,
+            payload: serde_json::from_str(&payload).unwrap_or(Value::Null),
+            created_at,
+        })
+        .collect())
+}
+
+/// The newest event's ID, or 0: where a new consumer starts to see only new events.
+pub async fn latest(pool: &sqlx::SqlitePool) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar("SELECT coalesce(max(id), 0) FROM event")
+        .fetch_one(pool)
+        .await
+}

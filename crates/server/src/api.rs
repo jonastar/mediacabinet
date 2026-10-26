@@ -13,6 +13,7 @@ use crate::AppState;
 mod auth;
 mod catalog;
 mod error;
+mod events;
 mod integration;
 mod items;
 mod library;
@@ -74,7 +75,11 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(integration::revoke_key))
         .routes(routes!(integration::sonarr_list))
         .routes(routes!(integration::radarr_list))
-        .routes(routes!(integration::arr_webhook));
+        .routes(routes!(integration::arr_webhook))
+        .routes(routes!(events::events))
+        .routes(routes!(events::list_webhooks, events::create_webhook))
+        .routes(routes!(events::update_webhook, events::delete_webhook))
+        .routes(routes!(events::test_webhook));
     OpenApiRouter::with_openapi(ApiDoc::openapi()).nest("/api", api)
 }
 

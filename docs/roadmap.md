@@ -99,8 +99,8 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] `GET /wanted`, `GET /items/{ref}`, `GET /series/{ref}/gaps`, `GET /calendar`
 - [x] `PUT /items/{ref}/status/{source}`
 - [x] `POST /series` (add by provider ID) and the movie equivalent
-- [ ] `GET /events` stream (SSE) from a cursor
-- [ ] Webhooks: subscribe, deliver with retries, resume from cursor, signed payloads
+- [x] `GET /events` stream (SSE) from a cursor
+- [x] Webhooks: subscribe, deliver with retries, resume from cursor, signed payloads
 - [x] \*arr compatibility: `/wanted` in the custom import list format
 - [x] \*arr compatibility: accept Connect webhooks and rescan affected paths
 - [ ] `POST /imports`: match, place by write policy, link

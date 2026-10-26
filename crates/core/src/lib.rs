@@ -15,3 +15,4 @@ pub mod parse;
 pub mod refs;
 pub mod scan;
 pub mod wanted;
+pub mod webhooks;

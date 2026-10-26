@@ -7,6 +7,7 @@ import { Segmented } from '../components/Segmented'
 import { Failed, Loading } from '../components/Status'
 import { airDate, ago, episodeLabel, resolution, seriesTone } from '../lib/format'
 import type { Badge as BadgeValue } from '../lib/wording'
+import { useLiveEvents } from '../lib/live'
 import styles from './Agenda.module.css'
 
 type Reason = 'all' | NonNullable<WantedQuery['reason']>
@@ -60,6 +61,7 @@ export function WantedPage() {
   const [shown, setShown] = useState(PAGE)
   const query = { reason: reason === 'all' ? undefined : reason, limit: shown }
   const page = useApi(`wanted:${reason}:${shown}`, () => api.wanted(query))
+  useLiveEvents(['item.wanted', 'item.unwanted', 'status.changed'], page.reload)
 
   if (page.error) {
     return <Failed error={page.error} onRetry={page.reload} />

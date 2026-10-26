@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api, artworkUrl, type ContinueItem, type Home } from '../api/client'
 import { heroBackground } from '../lib/artwork'
+import { useLiveEvents } from '../lib/live'
 import { navigate } from '../lib/router'
 import { useApi } from '../api/useApi'
 import { PlayIcon } from '../components/Icons'
@@ -38,6 +39,21 @@ function heroLine(c: ContinueItem) {
 export function HomePage() {
   const [mode] = useMode()
   const home = useApi('home', api.home)
+  useLiveEvents(
+    [
+      'file.added',
+      'file.missing',
+      'link.created',
+      'item.added',
+      'item.wanted',
+      'item.unwanted',
+      'match.needs_review',
+      'status.changed',
+      'scan.finished',
+    ],
+    home.reload,
+    1000,
+  )
   if (home.error) {
     return <Failed error={home.error} onRetry={home.reload} />
   }

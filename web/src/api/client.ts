@@ -36,7 +36,20 @@ export type WantedPage = Schemas['WantedPage']
 export type WantedItem = Schemas['WantedItem']
 export type CalendarEntry = Schemas['CalendarEntry']
 export type QualityProfile = Schemas['QualityProfile']
+export type ApiKey = Schemas['ApiKey']
+export type NewApiKey = Schemas['NewApiKey']
+export type Webhook = Schemas['Webhook']
+export type NewWebhook = Schemas['NewWebhook']
+export type MovePlan = Schemas['MovePlan']
 export type LibraryKind = 'tv' | 'movies'
+
+export interface WebhookInput {
+  name?: string
+  url?: string
+  event_types?: string[]
+  enabled?: boolean
+  from_start?: boolean
+}
 
 export interface WantedQuery {
   reason?: 'missing' | 'not_acquired' | 'upgrade'
@@ -173,6 +186,20 @@ export const api = {
     itemId: number,
     settings: { quality_profile_id?: number | null; wanted_follows?: string | null },
   ) => request<void>('PUT', `/api/items/${itemId}/monitoring`, settings),
+  apiKeys: () => request<ApiKey[]>('GET', '/api/api-keys'),
+  createApiKey: (name: string) => request<NewApiKey>('POST', '/api/api-keys', { name }),
+  revokeApiKey: (id: number) => request<void>('DELETE', `/api/api-keys/${id}`),
+  webhooks: () => request<Webhook[]>('GET', '/api/webhooks'),
+  createWebhook: (input: WebhookInput) => request<NewWebhook>('POST', '/api/webhooks', input),
+  updateWebhook: (id: number, input: WebhookInput) =>
+    request<Webhook>('PATCH', `/api/webhooks/${id}`, input),
+  deleteWebhook: (id: number) => request<void>('DELETE', `/api/webhooks/${id}`),
+  testWebhook: (id: number) =>
+    request<{ ok: boolean; error?: string | null }>('POST', `/api/webhooks/${id}/test`),
+  organize: (itemId: number, dryRun: boolean) =>
+    request<MovePlan>('POST', `/api/items/${itemId}/organize`, { dry_run: dryRun }),
+  moveSeries: (seriesId: number, rootId: number, dryRun: boolean) =>
+    request<MovePlan>('POST', `/api/series/${seriesId}/move`, { root_id: rootId, dry_run: dryRun }),
   placementExample: (libraryId: number) =>
     request<PlacementExample | null>('GET', `/api/libraries/${libraryId}/placement-example`),
 }

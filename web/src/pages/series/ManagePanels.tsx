@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { api, type SeriesDetail } from '../../api/client'
 import { ago } from '../../lib/format'
 import { SearchPicker } from '../review/Pickers'
+import { LocationActions } from './LocationActions'
 import styles from './ManagePanels.module.css'
 
 const NOT_BUILT = "This isn't built yet"
@@ -220,9 +221,7 @@ export function ManagePanels({ series, monitorPending, onToggleMonitor, onChange
             </span>
           </div>
         ))}
-        <button type="button" className={styles.button} disabled title={NOT_BUILT}>
-          Move series…
-        </button>
+        <LocationActions series={series} onDone={onChanged} />
       </section>
       {error && (
         <p className={styles.warning} role="alert" style={{ gridColumn: '1 / -1' }}>

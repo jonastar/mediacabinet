@@ -9,6 +9,191 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/api-keys": {
+      "get": {
+        "tags": [
+          "integration"
+        ],
+        "operationId": "list_keys",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ApiKey"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "integration"
+        ],
+        "summary": "Creates an API key. The key is in the response only; keep it in the tool.",
+        "operationId": "create_key",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateKey"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewApiKey"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/api-keys/{id}": {
+      "delete": {
+        "tags": [
+          "integration"
+        ],
+        "operationId": "revoke_key",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arr/radarr-list": {
+      "get": {
+        "tags": [
+          "arr"
+        ],
+        "summary": "Wanted movies, readable as a Radarr \"Radarr List\" or \"StevenLu Custom\" list. Requires an API key.",
+        "operationId": "radarr_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RadarrListItem"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arr/sonarr-list": {
+      "get": {
+        "tags": [
+          "arr"
+        ],
+        "summary": "Monitored series that want episodes, as a Sonarr \"Custom List\". Requires an API key.",
+        "operationId": "sonarr_list",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SonarrListItem"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/arr/webhook": {
+      "post": {
+        "tags": [
+          "arr"
+        ],
+        "summary": "Receives Sonarr and Radarr Connect webhooks (import, upgrade, rename, delete)\nand rescans the roots holding the paths they mention. Requires an API key.",
+        "operationId": "arr_webhook",
+        "requestBody": {
+          "description": "Any *arr webhook payload",
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookReceived"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/artwork/{id}/{kind}": {
       "get": {
         "tags": [
@@ -106,6 +291,80 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/events": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "The event outbox, from a cursor. With `Accept: text/event-stream` it streams\n(SSE, resumable with Last-Event-ID); otherwise it returns a page, long-polling\nwith `wait`. Consumers that keep their cursor never miss an event.",
+        "operationId": "events",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "description": "Events after this ID. Default: only new events. SSE clients may send\nLast-Event-ID instead.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "description": "Comma-separated event types; default all.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "wait",
+            "in": "query",
+            "description": "Long-poll: wait up to this many seconds (max 60) for an event to arrive.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64",
+              "minimum": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "JSON page; or text/event-stream when requested",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EventsPage"
                 }
               }
             }
@@ -321,7 +580,135 @@
         }
       }
     },
+    "/api/imports": {
+      "post": {
+        "tags": [
+          "integration"
+        ],
+        "summary": "Hands a file over: places it by the destination root's write policy and\ntemplate, transfers it with its sidecars, and links it. Requires an API key.",
+        "operationId": "import",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/items/{id}": {
+      "get": {
+        "tags": [
+          "integration"
+        ],
+        "summary": "An item by reference: `item:<id>`, or `<provider>:<id>` with an optional\nposition (`?ordering=aired&episode=S02E05`). Availability, wanted state, its\nnumber in every ordering, files and statuses.",
+        "operationId": "item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "A reference: an item ID, item:<id>, or <provider>:<id> such as tmdb:57243",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Ordering kind or name for `episode`: aired, dvd, absolute… or default.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "episode",
+            "in": "query",
+            "description": "`S02E05`, `2x05` or an absolute number, within the series in `ref`.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemView"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
       "patch": {
         "tags": [
           "items"
@@ -515,6 +902,65 @@
         }
       }
     },
+    "/api/items/{id}/organize": {
+      "post": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Renames a series' or movie's files on managed roots to match the template.",
+        "operationId": "organize_item",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DryRun"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovePlan"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/items/{id}/refresh": {
       "post": {
         "tags": [
@@ -584,10 +1030,10 @@
           {
             "name": "id",
             "in": "path",
+            "description": "A reference: an item ID, item:<id>, or <provider>:<id> such as tmdb:57243",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             }
           },
           {
@@ -596,6 +1042,30 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "query",
+            "description": "Ordering kind or name for `episode`: aired, dvd, absolute… or default.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "episode",
+            "in": "query",
+            "description": "`S02E05`, `2x05` or an absolute number, within the series in `ref`.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -641,10 +1111,10 @@
           {
             "name": "id",
             "in": "path",
+            "description": "A reference: an item ID or <provider>:<id>",
             "required": true,
             "schema": {
-              "type": "integer",
-              "format": "int64"
+              "type": "string"
             }
           },
           {
@@ -653,6 +1123,30 @@
             "required": true,
             "schema": {
               "type": "string"
+            }
+          },
+          {
+            "name": "ordering",
+            "in": "path",
+            "description": "Ordering kind or name for `episode`: aired, dvd, absolute… or default.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "episode",
+            "in": "path",
+            "description": "`S02E05`, `2x05` or an absolute number, within the series in `ref`.",
+            "required": true,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
             }
           }
         ],
@@ -1085,6 +1579,52 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "integration"
+        ],
+        "summary": "Adds a movie by provider ID and monitors it.",
+        "operationId": "add_movie",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddItem"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/movies/{id}": {
@@ -1490,6 +2030,52 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "integration"
+        ],
+        "summary": "Adds a series by provider ID: imports every episode and its orderings, and\nmonitors it. Files arrive later, by scan or import.",
+        "operationId": "add_series",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddItem"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportReport"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/series/{id}": {
@@ -1593,6 +2179,61 @@
         }
       }
     },
+    "/api/series/{id}/gaps": {
+      "get": {
+        "tags": [
+          "integration"
+        ],
+        "summary": "Episodes missing before an available one, in an ordering or playlist.",
+        "operationId": "gaps",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "A reference: an item ID or <provider>:<id>",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "view",
+            "in": "query",
+            "description": "`ordering:<id>` or `playlist:<id>`; default ordering if absent.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Episode"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/series/{id}/match-ordering": {
       "put": {
         "tags": [
@@ -1623,6 +2264,65 @@
         },
         "responses": {
           "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/series/{id}/move": {
+      "post": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Moves a series' files to another root; the new folder becomes primary.",
+        "operationId": "move_series",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MoveSeries"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MovePlan"
+                }
+              }
+            }
+          },
           "400": {
             "content": {
               "application/json": {
@@ -1929,6 +2629,192 @@
           }
         }
       }
+    },
+    "/api/webhooks": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "operationId": "list_webhooks",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Webhook"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Subscribes a URL to events. The signing secret is in the response only.",
+        "operationId": "create_webhook",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NewWebhook"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhooks/{id}": {
+      "delete": {
+        "tags": [
+          "events"
+        ],
+        "operationId": "delete_webhook",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "events"
+        ],
+        "operationId": "update_webhook",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WebhookInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Webhook"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhooks/{id}/test": {
+      "post": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Sends a `webhook.test` event now, without moving the cursor.",
+        "operationId": "test_webhook",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestResult"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1939,6 +2825,28 @@
           "pin": {
             "type": "boolean",
             "description": "Pin the resulting link so rescans never change it."
+          }
+        }
+      },
+      "AddItem": {
+        "type": "object",
+        "required": [
+          "provider_id"
+        ],
+        "properties": {
+          "monitored": {
+            "type": "boolean"
+          },
+          "provider_id": {
+            "type": "string",
+            "description": "The metadata provider's ID (TMDB)."
+          },
+          "quality_profile_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
           }
         }
       },
@@ -1962,6 +2870,39 @@
           "write_policy": {
             "type": "string",
             "description": "`managed`, `adaptive` (default) or `read_only`."
+          }
+        }
+      },
+      "ApiKey": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "prefix",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_used_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "prefix": {
+            "type": "string",
+            "description": "The key's first characters, to recognise it."
           }
         }
       },
@@ -2216,6 +3157,18 @@
           }
         }
       },
+      "CreateKey": {
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "What it's for, e.g. \"Sonarr\"."
+          }
+        }
+      },
       "CreateLibrary": {
         "type": "object",
         "required": [
@@ -2229,6 +3182,14 @@
           },
           "name": {
             "type": "string"
+          }
+        }
+      },
+      "DryRun": {
+        "type": "object",
+        "properties": {
+          "dry_run": {
+            "type": "boolean"
           }
         }
       },
@@ -2439,6 +3400,52 @@
         "properties": {
           "error": {
             "type": "string"
+          }
+        }
+      },
+      "EventRecord": {
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "payload",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Increasing, never reused: a consumer's cursor."
+          },
+          "payload": {
+            "type": "object"
+          },
+          "type": {
+            "type": "string"
+          }
+        }
+      },
+      "EventsPage": {
+        "type": "object",
+        "required": [
+          "events",
+          "cursor"
+        ],
+        "properties": {
+          "cursor": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Pass as `after` next time."
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EventRecord"
+            }
           }
         }
       },
@@ -2891,6 +3898,96 @@
           }
         }
       },
+      "ImportRequest": {
+        "type": "object",
+        "required": [
+          "path",
+          "item"
+        ],
+        "properties": {
+          "dry_run": {
+            "type": "boolean",
+            "description": "Report where it would go without touching anything."
+          },
+          "episodes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Episodes of that series, e.g. `[\"S01E02\", \"S01E03\"]` for a double episode.\nWithout them, a series' episodes are read from the file name."
+          },
+          "item": {
+            "type": "string",
+            "description": "The episode, movie or series: `item:<id>` or `<provider>:<id>`."
+          },
+          "mode": {
+            "$ref": "#/components/schemas/TransferMode"
+          },
+          "ordering": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Ordering the episode numbers are in; default the series' default."
+          },
+          "path": {
+            "type": "string",
+            "description": "Absolute path of the file on the server."
+          },
+          "replace": {
+            "type": "boolean",
+            "description": "Remove the items' existing files (an upgrade). Off by default."
+          }
+        }
+      },
+      "ImportResult": {
+        "type": "object",
+        "required": [
+          "file_id",
+          "root_id",
+          "path",
+          "items",
+          "note",
+          "sidecars",
+          "replaced"
+        ],
+        "properties": {
+          "file_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "note": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "replaced": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Files of the same items removed because `replace` was asked."
+          },
+          "root_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sidecars": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "ItemEdit": {
         "type": "object",
         "description": "Fields people can edit. Absent fields are left alone.",
@@ -2918,6 +4015,106 @@
             ]
           },
           "title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "ItemView": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "external_ids",
+          "numbers",
+          "files",
+          "statuses"
+        ],
+        "properties": {
+          "airs_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "availability": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Availability",
+                "description": "Episodes and movies only."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "external_ids": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalId"
+            }
+          },
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LinkedFile"
+            }
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`series`, `episode` or `movie`."
+          },
+          "monitored": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "numbers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderingNumber"
+            },
+            "description": "Its number in every ordering it appears in."
+          },
+          "parent_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "parent_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "statuses": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalStatus"
+            }
+          },
+          "title": {
+            "type": "string"
+          },
+          "wanted_reason": {
             "type": [
               "string",
               "null"
@@ -3161,6 +4358,47 @@
           }
         }
       },
+      "MovePlan": {
+        "type": "object",
+        "required": [
+          "moves",
+          "skipped",
+          "applied"
+        ],
+        "properties": {
+          "applied": {
+            "type": "boolean"
+          },
+          "moves": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlannedMove"
+            }
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Files left where they are, and why."
+          }
+        }
+      },
+      "MoveSeries": {
+        "type": "object",
+        "required": [
+          "root_id"
+        ],
+        "properties": {
+          "dry_run": {
+            "type": "boolean"
+          },
+          "root_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "MovieDetail": {
         "allOf": [
           {
@@ -3307,6 +4545,44 @@
           }
         }
       },
+      "NewApiKey": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/ApiKey"
+          },
+          {
+            "type": "object",
+            "required": [
+              "secret"
+            ],
+            "properties": {
+              "secret": {
+                "type": "string",
+                "description": "The key itself. Shown only now; store it in the tool that uses it."
+              }
+            }
+          }
+        ]
+      },
+      "NewWebhook": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Webhook"
+          },
+          {
+            "type": "object",
+            "required": [
+              "secret"
+            ],
+            "properties": {
+              "secret": {
+                "type": "string",
+                "description": "For verifying signatures. Shown only now."
+              }
+            }
+          }
+        ]
+      },
       "NumberStyle": {
         "type": "string",
         "enum": [
@@ -3314,6 +4590,35 @@
           "absolute",
           "playlist"
         ]
+      },
+      "OrderingNumber": {
+        "type": "object",
+        "required": [
+          "ordering",
+          "kind"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "ordering": {
+            "type": "string"
+          },
+          "season": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
       },
       "Parsed": {
         "type": "object",
@@ -3516,6 +4821,26 @@
           }
         }
       },
+      "PlannedMove": {
+        "type": "object",
+        "required": [
+          "file_id",
+          "from",
+          "to"
+        ],
+        "properties": {
+          "file_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      },
       "PolicyPlacement": {
         "allOf": [
           {
@@ -3598,6 +4923,31 @@
             "format": "int64"
           },
           "name": {
+            "type": "string"
+          }
+        }
+      },
+      "RadarrListItem": {
+        "type": "object",
+        "description": "One movie in a format both Radarr list types read: \"Radarr List\" uses `id`\n(TMDB), \"StevenLu Custom\" uses `title` and `imdb_id`.",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "imdb_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
             "type": "string"
           }
         }
@@ -4092,6 +5442,38 @@
           }
         }
       },
+      "SonarrListItem": {
+        "type": "object",
+        "description": "One series in Sonarr's \"Custom List\" format.",
+        "required": [
+          "title"
+        ],
+        "properties": {
+          "imdbId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "tmdbId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "tvdbId": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
       "StateCounts": {
         "type": "object",
         "required": [
@@ -4235,6 +5617,31 @@
           "item",
           "below",
           "separator"
+        ]
+      },
+      "TestResult": {
+        "type": "object",
+        "required": [
+          "ok"
+        ],
+        "properties": {
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "ok": {
+            "type": "boolean"
+          }
+        }
+      },
+      "TransferMode": {
+        "type": "string",
+        "enum": [
+          "hardlink",
+          "copy",
+          "move"
         ]
       },
       "UpdateRoot": {
@@ -4445,6 +5852,130 @@
           "position_seconds": {
             "type": "number",
             "format": "double"
+          }
+        }
+      },
+      "Webhook": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "url",
+          "event_types",
+          "enabled",
+          "cursor",
+          "pending",
+          "failures",
+          "next_attempt_at",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "cursor": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The last event delivered."
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "event_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Event types delivered; empty means all."
+          },
+          "failures": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_delivered_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "last_error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          },
+          "next_attempt_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "pending": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Events waiting to be delivered."
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "WebhookInput": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "event_types": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "from_start": {
+            "type": "boolean",
+            "description": "Start from the oldest kept event instead of now (create only)."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "WebhookReceived": {
+        "type": "object",
+        "required": [
+          "rescanning"
+        ],
+        "properties": {
+          "rescanning": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Roots rescanned because the payload named paths in them."
           }
         }
       }

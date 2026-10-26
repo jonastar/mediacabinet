@@ -722,6 +722,17 @@ async fn resolve(
 
 // ── Queries ────────────────────────────────────────────────────────────────
 
+/// Creates an admin user if there are none, so per-user state (views, watch
+/// progress) works before there are logins. Returns the user's ID.
+pub async fn ensure_default_user(pool: &SqlitePool) -> Result<i64, sqlx::Error> {
+    if let Some(id) = default_user(pool).await? {
+        return Ok(id);
+    }
+    sqlx::query_scalar("INSERT INTO app_user (name, is_admin) VALUES ('admin', 1) RETURNING id")
+        .fetch_one(pool)
+        .await
+}
+
 /// The user per-user state belongs to until there are logins: the first admin.
 pub async fn default_user(pool: &SqlitePool) -> Result<Option<i64>, sqlx::Error> {
     sqlx::query_scalar("SELECT id FROM app_user ORDER BY is_admin DESC, id LIMIT 1")

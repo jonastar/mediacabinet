@@ -4,10 +4,12 @@ import { useApi } from '../api/useApi'
 import { Failed, Loading } from '../components/Status'
 import { Detail } from './review/Detail'
 import { entries } from './review/entries'
+import { useLiveEvents } from '../lib/live'
 import styles from './review/Review.module.css'
 
 export function ReviewPage() {
   const queue = useApi('review', api.review)
+  useLiveEvents(['match.needs_review', 'scan.finished'], queue.reload, 1000)
   const [selected, setSelected] = useState<string | null>(null)
 
   if (queue.error) {

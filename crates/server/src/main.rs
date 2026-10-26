@@ -84,6 +84,9 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
+    // Until there are logins, everything belongs to one admin.
+    cabinet_core::catalog::ensure_default_user(&db).await?;
+
     let prober = cabinet_core::scan::Prober {
         program: std::env::var("CABINET_FFPROBE")
             .unwrap_or_else(|_| "ffprobe".into())

@@ -109,3 +109,10 @@ export const MoreIcon = () => (
     <circle cx="13" cy="8" r="1.5" />
   </svg>
 )
+
+export const SettingsIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" {...line}>
+    <circle cx="10" cy="10" r="2.6" />
+    <path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6" />
+  </svg>
+)

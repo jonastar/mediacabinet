@@ -10,6 +10,7 @@ import {
   LogoIcon,
   MoviesIcon,
   ReviewIcon,
+  SettingsIcon,
   TvIcon,
   WantedIcon,
 } from './Icons'
@@ -32,6 +33,7 @@ const MANAGE_NAV: NavItem[] = [
   { to: '/wanted', label: 'Wanted', icon: <WantedIcon /> },
   { to: '/review', label: 'Review queue', icon: <ReviewIcon /> },
   { to: '/libraries', label: 'Libraries & roots', icon: <FolderIcon /> },
+  { to: '/settings', label: 'Settings', icon: <SettingsIcon /> },
 ]
 
 function isCurrent(to: string, path: string) {

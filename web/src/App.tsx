@@ -5,6 +5,7 @@ import { LibrariesPage } from './pages/LibrariesPage'
 import { MoviePage } from './pages/MoviePage'
 import { MoviesPage } from './pages/MoviesPage'
 import { SearchPage } from './pages/SearchPage'
+import { SettingsPage } from './pages/SettingsPage'
 import { ReviewPage } from './pages/ReviewPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { SeriesPage } from './pages/SeriesPage'
@@ -28,6 +29,9 @@ function Page({ path }: { path: string }) {
   }
   if (path === '/calendar') {
     return <CalendarPage />
+  }
+  if (path === '/settings') {
+    return <SettingsPage />
   }
   if (path === '/search') {
     return <SearchPage />

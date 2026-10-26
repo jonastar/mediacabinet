@@ -109,9 +109,9 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Move a series between roots or folders (explicit action)
 - [x] API keys for external tools
 - [x] Decide: write `.nfo` or embedded tags back out (default or opt-in): not in v1; opt-in later
-- [ ] UI: Series Manage panel for location (move series)
-- [ ] UI: live updates from the event stream
-- [ ] UI: Settings for API keys and webhooks
+- [x] UI: Series Manage panel for location (move series)
+- [x] UI: live updates from the event stream
+- [x] UI: Settings for API keys and webhooks
 
 ## Phase 7 — Users and playback
 

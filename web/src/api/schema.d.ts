@@ -4,6 +4,93 @@
  */
 
 export interface paths {
+    "/api/api-keys": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_keys"];
+        put?: never;
+        /** Creates an API key. The key is in the response only; keep it in the tool. */
+        post: operations["create_key"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/api-keys/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["revoke_key"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arr/radarr-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Wanted movies, readable as a Radarr "Radarr List" or "StevenLu Custom" list. Requires an API key. */
+        get: operations["radarr_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arr/sonarr-list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Monitored series that want episodes, as a Sonarr "Custom List". Requires an API key. */
+        get: operations["sonarr_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/arr/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Receives Sonarr and Radarr Connect webhooks (import, upgrade, rename, delete)
+         *     and rescans the roots holding the paths they mention. Requires an API key.
+         */
+        post: operations["arr_webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/artwork/{id}/{kind}": {
         parameters: {
             query?: never;
@@ -30,6 +117,27 @@ export interface paths {
         };
         /** Episodes and movie releases in a time range, by air time. */
         get: operations["calendar"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The event outbox, from a cursor. With `Accept: text/event-stream` it streams
+         *     (SSE, resumable with Last-Event-ID); otherwise it returns a page, long-polling
+         *     with `wait`. Consumers that keep their cursor never miss an event.
+         */
+        get: operations["events"];
         put?: never;
         post?: never;
         delete?: never;
@@ -143,7 +251,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/items/{id}": {
+    "/api/imports": {
         parameters: {
             query?: never;
             header?: never;
@@ -151,6 +259,31 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
+        put?: never;
+        /**
+         * Hands a file over: places it by the destination root's write policy and
+         *     template, transfers it with its sidecars, and links it. Requires an API key.
+         */
+        post: operations["import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * An item by reference: `item:<id>`, or `<provider>:<id>` with an optional
+         *     position (`?ordering=aired&episode=S02E05`). Availability, wanted state, its
+         *     number in every ordering, files and statuses.
+         */
+        get: operations["item"];
         put?: never;
         post?: never;
         delete?: never;
@@ -207,6 +340,23 @@ export interface paths {
         /** Sets a series' or movie's quality profile, and what a series' wanted follows. */
         put: operations["set_monitoring"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}/organize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Renames a series' or movie's files on managed roots to match the template. */
+        post: operations["organize_item"];
         delete?: never;
         options?: never;
         head?: never;
@@ -360,7 +510,8 @@ export interface paths {
         /** All movies, by title. */
         get: operations["list_movies"];
         put?: never;
-        post?: never;
+        /** Adds a movie by provider ID and monitors it. */
+        post: operations["add_movie"];
         delete?: never;
         options?: never;
         head?: never;
@@ -530,7 +681,11 @@ export interface paths {
         /** All series, by title. */
         get: operations["list_series"];
         put?: never;
-        post?: never;
+        /**
+         * Adds a series by provider ID: imports every episode and its orderings, and
+         *     monitors it. Files arrive later, by scan or import.
+         */
+        post: operations["add_series"];
         delete?: never;
         options?: never;
         head?: never;
@@ -574,6 +729,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/series/{id}/gaps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Episodes missing before an available one, in an ordering or playlist. */
+        get: operations["gaps"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/series/{id}/match-ordering": {
         parameters: {
             query?: never;
@@ -585,6 +757,23 @@ export interface paths {
         /** Sets which ordering filenames of this series are numbered in. */
         put: operations["set_match_ordering"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/series/{id}/move": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Moves a series' files to another root; the new folder becomes primary. */
+        post: operations["move_series"];
         delete?: never;
         options?: never;
         head?: never;
@@ -679,6 +868,56 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/webhooks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_webhooks"];
+        put?: never;
+        /** Subscribes a URL to events. The signing secret is in the response only. */
+        post: operations["create_webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/webhooks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_webhook"];
+        options?: never;
+        head?: never;
+        patch: operations["update_webhook"];
+        trace?: never;
+    };
+    "/api/webhooks/{id}/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sends a `webhook.test` event now, without moving the cursor. */
+        post: operations["test_webhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -687,6 +926,13 @@ export interface components {
             /** @description Pin the resulting link so rescans never change it. */
             pin?: boolean;
         };
+        AddItem: {
+            monitored?: boolean;
+            /** @description The metadata provider's ID (TMDB). */
+            provider_id: string;
+            /** Format: int64 */
+            quality_profile_id?: number | null;
+        };
         AddRoot: {
             is_import_target?: boolean;
             layout_template: string;
@@ -694,6 +940,17 @@ export interface components {
             path: string;
             /** @description `managed`, `adaptive` (default) or `read_only`. */
             write_policy?: string;
+        };
+        ApiKey: {
+            /** Format: int64 */
+            created_at: number;
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            last_used_at?: number | null;
+            name: string;
+            /** @description The key's first characters, to recognise it. */
+            prefix: string;
         };
         Attention: {
             /** Format: int64 */
@@ -774,10 +1031,17 @@ export interface components {
             series_title: string;
             view_name?: string | null;
         };
+        CreateKey: {
+            /** @description What it's for, e.g. "Sonarr". */
+            name: string;
+        };
         CreateLibrary: {
             /** @description `tv` or `movies`. */
             kind: string;
             name: string;
+        };
+        DryRun: {
+            dry_run?: boolean;
         };
         Episode: components["schemas"]["EpisodeRef"] & {
             availability: components["schemas"]["Availability"];
@@ -832,6 +1096,25 @@ export interface components {
         /** @description Error body for every non-2xx response. */
         ErrorBody: {
             error: string;
+        };
+        EventRecord: {
+            /** Format: int64 */
+            created_at: number;
+            /**
+             * Format: int64
+             * @description Increasing, never reused: a consumer's cursor.
+             */
+            id: number;
+            payload: Record<string, never>;
+            type: string;
+        };
+        EventsPage: {
+            /**
+             * Format: int64
+             * @description Pass as `after` next time.
+             */
+            cursor: number;
+            events: components["schemas"]["EventRecord"][];
         };
         ExternalId: {
             is_primary: boolean;
@@ -954,6 +1237,36 @@ export interface components {
             /** Format: int64 */
             item_id: number;
         };
+        ImportRequest: {
+            /** @description Report where it would go without touching anything. */
+            dry_run?: boolean;
+            /**
+             * @description Episodes of that series, e.g. `["S01E02", "S01E03"]` for a double episode.
+             *     Without them, a series' episodes are read from the file name.
+             */
+            episodes?: string[];
+            /** @description The episode, movie or series: `item:<id>` or `<provider>:<id>`. */
+            item: string;
+            mode?: components["schemas"]["TransferMode"];
+            /** @description Ordering the episode numbers are in; default the series' default. */
+            ordering?: string | null;
+            /** @description Absolute path of the file on the server. */
+            path: string;
+            /** @description Remove the items' existing files (an upgrade). Off by default. */
+            replace?: boolean;
+        };
+        ImportResult: {
+            /** Format: int64 */
+            file_id: number;
+            items: number[];
+            note: string;
+            path: string;
+            /** @description Files of the same items removed because `replace` was asked. */
+            replaced: string[];
+            /** Format: int64 */
+            root_id: number;
+            sidecars: string[];
+        };
         /** @description Fields people can edit. Absent fields are left alone. */
         ItemEdit: {
             /** @description Lock the edited fields so metadata refreshes never overwrite them. */
@@ -962,6 +1275,28 @@ export interface components {
             overview?: string | null;
             sort_title?: string | null;
             title?: string | null;
+            /** Format: int64 */
+            year?: number | null;
+        };
+        ItemView: {
+            /** Format: int64 */
+            airs_at?: number | null;
+            availability?: components["schemas"]["Availability"] | null;
+            external_ids: components["schemas"]["ExternalId"][];
+            files: components["schemas"]["LinkedFile"][];
+            /** Format: int64 */
+            id: number;
+            /** @description `series`, `episode` or `movie`. */
+            kind: string;
+            monitored?: boolean | null;
+            /** @description Its number in every ordering it appears in. */
+            numbers: components["schemas"]["OrderingNumber"][];
+            /** Format: int64 */
+            parent_id?: number | null;
+            parent_title?: string | null;
+            statuses: components["schemas"]["ExternalStatus"][];
+            title: string;
+            wanted_reason?: string | null;
             /** Format: int64 */
             year?: number | null;
         };
@@ -1039,6 +1374,17 @@ export interface components {
             /** @description Series only: `playlist:<id>` that wanted follows, or null for all episodes. */
             wanted_follows?: string | null;
         };
+        MovePlan: {
+            applied: boolean;
+            moves: components["schemas"]["PlannedMove"][];
+            /** @description Files left where they are, and why. */
+            skipped: string[];
+        };
+        MoveSeries: {
+            dry_run?: boolean;
+            /** Format: int64 */
+            root_id: number;
+        };
         MovieDetail: components["schemas"]["MovieSummary"] & {
             external_ids: components["schemas"]["ExternalId"][];
             files: components["schemas"]["LinkedFile"][];
@@ -1075,8 +1421,24 @@ export interface components {
             /** Format: int64 */
             year?: number | null;
         };
+        NewApiKey: components["schemas"]["ApiKey"] & {
+            /** @description The key itself. Shown only now; store it in the tool that uses it. */
+            secret: string;
+        };
+        NewWebhook: components["schemas"]["Webhook"] & {
+            /** @description For verifying signatures. Shown only now. */
+            secret: string;
+        };
         /** @enum {string} */
         NumberStyle: "season" | "absolute" | "playlist";
+        OrderingNumber: {
+            kind: string;
+            /** Format: int64 */
+            number?: number | null;
+            ordering: string;
+            /** Format: int64 */
+            season?: number | null;
+        };
         Parsed: {
             /** @description Absolute numbers, when the name has no season (typical for anime). */
             absolute: number[];
@@ -1131,6 +1493,12 @@ export interface components {
             root_path: string;
             series_title: string;
         };
+        PlannedMove: {
+            /** Format: int64 */
+            file_id: number;
+            from: string;
+            to: string;
+        };
         PolicyPlacement: components["schemas"]["Placement"] & {
             /** @description `managed`, `adaptive` or `read_only`. */
             policy: string;
@@ -1154,6 +1522,16 @@ export interface components {
             /** Format: int64 */
             id: number;
             name: string;
+        };
+        /**
+         * @description One movie in a format both Radarr list types read: "Radarr List" uses `id`
+         *     (TMDB), "StevenLu Custom" uses `title` and `imdb_id`.
+         */
+        RadarrListItem: {
+            /** Format: int64 */
+            id?: number | null;
+            imdb_id?: string | null;
+            title: string;
         };
         Rematch: {
             /** @description The provider's ID for the right series. */
@@ -1285,6 +1663,15 @@ export interface components {
             /** @description `ordering:<id>` or `playlist:<id>` of this series. */
             view: string;
         };
+        /** @description One series in Sonarr's "Custom List" format. */
+        SonarrListItem: {
+            imdbId?: string | null;
+            title: string;
+            /** Format: int64 */
+            tmdbId?: number | null;
+            /** Format: int64 */
+            tvdbId?: number | null;
+        };
         StateCounts: {
             /** Format: int64 */
             available: number;
@@ -1338,6 +1725,12 @@ export interface components {
          * @enum {string}
          */
         TemplateRole: "grouping" | "item" | "below" | "separator";
+        TestResult: {
+            error?: string | null;
+            ok: boolean;
+        };
+        /** @enum {string} */
+        TransferMode: "hardlink" | "copy" | "move";
         UpdateRoot: {
             is_import_target?: boolean | null;
             layout_template?: string | null;
@@ -1399,6 +1792,46 @@ export interface components {
             /** Format: double */
             position_seconds: number;
         };
+        Webhook: {
+            /** Format: int64 */
+            created_at: number;
+            /**
+             * Format: int64
+             * @description The last event delivered.
+             */
+            cursor: number;
+            enabled: boolean;
+            /** @description Event types delivered; empty means all. */
+            event_types: string[];
+            /** Format: int64 */
+            failures: number;
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            last_delivered_at?: number | null;
+            last_error?: string | null;
+            name: string;
+            /** Format: int64 */
+            next_attempt_at: number;
+            /**
+             * Format: int64
+             * @description Events waiting to be delivered.
+             */
+            pending: number;
+            url: string;
+        };
+        WebhookInput: {
+            enabled?: boolean | null;
+            event_types?: string[] | null;
+            /** @description Start from the oldest kept event instead of now (create only). */
+            from_start?: boolean;
+            name?: string | null;
+            url?: string | null;
+        };
+        WebhookReceived: {
+            /** @description Roots rescanned because the payload named paths in them. */
+            rescanning: number[];
+        };
     };
     responses: never;
     parameters: never;
@@ -1408,6 +1841,161 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list_keys: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiKey"][];
+                };
+            };
+        };
+    };
+    create_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateKey"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewApiKey"];
+                };
+            };
+        };
+    };
+    revoke_key: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    radarr_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarrListItem"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    sonarr_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SonarrListItem"][];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    arr_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Any *arr webhook payload */
+        requestBody: {
+            content: {
+                "application/json": Record<string, never>;
+            };
+        };
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookReceived"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     artwork: {
         parameters: {
             query?: never;
@@ -1466,6 +2054,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    events: {
+        parameters: {
+            query?: {
+                /**
+                 * @description Events after this ID. Default: only new events. SSE clients may send
+                 *     Last-Event-ID instead.
+                 */
+                after?: number | null;
+                /** @description Comma-separated event types; default all. */
+                types?: string | null;
+                /** @description Long-poll: wait up to this many seconds (max 60) for an event to arrive. */
+                wait?: number | null;
+                limit?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description JSON page; or text/event-stream when requested */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventsPage"];
                 };
             };
         };
@@ -1643,6 +2262,96 @@ export interface operations {
             };
         };
     };
+    import: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    item: {
+        parameters: {
+            query?: {
+                /** @description Ordering kind or name for `episode`: aired, dvd, absolute… or default. */
+                ordering?: string | null;
+                /** @description `S02E05`, `2x05` or an absolute number, within the series in `ref`. */
+                episode?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description A reference: an item ID, item:<id>, or <provider>:<id> such as tmdb:57243 */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemView"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     edit_item: {
         parameters: {
             query?: never;
@@ -1791,6 +2500,47 @@ export interface operations {
             };
         };
     };
+    organize_item: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DryRun"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovePlan"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     refresh_item: {
         parameters: {
             query?: never;
@@ -1838,10 +2588,16 @@ export interface operations {
     };
     set_status: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Ordering kind or name for `episode`: aired, dvd, absolute… or default. */
+                ordering?: string | null;
+                /** @description `S02E05`, `2x05` or an absolute number, within the series in `ref`. */
+                episode?: string | null;
+            };
             header?: never;
             path: {
-                id: number;
+                /** @description A reference: an item ID, item:<id>, or <provider>:<id> such as tmdb:57243 */
+                id: string;
                 source: string;
             };
             cookie?: never;
@@ -1881,8 +2637,13 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                /** @description A reference: an item ID or <provider>:<id> */
+                id: string;
                 source: string;
+                /** @description Ordering kind or name for `episode`: aired, dvd, absolute… or default. */
+                ordering: string | null;
+                /** @description `S02E05`, `2x05` or an absolute number, within the series in `ref`. */
+                episode: string | null;
             };
             cookie?: never;
         };
@@ -2202,6 +2963,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MovieSummary"][];
+                };
+            };
+        };
+    };
+    add_movie: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddItem"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportReport"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
                 };
             };
         };
@@ -2529,6 +3329,45 @@ export interface operations {
             };
         };
     };
+    add_series: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AddItem"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportReport"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     series_detail: {
         parameters: {
             query?: never;
@@ -2598,6 +3437,39 @@ export interface operations {
             };
         };
     };
+    gaps: {
+        parameters: {
+            query?: {
+                /** @description `ordering:<id>` or `playlist:<id>`; default ordering if absent. */
+                view?: string | null;
+            };
+            header?: never;
+            path: {
+                /** @description A reference: an item ID or <provider>:<id> */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Episode"][];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     set_match_ordering: {
         parameters: {
             query?: never;
@@ -2618,6 +3490,47 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    move_series: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MoveSeries"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MovePlan"];
+                };
             };
             400: {
                 headers: {
@@ -2804,6 +3717,153 @@ export interface operations {
                 };
             };
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_webhooks: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Webhook"][];
+                };
+            };
+        };
+    };
+    create_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewWebhook"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WebhookInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Webhook"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    test_webhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestResult"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -7,6 +7,7 @@ import { BackIcon, GridIcon, ListIcon, PlayIcon } from '../components/Icons'
 import { Segmented } from '../components/Segmented'
 import { Failed, Loading } from '../components/Status'
 import { airDayLabel, episodeLabel, seriesTone } from '../lib/format'
+import { useLiveEvents } from '../lib/live'
 import { useEpisodeLayout, useMode } from '../lib/prefs'
 import { Link } from '../components/Link'
 import { Episodes } from './series/Episodes'
@@ -49,6 +50,24 @@ export function SeriesPage({ id }: { id: number }) {
   const view = pickedView ?? detail.data?.selected_view ?? null
   const episodes = useApi(detail.data ? `episodes:${id}:${view ?? ''}` : null, () =>
     api.episodes(id, view),
+  )
+  // Files, links, wanted state and statuses change while you look.
+  useLiveEvents(
+    [
+      'file.added',
+      'file.missing',
+      'file.restored',
+      'file.moved',
+      'file.removed',
+      'link.created',
+      'item.wanted',
+      'item.unwanted',
+      'item.edited',
+      'series.refreshed',
+      'series.moved',
+      'status.changed',
+    ],
+    () => Promise.all([detail.reload(), episodes.reload()]),
   )
 
   if (detail.error) {

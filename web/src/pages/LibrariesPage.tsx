@@ -8,10 +8,16 @@ import { NewLibrary } from './libraries/NewLibrary'
 import { PlacementPanel } from './libraries/PlacementPanel'
 import { RootCard } from './libraries/RootCard'
 import { Legend } from './libraries/TemplateText'
+import { useLiveEvents } from '../lib/live'
 import styles from './libraries/Libraries.module.css'
 
 export function LibrariesPage() {
   const libraries = useApi('libraries', api.libraries)
+  // Scans started elsewhere (schedule, watcher, *arr webhooks) show up as they finish.
+  useLiveEvents(
+    ['scan.finished', 'root.added', 'root.changed', 'root.removed', 'library.added'],
+    libraries.reload,
+  )
   const [picked, setPicked] = useState<number | null>(null)
   const [adding, setAdding] = useState<'folder' | 'library' | null>(null)
 

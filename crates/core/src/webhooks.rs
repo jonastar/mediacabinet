@@ -81,31 +81,34 @@ fn check_url(url: &str) -> Result<(), WebhookError> {
     }
 }
 
+#[derive(sqlx::FromRow)]
+struct WebhookRow {
+    id: i64,
+    name: String,
+    url: String,
+    event_types: String,
+    enabled: bool,
+    cursor: i64,
+    failures: i64,
+    next_attempt_at: i64,
+    last_error: Option<String>,
+    last_delivered_at: Option<i64>,
+    created_at: i64,
+}
+
 pub async fn list(pool: &SqlitePool) -> Result<Vec<Webhook>, WebhookError> {
-    let rows: Vec<(
-        i64,
-        String,
-        String,
-        String,
-        bool,
-        i64,
-        i64,
-        i64,
-        Option<String>,
-        Option<i64>,
-        i64,
-    )> = sqlx::query_as(
+    let rows: Vec<WebhookRow> = sqlx::query_as(
         "SELECT id, name, url, event_types, enabled, cursor, failures, next_attempt_at, last_error,
                 last_delivered_at, created_at FROM webhook ORDER BY id",
     )
     .fetch_all(pool)
     .await?;
     let mut out = Vec::new();
-    for (
+    for WebhookRow {
         id,
         name,
         url,
-        types,
+        event_types: types,
         enabled,
         cursor,
         failures,
@@ -113,7 +116,7 @@ pub async fn list(pool: &SqlitePool) -> Result<Vec<Webhook>, WebhookError> {
         last_error,
         last_delivered_at,
         created_at,
-    ) in rows
+    } in rows
     {
         let event_types: Vec<String> = serde_json::from_str(&types).unwrap_or_default();
         let pending: i64 = sqlx::query_scalar(

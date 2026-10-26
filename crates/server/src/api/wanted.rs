@@ -73,15 +73,17 @@ pub async fn calendar(
     put,
     path = "/items/{id}/status/{source}",
     tag = "wanted",
-    params(("id" = i64, Path), ("source" = String, Path)),
+    params(("id" = String, Path, description = "A reference: an item ID, item:<id>, or <provider>:<id> such as tmdb:57243"), ("source" = String, Path), super::integration::PositionQuery),
     request_body = StatusUpdate,
     responses((status = 204), (status = 400, body = ErrorBody), (status = 404, body = ErrorBody))
 )]
 pub async fn set_status(
     State(state): State<AppState>,
-    Path((id, source)): Path<(i64, String)>,
+    Path((r, source)): Path<(String, String)>,
+    Query(position): Query<super::integration::PositionQuery>,
     Json(body): Json<StatusUpdate>,
 ) -> Result<StatusCode, ApiError> {
+    let id = super::integration::resolve(&state, &r, &position).await?;
     wanted::set_status(&state.db, id, &source, &body).await?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -91,7 +93,7 @@ pub async fn set_status(
     delete,
     path = "/items/{id}/status/{source}",
     tag = "wanted",
-    params(("id" = i64, Path), ("source" = String, Path)),
+    params(("id" = String, Path, description = "A reference: an item ID or <provider>:<id>"), ("source" = String, Path), super::integration::PositionQuery),
     responses((status = 204), (status = 404, body = ErrorBody))
 )]
 pub async fn clear_status(

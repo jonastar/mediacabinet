@@ -16,6 +16,7 @@ pub struct ErrorBody {
 pub enum ApiError {
     NotFound,
     BadRequest(String),
+    Unauthorized(String),
     Conflict(String),
     /// A dependency such as the metadata provider is unavailable.
     Unavailable(String),
@@ -27,6 +28,7 @@ impl IntoResponse for ApiError {
         let (status, error) = match self {
             ApiError::NotFound => (StatusCode::NOT_FOUND, "not found".to_string()),
             ApiError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
+            ApiError::Unauthorized(message) => (StatusCode::UNAUTHORIZED, message),
             ApiError::Conflict(message) => (StatusCode::CONFLICT, message),
             ApiError::Unavailable(message) => (StatusCode::SERVICE_UNAVAILABLE, message),
             ApiError::Internal(message) => {

@@ -10,8 +10,10 @@ use utoipa_axum::routes;
 
 use crate::AppState;
 
+mod auth;
 mod catalog;
 mod error;
+mod integration;
 mod items;
 mod library;
 mod review;
@@ -63,7 +65,16 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(wanted::calendar))
         .routes(routes!(wanted::set_status, wanted::clear_status))
         .routes(routes!(wanted::set_monitoring))
-        .routes(routes!(wanted::quality_profiles));
+        .routes(routes!(wanted::quality_profiles))
+        .routes(routes!(integration::item))
+        .routes(routes!(integration::gaps))
+        .routes(routes!(integration::add_series))
+        .routes(routes!(integration::add_movie))
+        .routes(routes!(integration::list_keys, integration::create_key))
+        .routes(routes!(integration::revoke_key))
+        .routes(routes!(integration::sonarr_list))
+        .routes(routes!(integration::radarr_list))
+        .routes(routes!(integration::arr_webhook));
     OpenApiRouter::with_openapi(ApiDoc::openapi()).nest("/api", api)
 }
 

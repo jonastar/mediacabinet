@@ -209,3 +209,67 @@ pub async fn rematch_series(
         .await
         .map_err(|e| ItemError::Invalid(e.to_string()))
 }
+
+/// Adds a series or movie by its provider ID, as an *arr or a person would:
+/// imports it (no files yet) and sets monitoring. Already in the library: it's
+/// refreshed and the monitoring is updated.
+pub async fn add(
+    pool: &SqlitePool,
+    provider: &Provider,
+    kind: &str,
+    provider_id: &str,
+    monitored: bool,
+    quality_profile_id: Option<i64>,
+) -> Result<ImportReport, ItemError> {
+    let report = match kind {
+        "series" => {
+            let data = provider
+                .series(provider_id)
+                .await
+                .map_err(|e| ItemError::Provider(e.to_string()))?;
+            crate::metadata::import::import_series(pool, &data)
+                .await
+                .map_err(|e| ItemError::Invalid(e.to_string()))?
+        }
+        "movie" => {
+            let data = provider
+                .movie(provider_id)
+                .await
+                .map_err(|e| ItemError::Provider(e.to_string()))?;
+            crate::metadata::import::import_movie(pool, &data)
+                .await
+                .map_err(|e| ItemError::Invalid(e.to_string()))?
+        }
+        _ => return Err(ItemError::Invalid("kind is series or movie".into())),
+    };
+    let mut tx = crate::db::begin_write(pool).await?;
+    sqlx::query(
+        "INSERT INTO monitor (item_id, monitored, quality_profile_id) VALUES (?1, ?2, ?3)
+         ON CONFLICT (item_id) DO UPDATE SET monitored = ?2, quality_profile_id = coalesce(?3, quality_profile_id)",
+    )
+    .bind(report.item_id)
+    .bind(monitored)
+    .bind(quality_profile_id)
+    .execute(&mut *tx)
+    .await
+    .map_err(|e| match &e {
+        sqlx::Error::Database(d) if d.is_foreign_key_violation() => ItemError::Invalid("No such quality profile.".into()),
+        _ => e.into(),
+    })?;
+    // Like the *arrs, specials aren't monitored unless someone asks: many are
+    // minisodes and extras. Only on first add, so later choices stay.
+    if kind == "series" && report.created && monitored {
+        sqlx::query(
+            "INSERT OR IGNORE INTO monitor (item_id, monitored)
+             SELECT oe.item_id, 0 FROM ordering_entry oe
+             JOIN ordering o ON o.id = oe.ordering_id AND o.is_default AND o.series_id = ?
+             JOIN ordering_season os ON os.id = oe.ordering_season_id AND os.number = 0",
+        )
+        .bind(report.item_id)
+        .execute(&mut *tx)
+        .await?;
+    }
+    crate::wanted::sync_events(&mut tx).await?;
+    tx.commit().await?;
+    Ok(report)
+}

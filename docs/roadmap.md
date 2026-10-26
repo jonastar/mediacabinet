@@ -95,19 +95,19 @@ Real API, seeded data. Seeing and testing the design early.
 
 ## Phase 6 — Integration API and events
 
-- [ ] Item addressing: `item:<id>` and provider position (`tvdb:123`, ordering, S02E05)
-- [ ] `GET /wanted`, `GET /items/{ref}`, `GET /series/{ref}/gaps`, `GET /calendar`
-- [ ] `PUT /items/{ref}/status/{source}`
-- [ ] `POST /series` (add by provider ID) and the movie equivalent
+- [x] Item addressing: `item:<id>` and provider position (`tvdb:123`, ordering, S02E05)
+- [x] `GET /wanted`, `GET /items/{ref}`, `GET /series/{ref}/gaps`, `GET /calendar`
+- [x] `PUT /items/{ref}/status/{source}`
+- [x] `POST /series` (add by provider ID) and the movie equivalent
 - [ ] `GET /events` stream (SSE) from a cursor
 - [ ] Webhooks: subscribe, deliver with retries, resume from cursor, signed payloads
-- [ ] \*arr compatibility: `/wanted` in the custom import list format
-- [ ] \*arr compatibility: accept Connect webhooks and rescan affected paths
+- [x] \*arr compatibility: `/wanted` in the custom import list format
+- [x] \*arr compatibility: accept Connect webhooks and rescan affected paths
 - [ ] `POST /imports`: match, place by write policy, link
 - [ ] Placement: resolve `series_location` once; adaptive and managed policies; read-only roots never written
 - [ ] Managed roots: rename and move existing files to the template
 - [ ] Move a series between roots or folders (explicit action)
-- [ ] API keys for external tools
+- [x] API keys for external tools
 - [ ] Decide: write `.nfo` or embedded tags back out (default or opt-in)
 - [ ] UI: Series Manage panel for location (move series)
 - [ ] UI: live updates from the event stream

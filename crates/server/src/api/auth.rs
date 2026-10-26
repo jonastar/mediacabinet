@@ -1,16 +1,208 @@
-//! API keys for external tools: `X-Api-Key: <key>` or `?apikey=<key>`.
+//! Who is calling, and what they may do.
 //!
-//! Endpoints made for tools (the *arr lists and webhooks, imports) require a key.
-//! Endpoints the web UI uses accept one but don't require it yet; logins come in
-//! Phase 7, after which every request needs a session or a key.
+//! Every `/api` request needs a session cookie (the web UI) or an API key
+//! (`X-Api-Key: <key>` or `?apikey=<key>`, for tools), except health, the
+//! login endpoints and the OpenAPI document. API keys act as an admin.
+//!
+//! Changes need an admin, apart from a user's own things: their account, watch
+//! state, views and playlists. A few reads need an admin too: keys, webhooks,
+//! users, the review queue and browsing the server's folders.
 
-use axum::extract::FromRequestParts;
+use axum::extract::{FromRequestParts, Request, State};
 use axum::http::request::Parts;
+use axum::http::{HeaderMap, Method, Uri};
+use axum::middleware::Next;
+use axum::response::{IntoResponse, Response};
+use cabinet_core::accounts::User;
 
 use super::ApiError;
 use crate::AppState;
 
-/// Extractor that rejects requests without a valid API key.
+pub const SESSION_COOKIE: &str = "mc_session";
+
+#[derive(Clone)]
+pub enum Caller {
+    User(User),
+    Key,
+}
+
+fn is_public(path: &str) -> bool {
+    path == "/api/health" || path == "/api/openapi.json" || path.starts_with("/api/auth/")
+}
+
+const ADMIN_READS: &[&str] = &[
+    "/api/api-keys",
+    "/api/webhooks",
+    "/api/users",
+    "/api/review",
+    "/api/folders",
+    "/api/metadata/",
+];
+
+/// Changes any signed-in user may make.
+fn is_own_change(path: &str) -> bool {
+    if path == "/api/me" || path.starts_with("/api/playlists") || path.starts_with("/api/play/") {
+        return true;
+    }
+    if path.starts_with("/api/series/") && path.ends_with("/view") {
+        return true;
+    }
+    path.starts_with("/api/items/")
+        && (path.ends_with("/progress") || path.ends_with("/played") || path.ends_with("/play"))
+}
+
+fn needs_admin(method: &Method, path: &str) -> bool {
+    if method == Method::GET || method == Method::HEAD {
+        ADMIN_READS.iter().any(|prefix| path.starts_with(prefix))
+    } else {
+        !is_own_change(path)
+    }
+}
+
+pub fn cookie(headers: &HeaderMap, name: &str) -> Option<String> {
+    headers
+        .get_all(axum::http::header::COOKIE)
+        .iter()
+        .filter_map(|v| v.to_str().ok())
+        .flat_map(|v| v.split(';'))
+        .find_map(|pair| {
+            let (k, v) = pair.trim().split_once('=')?;
+            (k == name).then(|| v.to_string())
+        })
+}
+
+fn api_key(headers: &HeaderMap, uri: &Uri) -> Option<String> {
+    let header = headers
+        .get("x-api-key")
+        .and_then(|v| v.to_str().ok())
+        .map(str::to_string);
+    header.or_else(|| {
+        uri.query()
+            .and_then(|q| url_param(q, "apikey").or_else(|| url_param(q, "api_key")))
+    })
+}
+
+async fn identify(
+    state: &AppState,
+    headers: &HeaderMap,
+    uri: &Uri,
+) -> Result<Option<Caller>, ApiError> {
+    if let Some(token) = cookie(headers, SESSION_COOKIE)
+        && let Some(user) = cabinet_core::accounts::session_user(&state.db, &token).await?
+    {
+        return Ok(Some(Caller::User(user)));
+    }
+    if let Some(key) = api_key(headers, uri) {
+        if cabinet_core::apikeys::verify(&state.db, &key)
+            .await?
+            .is_some()
+        {
+            return Ok(Some(Caller::Key));
+        }
+        return Err(ApiError::Unauthorized("That API key isn't valid.".into()));
+    }
+    Ok(None)
+}
+
+/// Middleware: identifies the caller and enforces the rules above.
+pub async fn require_auth(
+    State(state): State<AppState>,
+    mut request: Request,
+    next: Next,
+) -> Response {
+    let path = request.uri().path().to_string();
+    if !path.starts_with("/api/") || is_public(&path) {
+        return next.run(request).await;
+    }
+    let caller = match identify(&state, request.headers(), request.uri()).await {
+        Ok(Some(caller)) => caller,
+        Ok(None) => {
+            return ApiError::Unauthorized(
+                "Log in, or send an API key in the X-Api-Key header.".into(),
+            )
+            .into_response();
+        }
+        Err(e) => return e.into_response(),
+    };
+    let admin = match &caller {
+        Caller::Key => true,
+        Caller::User(user) => user.is_admin,
+    };
+    if !admin && needs_admin(request.method(), &path) {
+        return ApiError::Forbidden.into_response();
+    }
+    request.extensions_mut().insert(caller);
+    next.run(request).await
+}
+
+fn caller(parts: &Parts) -> Result<Caller, ApiError> {
+    parts
+        .extensions
+        .get::<Caller>()
+        .cloned()
+        .ok_or_else(|| ApiError::Unauthorized("Log in first.".into()))
+}
+
+/// The user per-user state belongs to: the signed-in user, or for an API key,
+/// the first admin.
+pub struct Viewer(pub i64);
+
+impl FromRequestParts<AppState> for Viewer {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        match caller(parts)? {
+            Caller::User(user) => Ok(Viewer(user.id)),
+            Caller::Key => cabinet_core::catalog::default_user(&state.db)
+                .await?
+                .map(Viewer)
+                .ok_or_else(|| ApiError::BadRequest("There are no users yet.".into())),
+        }
+    }
+}
+
+/// The viewer plus whether they're an admin (API keys are).
+pub struct Actor(pub cabinet_core::playlists::Actor);
+
+impl FromRequestParts<AppState> for Actor {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        let admin = match caller(parts)? {
+            Caller::User(user) => user.is_admin,
+            Caller::Key => true,
+        };
+        let Viewer(user) = Viewer::from_request_parts(parts, state).await?;
+        Ok(Actor(cabinet_core::playlists::Actor { user, admin }))
+    }
+}
+
+/// A signed-in user; API keys don't count.
+pub struct SignedIn(pub User);
+
+impl FromRequestParts<AppState> for SignedIn {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        _state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        match caller(parts)? {
+            Caller::User(user) => Ok(SignedIn(user)),
+            Caller::Key => Err(ApiError::BadRequest(
+                "This needs a signed-in user, not an API key.".into(),
+            )),
+        }
+    }
+}
+
+/// Extractor for endpoints made for tools: requires a valid API key.
 pub struct ApiKeyAuth;
 
 impl FromRequestParts<AppState> for ApiKeyAuth {
@@ -20,16 +212,7 @@ impl FromRequestParts<AppState> for ApiKeyAuth {
         parts: &mut Parts,
         state: &AppState,
     ) -> Result<Self, Self::Rejection> {
-        let header = parts
-            .headers
-            .get("x-api-key")
-            .and_then(|v| v.to_str().ok())
-            .map(str::to_string);
-        let query = parts
-            .uri
-            .query()
-            .and_then(|q| url_param(q, "apikey").or_else(|| url_param(q, "api_key")));
-        let Some(key) = header.or(query) else {
+        let Some(key) = api_key(&parts.headers, &parts.uri) else {
             return Err(ApiError::Unauthorized(
                 "An API key is required: X-Api-Key header or ?apikey=.".into(),
             ));
@@ -46,4 +229,25 @@ fn url_param(query: &str, name: &str) -> Option<String> {
         let (k, v) = pair.split_once('=')?;
         (k == name).then(|| v.to_string())
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_policy() {
+        assert!(!needs_admin(&Method::GET, "/api/series/1"));
+        assert!(needs_admin(&Method::GET, "/api/api-keys"));
+        assert!(needs_admin(&Method::GET, "/api/folders?path=/"));
+        assert!(needs_admin(&Method::POST, "/api/libraries"));
+        assert!(needs_admin(&Method::PATCH, "/api/items/4"));
+        assert!(!needs_admin(&Method::PUT, "/api/series/1/view"));
+        assert!(!needs_admin(&Method::PUT, "/api/items/4/progress"));
+        assert!(!needs_admin(&Method::POST, "/api/items/4/play"));
+        assert!(!needs_admin(&Method::DELETE, "/api/play/abc"));
+        assert!(!needs_admin(&Method::POST, "/api/playlists"));
+        assert!(!needs_admin(&Method::PATCH, "/api/me"));
+        assert!(needs_admin(&Method::PATCH, "/api/users/2"));
+    }
 }

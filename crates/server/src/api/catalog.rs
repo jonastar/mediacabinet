@@ -1,6 +1,4 @@
 //! Read API for the web UI, plus the two settings it changes in place.
-//!
-//! Per-user data belongs to the default user until there are logins.
 
 use axum::Json;
 use axum::extract::{Path, Query, State};
@@ -10,12 +8,9 @@ use serde::Deserialize;
 use utoipa::{IntoParams, ToSchema};
 
 use super::ApiError;
+use super::auth::Viewer;
 use super::error::ErrorBody;
 use crate::AppState;
-
-async fn user(state: &AppState) -> Result<Option<i64>, ApiError> {
-    Ok(catalog::default_user(&state.db).await?)
-}
 
 fn parse_view(view: &str) -> Result<ViewRef, ApiError> {
     ViewRef::parse(view).ok_or_else(|| {
@@ -28,8 +23,8 @@ fn parse_view(view: &str) -> Result<ViewRef, ApiError> {
 /// Everything the home screen shows: continue watching, coming up, shows, and
 /// what needs attention.
 #[utoipa::path(get, path = "/home", tag = "catalog", responses((status = 200, body = Home)))]
-pub async fn home(State(state): State<AppState>) -> Result<Json<Home>, ApiError> {
-    let user = user(&state).await?;
+pub async fn home(State(state): State<AppState>, viewer: Viewer) -> Result<Json<Home>, ApiError> {
+    let user = Some(viewer.0);
     Ok(Json(catalog::home(&state.db, user, catalog::now()).await?))
 }
 
@@ -37,8 +32,9 @@ pub async fn home(State(state): State<AppState>) -> Result<Json<Home>, ApiError>
 #[utoipa::path(get, path = "/series", tag = "catalog", responses((status = 200, body = Vec<SeriesSummary>)))]
 pub async fn list_series(
     State(state): State<AppState>,
+    viewer: Viewer,
 ) -> Result<Json<Vec<SeriesSummary>>, ApiError> {
-    let user = user(&state).await?;
+    let user = Some(viewer.0);
     Ok(Json(
         catalog::list_series(&state.db, user, catalog::now()).await?,
     ))
@@ -54,9 +50,10 @@ pub async fn list_series(
 )]
 pub async fn series_detail(
     State(state): State<AppState>,
+    viewer: Viewer,
     Path(id): Path<i64>,
 ) -> Result<Json<SeriesDetail>, ApiError> {
-    let user = user(&state).await?;
+    let user = Some(viewer.0);
     Ok(Json(
         catalog::series_detail(&state.db, id, user, catalog::now()).await?,
     ))
@@ -83,11 +80,12 @@ pub struct EpisodesQuery {
 )]
 pub async fn series_episodes(
     State(state): State<AppState>,
+    viewer: Viewer,
     Path(id): Path<i64>,
     Query(query): Query<EpisodesQuery>,
 ) -> Result<Json<EpisodeList>, ApiError> {
     let view = query.view.as_deref().map(parse_view).transpose()?;
-    let user = user(&state).await?;
+    let user = Some(viewer.0);
     Ok(Json(
         catalog::episodes(&state.db, id, view, user, catalog::now()).await?,
     ))
@@ -114,13 +112,12 @@ pub struct SetView {
 )]
 pub async fn set_series_view(
     State(state): State<AppState>,
+    viewer: Viewer,
     Path(id): Path<i64>,
     Json(body): Json<SetView>,
 ) -> Result<StatusCode, ApiError> {
     let view = parse_view(&body.view)?;
-    let user = user(&state)
-        .await?
-        .ok_or_else(|| ApiError::BadRequest("no user to save the view for".into()))?;
+    let Viewer(user) = viewer;
     catalog::set_view(&state.db, id, user, view).await?;
     Ok(StatusCode::NO_CONTENT)
 }

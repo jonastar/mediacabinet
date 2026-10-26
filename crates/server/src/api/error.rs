@@ -17,6 +17,8 @@ pub enum ApiError {
     NotFound,
     BadRequest(String),
     Unauthorized(String),
+    /// Signed in, but not allowed: admin only.
+    Forbidden,
     Conflict(String),
     /// A dependency such as the metadata provider is unavailable.
     Unavailable(String),
@@ -29,6 +31,10 @@ impl IntoResponse for ApiError {
             ApiError::NotFound => (StatusCode::NOT_FOUND, "not found".to_string()),
             ApiError::BadRequest(message) => (StatusCode::BAD_REQUEST, message),
             ApiError::Unauthorized(message) => (StatusCode::UNAUTHORIZED, message),
+            ApiError::Forbidden => (
+                StatusCode::FORBIDDEN,
+                "Only an admin can do that.".to_string(),
+            ),
             ApiError::Conflict(message) => (StatusCode::CONFLICT, message),
             ApiError::Unavailable(message) => (StatusCode::SERVICE_UNAVAILABLE, message),
             ApiError::Internal(message) => {
@@ -67,5 +73,17 @@ impl From<LibraryError> for ApiError {
 impl From<sqlx::Error> for ApiError {
     fn from(err: sqlx::Error) -> Self {
         ApiError::Internal(err.to_string())
+    }
+}
+
+impl From<cabinet_core::accounts::AccountError> for ApiError {
+    fn from(err: cabinet_core::accounts::AccountError) -> Self {
+        use cabinet_core::accounts::AccountError;
+        match err {
+            AccountError::NotFound => ApiError::NotFound,
+            AccountError::Invalid(m) => ApiError::BadRequest(m),
+            AccountError::BadLogin => ApiError::Unauthorized(err.to_string()),
+            AccountError::Db(e) => ApiError::Internal(e.to_string()),
+        }
     }
 }

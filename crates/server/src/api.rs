@@ -10,6 +10,7 @@ use utoipa_axum::routes;
 
 use crate::AppState;
 
+mod accounts;
 mod auth;
 mod catalog;
 mod error;
@@ -18,8 +19,11 @@ mod integration;
 mod items;
 mod library;
 mod organize;
+mod playback;
+mod playlists;
 mod review;
 mod wanted;
+mod watch;
 
 pub use error::ApiError;
 
@@ -30,6 +34,13 @@ struct ApiDoc;
 fn routes() -> OpenApiRouter<AppState> {
     let api = OpenApiRouter::new()
         .routes(routes!(health))
+        .routes(routes!(accounts::status))
+        .routes(routes!(accounts::setup))
+        .routes(routes!(accounts::login))
+        .routes(routes!(accounts::logout))
+        .routes(routes!(accounts::update_me))
+        .routes(routes!(accounts::list_users, accounts::create_user))
+        .routes(routes!(accounts::update_user, accounts::delete_user))
         .routes(routes!(catalog::home))
         .routes(routes!(catalog::list_series))
         .routes(routes!(catalog::series_detail))
@@ -83,12 +94,33 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(events::test_webhook))
         .routes(routes!(organize::import))
         .routes(routes!(organize::organize_item))
-        .routes(routes!(organize::move_series));
+        .routes(routes!(organize::move_series))
+        .routes(routes!(watch::report_progress))
+        .routes(routes!(watch::set_played))
+        .routes(routes!(playlists::list, playlists::create))
+        .routes(routes!(
+            playlists::get,
+            playlists::update,
+            playlists::delete
+        ))
+        .routes(routes!(playback::versions))
+        .routes(routes!(playback::play))
+        .routes(routes!(playback::stream))
+        .routes(routes!(playback::session_file))
+        .routes(routes!(playback::stop))
+        .routes(routes!(playback::file_subtitles))
+        .routes(routes!(playback::sidecar_subtitles));
     OpenApiRouter::with_openapi(ApiDoc::openapi()).nest("/api", api)
 }
 
 pub fn router(state: AppState) -> Router {
-    let (api, spec) = routes().with_state(state).split_for_parts();
+    let (api, spec) = routes()
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            auth::require_auth,
+        ))
+        .with_state(state)
+        .split_for_parts();
     api.route("/api/openapi.json", get(move || async move { Json(spec) }))
 }
 

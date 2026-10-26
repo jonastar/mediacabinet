@@ -12,3 +12,10 @@ sqlx = { version = "0.9.0", default-features = false, features = ["runtime-tokio
 [profile.release]
 lto = "thin"
 strip = true
+
+# Password hashing is deliberately slow; unoptimised it takes seconds.
+[profile.dev.package.argon2]
+opt-level = 3
+
+[profile.dev.package.blake2]
+opt-level = 3

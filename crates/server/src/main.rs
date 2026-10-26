@@ -7,6 +7,7 @@ use tracing_subscriber::EnvFilter;
 
 mod api;
 mod artwork;
+mod transcode;
 mod web;
 
 #[derive(Clone)]
@@ -16,6 +17,9 @@ pub struct AppState {
     pub provider: cabinet_core::metadata::Provider,
     pub match_settings: cabinet_core::matcher::MatchSettings,
     pub artwork: artwork::ArtworkCache,
+    pub transcoder: transcode::Transcoder,
+    /// Derived files that can be rebuilt, such as subtitles as WebVTT.
+    pub cache: PathBuf,
 }
 
 /// TMDB with CABINET_TMDB_KEY, or an offline catalog with CABINET_METADATA_CATALOG.
@@ -84,7 +88,7 @@ async fn main() -> anyhow::Result<()> {
         return Ok(());
     }
 
-    // Until there are logins, everything belongs to one admin.
+    // The first admin; the setup screen gives it a name and password.
     cabinet_core::catalog::ensure_default_user(&db).await?;
 
     let prober = cabinet_core::scan::Prober {
@@ -126,12 +130,27 @@ async fn main() -> anyhow::Result<()> {
         Duration::from_secs(10 * 60),
     );
 
+    let hwaccel = std::env::var("CABINET_HWACCEL").unwrap_or_default();
+    let hwaccel = cabinet_core::playback::HwAccel::parse(&hwaccel)
+        .context("CABINET_HWACCEL must be none, vaapi, vaapi:<device>, nvenc or qsv")?;
+    let transcoder = transcode::Transcoder::new(
+        data_dir.join("transcode"),
+        std::env::var("CABINET_FFMPEG")
+            .unwrap_or_else(|_| "ffmpeg".into())
+            .into(),
+        hwaccel,
+    )
+    .await;
+    transcoder.spawn_reaper();
+
     let app = api::router(AppState {
         db,
         scans,
         provider,
         match_settings,
         artwork: artwork::ArtworkCache::new(data_dir.join("artwork")),
+        transcoder,
+        cache: data_dir.join("cache"),
     })
     .fallback(web::serve)
     .layer(tower_http::trace::TraceLayer::new_for_http());

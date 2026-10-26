@@ -15,6 +15,7 @@ use serde::Deserialize;
 use utoipa::{IntoParams, ToSchema};
 
 use super::ApiError;
+use super::auth::Viewer;
 use super::error::ErrorBody;
 use crate::AppState;
 
@@ -41,16 +42,13 @@ impl From<RefreshError> for ApiError {
     }
 }
 
-async fn user(state: &AppState) -> Result<Option<i64>, ApiError> {
-    Ok(catalog::default_user(&state.db).await?)
-}
-
 /// All movies, by title.
 #[utoipa::path(get, path = "/movies", tag = "catalog", responses((status = 200, body = Vec<MovieSummary>)))]
 pub async fn list_movies(
     State(state): State<AppState>,
+    viewer: Viewer,
 ) -> Result<Json<Vec<MovieSummary>>, ApiError> {
-    let user = user(&state).await?;
+    let user = Some(viewer.0);
     Ok(Json(movies::list_movies(&state.db, user).await?))
 }
 
@@ -64,9 +62,10 @@ pub async fn list_movies(
 )]
 pub async fn movie_detail(
     State(state): State<AppState>,
+    viewer: Viewer,
     Path(id): Path<i64>,
 ) -> Result<Json<MovieDetail>, ApiError> {
-    let user = user(&state).await?;
+    let user = Some(viewer.0);
     Ok(Json(movies::movie_detail(&state.db, id, user).await?))
 }
 
@@ -79,9 +78,10 @@ pub struct SearchQuery {
 #[utoipa::path(get, path = "/search", tag = "catalog", params(SearchQuery), responses((status = 200, body = SearchResults)))]
 pub async fn search(
     State(state): State<AppState>,
+    viewer: Viewer,
     Query(query): Query<SearchQuery>,
 ) -> Result<Json<SearchResults>, ApiError> {
-    let user = user(&state).await?;
+    let user = Some(viewer.0);
     Ok(Json(
         movies::search(&state.db, &query.q, user, catalog::now()).await?,
     ))

@@ -115,19 +115,19 @@ Real API, seeded data. Seeing and testing the design early.
 
 ## Phase 7 — Users and playback
 
-- [ ] Local users and login (no external account), admin role
-- [ ] Watch state: position, played, play count; mark watched or unwatched
-- [ ] Per-user ordering or playlist for each series; next up
-- [ ] Playlists: manual and smart (no filler)
-- [ ] Direct play over HTTP range requests
-- [ ] Client capability detection (codecs, HDR, containers) to choose direct play or transcode
-- [ ] Transcoding to HLS with ffmpeg, including HDR tone mapping
-- [ ] Version picker, audio and subtitle tracks (embedded and sidecar)
-- [ ] Hardware acceleration (VAAPI, NVENC, QSV) where available
-- [ ] Decide: remote access via the user's reverse proxy or VPN, or an optional relay
-- [ ] UI: login and user management
-- [ ] UI: Player (version and track picker, direct play or transcode hint, resume)
-- [ ] UI: playlists, mark watched
+- [x] Local users and login (no external account), admin role
+- [x] Watch state: position, played, play count; mark watched or unwatched
+- [x] Per-user ordering or playlist for each series; next up
+- [x] Playlists: manual and smart (no filler)
+- [x] Direct play over HTTP range requests
+- [x] Client capability detection (codecs, HDR, containers) to choose direct play or transcode
+- [x] Transcoding to HLS with ffmpeg, including HDR tone mapping
+- [x] Version picker, audio and subtitle tracks (embedded and sidecar)
+- [x] Hardware acceleration (VAAPI, NVENC, QSV) where available: encoding only, opt-in, with a self-test that falls back to software. Only the fallback is verified so far; no working GPU to test on yet
+- [x] Decide: remote access via the user's reverse proxy or VPN, or an optional relay (decided: reverse proxy or VPN; see decisions)
+- [x] UI: login and user management
+- [x] UI: Player (version and track picker, direct play or transcode hint, resume)
+- [x] UI: playlists, mark watched
 
 ## Phase 8 — Release
 

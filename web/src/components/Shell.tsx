@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { usePath } from '../lib/router'
 import { Link } from './Link'
 import { useMode } from '../lib/prefs'
+import { signOut, useUser } from '../lib/session'
 import { Segmented } from './Segmented'
 import {
   CalendarIcon,
@@ -56,6 +57,7 @@ function NavLink({ item, path }: { item: NavItem; path: string }) {
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePath()
   const [mode, setMode] = useMode()
+  const user = useUser()
 
   return (
     <div className={styles.shell}>
@@ -79,22 +81,33 @@ export function Shell({ children }: { children: ReactNode }) {
         <div className={styles.user}>
           <span className={styles.who}>
             <span className={styles.avatar} aria-hidden="true">
-              D
+              {user.name.slice(0, 1).toUpperCase()}
             </span>
-            <span>
-              demo <span className={styles.role}>· admin</span>
+            <span className={styles.name}>
+              {user.name}
+              {user.is_admin && <span className={styles.role}> · admin</span>}
             </span>
           </span>
-          <Segmented
-            label="Mode"
-            variant="track"
-            value={mode}
-            onChange={setMode}
-            options={[
-              { value: 'watch', label: 'Watch' },
-              { value: 'manage', label: 'Manage' },
-            ]}
-          />
+          <span className={styles.accountLinks}>
+            <Link to="/account" className={styles.accountLink}>
+              Account
+            </Link>
+            <button type="button" className={styles.accountLink} onClick={() => signOut()}>
+              Sign out
+            </button>
+          </span>
+          {user.is_admin && (
+            <Segmented
+              label="Mode"
+              variant="track"
+              value={mode}
+              onChange={setMode}
+              options={[
+                { value: 'watch', label: 'Watch' },
+                { value: 'manage', label: 'Manage' },
+              ]}
+            />
+          )}
         </div>
       </nav>
       <main className={styles.main}>{children}</main>

@@ -3,7 +3,7 @@
 use axum::Json;
 use axum::extract::{Path, State};
 use cabinet_core::catalog;
-use cabinet_core::watch::{self, ItemWatch, WatchError};
+use cabinet_core::watch::{self, ItemWatch, Scope, WatchError};
 use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 
@@ -63,6 +63,8 @@ pub struct SetPlayed {
     played: bool,
     /// For a series: only this season (an ordering season's ID).
     season_id: Option<i64>,
+    /// For a series: only these of its episodes.
+    episodes: Option<Vec<i64>>,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -85,14 +87,17 @@ pub async fn set_played(
     Path(id): Path<i64>,
     Json(body): Json<SetPlayed>,
 ) -> Result<Json<PlayedChanged>, ApiError> {
-    let changed = watch::set_played(
-        &state.db,
-        user,
-        id,
-        body.season_id,
-        body.played,
-        catalog::now(),
-    )
-    .await?;
+    let scope = match (body.season_id, body.episodes) {
+        (Some(season), None) => Scope::Season(season),
+        (None, Some(episodes)) => Scope::Episodes(episodes),
+        (None, None) => Scope::All,
+        (Some(_), Some(_)) => {
+            return Err(ApiError::BadRequest(
+                "Give a season or episodes, not both.".into(),
+            ));
+        }
+    };
+    let changed =
+        watch::set_played(&state.db, user, id, scope, body.played, catalog::now()).await?;
     Ok(Json(PlayedChanged { changed }))
 }

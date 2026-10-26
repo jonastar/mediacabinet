@@ -8,6 +8,7 @@ use axum::body::Body;
 use axum::extract::{Path, Query, Request, State};
 use axum::http::{StatusCode, header};
 use axum::response::{IntoResponse, Response};
+use cabinet_core::catalog::{self, PlayContext};
 use cabinet_core::playback::{self, Choice, ClientCaps, Mode, Version};
 use cabinet_core::watch::{self, ItemWatch};
 use serde::{Deserialize, Serialize};
@@ -77,6 +78,7 @@ pub struct PlayPlan {
     /// The video encoder in use when transcoding: `software`, `vaapi`, `nvenc` or `qsv`.
     encoder: String,
     watch: ItemWatch,
+    context: PlayContext,
 }
 
 /// Decides how to play an episode or movie on this client, and starts an HLS
@@ -111,6 +113,7 @@ pub async fn play(
             .next()
             .ok_or_else(|| ApiError::Conflict("There's no file to play.".into()))?,
     };
+    let context = catalog::play_context(&state.db, id, Some(user), catalog::now()).await?;
     let watch = watch::get(&state.db, user, id).await?;
     let start = body
         .start_seconds
@@ -184,6 +187,7 @@ pub async fn play(
         version,
         encoder: encoder.into(),
         watch,
+        context,
     }))
 }
 

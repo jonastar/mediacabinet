@@ -1,6 +1,6 @@
 //! Progress reports, played thresholds, play counts and marking played.
 
-use cabinet_core::watch::{self, WatchError};
+use cabinet_core::watch::{self, Scope, WatchError};
 use sqlx::SqlitePool;
 use tempfile::TempDir;
 
@@ -99,7 +99,7 @@ async fn marking_played() {
         .await
         .unwrap();
     assert_eq!(
-        watch::set_played(&pool, 1, 1, Some(1), true, 100)
+        watch::set_played(&pool, 1, 1, Scope::Season(1), true, 100)
             .await
             .unwrap(),
         2,
@@ -116,14 +116,14 @@ async fn marking_played() {
     );
 
     assert_eq!(
-        watch::set_played(&pool, 1, 1, None, true, 100)
+        watch::set_played(&pool, 1, 1, Scope::All, true, 100)
             .await
             .unwrap(),
         1,
         "only the rest"
     );
     assert_eq!(
-        watch::set_played(&pool, 1, 1, None, false, 100)
+        watch::set_played(&pool, 1, 1, Scope::All, false, 100)
             .await
             .unwrap(),
         3
@@ -132,17 +132,19 @@ async fn marking_played() {
     assert_eq!((w.played, w.play_count), (false, 1), "the count is history");
 
     assert!(
-        watch::set_played(&pool, 1, 1, Some(99), true, 1)
+        watch::set_played(&pool, 1, 1, Scope::Season(99), true, 1)
             .await
             .is_err()
     );
     assert!(
-        watch::set_played(&pool, 1, 5, Some(1), true, 1)
+        watch::set_played(&pool, 1, 5, Scope::Season(1), true, 1)
             .await
             .is_err()
     );
     assert_eq!(
-        watch::set_played(&pool, 1, 5, None, true, 1).await.unwrap(),
+        watch::set_played(&pool, 1, 5, Scope::All, true, 1)
+            .await
+            .unwrap(),
         1
     );
 }

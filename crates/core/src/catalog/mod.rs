@@ -1196,3 +1196,59 @@ pub async fn set_monitored(
     tx.commit().await?;
     Ok(())
 }
+
+/// Where an episode or movie sits, for the player.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct PlayContext {
+    pub item_id: i64,
+    /// `episode` or `movie`.
+    pub kind: String,
+    pub title: String,
+    pub year: Option<i64>,
+    pub series_id: Option<i64>,
+    pub series_title: Option<String>,
+    /// The episode's number in the user's ordering or playlist.
+    pub number: Option<EpisodeNumber>,
+    /// The next available episode there.
+    pub next: Option<EpisodeRef>,
+}
+
+pub async fn play_context(
+    pool: &SqlitePool,
+    item: i64,
+    user: Option<i64>,
+    now: i64,
+) -> Result<PlayContext, CatalogError> {
+    let (kind, title, year, parent): (String, String, Option<i64>, Option<i64>) =
+        sqlx::query_as("SELECT kind, title, year, parent_id FROM item WHERE id = ?")
+            .bind(item)
+            .fetch_optional(pool)
+            .await?
+            .ok_or(CatalogError::NotFound)?;
+    let mut context = PlayContext {
+        item_id: item,
+        kind,
+        title,
+        year,
+        series_id: parent,
+        series_title: None,
+        number: None,
+        next: None,
+    };
+    let Some(series) = parent else {
+        return Ok(context);
+    };
+    context.series_title = sqlx::query_scalar("SELECT title FROM item WHERE id = ?")
+        .bind(series)
+        .fetch_optional(pool)
+        .await?;
+    let list = episodes(pool, series, None, user, now).await?;
+    if let Some(at) = list.entries.iter().position(|e| e.episode.item_id == item) {
+        context.number = list.entries[at].episode.number.clone();
+        context.next = list.entries[at + 1..]
+            .iter()
+            .find(|e| e.availability == Availability::Available)
+            .map(|e| e.episode.clone());
+    }
+    Ok(context)
+}

@@ -108,6 +108,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signs in with a name and password, setting the session cookie. */
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ends this session. */
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** First run: creates the admin account and signs it in. Refused once set up. */
+        post: operations["setup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the app needs setting up, and who is signed in. */
+        get: operations["status"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/calendar": {
         parameters: {
             query?: never;
@@ -174,6 +242,40 @@ export interface paths {
         put?: never;
         /** Links a file to items chosen by hand. */
         post: operations["link_file"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/{id}/stream": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A file as it is, with range requests, for playing directly. */
+        get: operations["stream"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/{id}/subtitles/{index}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An embedded subtitle stream as WebVTT. */
+        get: operations["file_subtitles"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -363,6 +465,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/items/{id}/play": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decides how to play an episode or movie on this client, and starts an HLS
+         *     session when it can't play the file directly.
+         */
+        post: operations["play"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}/played": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Marks an episode, movie, series or one season as played or unplayed. */
+        put: operations["set_played"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}/progress": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Reports playback progress for an episode or movie. Past 90% it counts as
+         *     played and the resume position clears.
+         */
+        put: operations["report_progress"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/items/{id}/refresh": {
         parameters: {
             query?: never;
@@ -408,6 +567,23 @@ export interface paths {
         get?: never;
         /** Sets an item's tags from one source; external tools use this for filler lists. */
         put: operations["set_tags"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/items/{id}/versions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The item's playable files, best first. */
+        get: operations["versions"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -483,6 +659,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Changes your own name or password. A new password signs out your other
+         *     sessions; this one gets a new cookie.
+         */
+        patch: operations["update_me"];
+        trace?: never;
+    };
     "/api/metadata/search": {
         parameters: {
             query?: never;
@@ -533,6 +729,77 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/play/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Stops an HLS session. */
+        delete: operations["stop"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/play/{id}/{file}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A file of an HLS session: the playlist, the init segment or a segment. */
+        get: operations["session_file"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/playlists": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Shared playlists and your own. */
+        get: operations["list"];
+        put?: never;
+        /** Creates a playlist: yours, or shared (admins only). */
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/playlists/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A playlist you can see. */
+        get: operations["get"];
+        put?: never;
+        post?: never;
+        /** Deletes a playlist. Anyone following it goes back to the default ordering. */
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        /** Renames a playlist or changes its rules or episodes. */
+        patch: operations["update"];
         trace?: never;
     };
     "/api/quality-profiles": {
@@ -831,6 +1098,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sidecars/{id}/subtitles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A subtitle file next to the video, as WebVTT. */
+        get: operations["sidecar_subtitles"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/templates/check": {
         parameters: {
             query?: never;
@@ -846,6 +1130,42 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/api/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Everyone with an account. */
+        get: operations["list_users"];
+        put?: never;
+        /** Adds an account. */
+        post: operations["create_user"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Removes an account and its watch state. The last admin can't be removed. */
+        delete: operations["delete_user"];
+        options?: never;
+        head?: never;
+        /** Renames a user, resets their password or changes whether they're an admin. */
+        patch: operations["update_user"];
         trace?: never;
     };
     "/api/wanted": {
@@ -971,6 +1291,20 @@ export interface components {
             /** Format: int64 */
             wanted: number;
         };
+        AudioTrack: {
+            /** Format: int64 */
+            channels?: number | null;
+            codec?: string | null;
+            /** Format: int64 */
+            index: number;
+            is_default: boolean;
+            language?: string | null;
+        };
+        AuthStatus: {
+            /** @description No account has a password yet: show the setup screen. */
+            setup_needed: boolean;
+            user?: components["schemas"]["User"] | null;
+        };
         /** @enum {string} */
         Availability: "available" | "missing" | "not_acquired" | "upcoming" | "unknown";
         CalendarEntry: {
@@ -1014,6 +1348,38 @@ export interface components {
             kind: string;
             template: string;
         };
+        /** @description The parts of a request that shape the decision. */
+        Choice: {
+            /**
+             * Format: int64
+             * @description An audio stream index; defaults to the file's default audio.
+             */
+            audio_stream?: number | null;
+            /**
+             * Format: int64
+             * @description Which file; defaults to the best present one.
+             */
+            file_id?: number | null;
+            /**
+             * Format: int64
+             * @description Transcode down to this height (a quality choice), e.g. 720.
+             */
+            max_height?: number | null;
+            /** @description `stream:<index>` or `sidecar:<id>`; none for no subtitles. */
+            subtitle?: string | null;
+        };
+        /**
+         * @description What the client says it can play. Codec names are ffprobe's (`h264`, `hevc`,
+         *     `av1`, `vp9`, `aac`, `mp3`, `opus`, `flac`, `ac3`, `eac3`); containers are
+         *     `mp4`, `webm`, `mkv`.
+         */
+        ClientCaps: {
+            audio_codecs?: string[];
+            containers?: string[];
+            /** @description The screen shows HDR (PQ/HLG). Otherwise HDR video is tone-mapped. */
+            hdr?: boolean;
+            video_codecs?: string[];
+        };
         ComingUp: {
             episode: components["schemas"]["EpisodeRef"];
             /** Format: int64 */
@@ -1039,6 +1405,10 @@ export interface components {
             /** @description `tv` or `movies`. */
             kind: string;
             name: string;
+        };
+        Credentials: {
+            name: string;
+            password: string;
         };
         DryRun: {
             dry_run?: boolean;
@@ -1300,6 +1670,17 @@ export interface components {
             /** Format: int64 */
             year?: number | null;
         };
+        ItemWatch: {
+            /** Format: int64 */
+            item_id: number;
+            /** Format: int64 */
+            last_played_at?: number | null;
+            /** Format: int64 */
+            play_count: number;
+            played: boolean;
+            /** Format: double */
+            position_seconds: number;
+        };
         Library: {
             /** Format: int64 */
             id: number;
@@ -1364,6 +1745,14 @@ export interface components {
             /** @description `ordering:<id>` of this series, or null to try the default first. */
             view?: string | null;
         };
+        MeUpdate: {
+            current_password?: string | null;
+            name?: string | null;
+            /** @description A new password; needs `current_password`. */
+            password?: string | null;
+        };
+        /** @enum {string} */
+        Mode: "direct" | "remux" | "transcode";
         /** @description Monitoring settings. Leave a field out to keep it; send null to clear it. */
         Monitoring: {
             /**
@@ -1424,6 +1813,11 @@ export interface components {
         NewApiKey: components["schemas"]["ApiKey"] & {
             /** @description The key itself. Shown only now; store it in the tool that uses it. */
             secret: string;
+        };
+        NewUser: {
+            is_admin?: boolean;
+            name: string;
+            password: string;
         };
         NewWebhook: components["schemas"]["Webhook"] & {
             /** @description For verifying signatures. Shown only now. */
@@ -1499,9 +1893,108 @@ export interface components {
             from: string;
             to: string;
         };
+        /** @description Where an episode or movie sits, for the player. */
+        PlayContext: {
+            /** Format: int64 */
+            item_id: number;
+            /** @description `episode` or `movie`. */
+            kind: string;
+            next?: components["schemas"]["EpisodeRef"] | null;
+            number?: components["schemas"]["EpisodeNumber"] | null;
+            /** Format: int64 */
+            series_id?: number | null;
+            series_title?: string | null;
+            title: string;
+            /** Format: int64 */
+            year?: number | null;
+        };
+        PlayPlan: {
+            /** Format: int64 */
+            audio_stream?: number | null;
+            context: components["schemas"]["PlayContext"];
+            /** @description The video encoder in use when transcoding: `software`, `vaapi`, `nvenc` or `qsv`. */
+            encoder: string;
+            mode: components["schemas"]["Mode"];
+            /**
+             * Format: double
+             * @description The stream's time 0 is this far into the file. Zero when direct: seek
+             *     to `start_seconds` instead.
+             */
+            offset_seconds: number;
+            /** @description Why it isn't played directly. */
+            reasons: string[];
+            /** @description The HLS session, to stop when done. */
+            session_id?: string | null;
+            /** Format: double */
+            start_seconds: number;
+            subtitle?: string | null;
+            subtitles: components["schemas"]["SubtitleSource"][];
+            /** @description The file itself (direct) or an HLS playlist. */
+            url: string;
+            version: components["schemas"]["Version"];
+            watch: components["schemas"]["ItemWatch"];
+        };
+        PlayRequest: components["schemas"]["Choice"] & {
+            caps?: components["schemas"]["ClientCaps"];
+            /**
+             * Format: double
+             * @description Where to start; defaults to the resume position.
+             */
+            start_seconds?: number | null;
+        };
+        PlayedChanged: {
+            /** Format: int64 */
+            changed: number;
+        };
+        Playlist: {
+            /**
+             * Format: int64
+             * @description Smart: the ordering it follows.
+             */
+            base_ordering_id?: number | null;
+            /** @description Smart: episodes with any of these tags are left out. */
+            exclude_tags: string[];
+            /** Format: int64 */
+            id: number;
+            /** @description Manual: the episodes, in order. */
+            items: number[];
+            /** @description `smart` or `manual`. */
+            kind: string;
+            name: string;
+            /** Format: int64 */
+            owner_user_id?: number | null;
+            /** Format: int64 */
+            series_id: number;
+            /** @description Everyone sees it; otherwise only its owner. */
+            shared: boolean;
+        };
+        PlaylistInput: {
+            /**
+             * Format: int64
+             * @description Smart: an ordering of the series.
+             */
+            base_ordering_id?: number | null;
+            exclude_tags?: string[] | null;
+            /** @description Manual: episode IDs of one series, in order. */
+            items?: number[] | null;
+            /** @description `smart` or `manual` (create only). */
+            kind?: string | null;
+            name?: string | null;
+            /** @description Make it everyone's (admins only; create only). */
+            shared?: boolean;
+        };
         PolicyPlacement: components["schemas"]["Placement"] & {
             /** @description `managed`, `adaptive` or `read_only`. */
             policy: string;
+        };
+        Progress: {
+            /**
+             * Format: double
+             * @description What the player knows; otherwise the file's probed duration is used.
+             */
+            duration_seconds?: number | null;
+            /** Format: double */
+            position_seconds: number;
         };
         Proposal: {
             /** @description Item folders it finds, e.g. "Night Harbor (2019)". */
@@ -1659,6 +2152,16 @@ export interface components {
             /** @description `null` inherits from the parent (an episode from its series). */
             monitored?: boolean | null;
         };
+        SetPlayed: {
+            /** @description For a series: only these of its episodes. */
+            episodes?: number[] | null;
+            played: boolean;
+            /**
+             * Format: int64
+             * @description For a series: only this season (an ordering season's ID).
+             */
+            season_id?: number | null;
+        };
         SetView: {
             /** @description `ordering:<id>` or `playlist:<id>` of this series. */
             view: string;
@@ -1702,6 +2205,26 @@ export interface components {
              */
             status: string;
         };
+        SubtitleSource: {
+            forced: boolean;
+            hearing_impaired: boolean;
+            /** @description `stream:<index>` or `sidecar:<id>`. */
+            id: string;
+            language?: string | null;
+            /** @description WebVTT, timed to the stream. None when burned into the video. */
+            url?: string | null;
+        };
+        SubtitleTrack: {
+            codec?: string | null;
+            external: boolean;
+            forced: boolean;
+            hearing_impaired: boolean;
+            /** @description `stream:<index>` or `sidecar:<id>`. */
+            id: string;
+            language?: string | null;
+            /** @description Text subtitles are sent as WebVTT; picture ones (PGS, DVD) are burned in. */
+            text: boolean;
+        };
         Tags: {
             /** @description Who sets them, e.g. `animefillerlist`. Replaces that source's tags only. */
             source: string;
@@ -1735,6 +2258,42 @@ export interface components {
             is_import_target?: boolean | null;
             layout_template?: string | null;
             write_policy?: string | null;
+        };
+        User: {
+            /** Format: int64 */
+            created_at: number;
+            /** Format: int64 */
+            id: number;
+            is_admin: boolean;
+            name: string;
+        };
+        UserUpdate: {
+            is_admin?: boolean | null;
+            name?: string | null;
+            /** @description Sets a new password, signing the user out everywhere. */
+            password?: string | null;
+        };
+        /** @description A file of the item, with what's in it. */
+        Version: {
+            audio: components["schemas"]["AudioTrack"][];
+            /** @description `mp4`, `webm`, `mkv`, or ffprobe's own name for anything else. */
+            container?: string | null;
+            /** Format: double */
+            duration_seconds?: number | null;
+            /** Format: int64 */
+            file_id: number;
+            file_name: string;
+            hdr_format?: string | null;
+            /** Format: int64 */
+            height?: number | null;
+            /** Format: int64 */
+            size: number;
+            subtitles: components["schemas"]["SubtitleTrack"][];
+            video_codec?: string | null;
+            /** Format: int64 */
+            video_stream?: number | null;
+            /** Format: int64 */
+            width?: number | null;
         };
         View: {
             /** @description `ordering:<id>` or `playlist:<id>`. */
@@ -2026,6 +2585,104 @@ export interface operations {
             };
         };
     };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Credentials"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    setup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Credentials"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthStatus"];
+                };
+            };
+        };
+    };
     calendar: {
         parameters: {
             query?: {
@@ -2143,6 +2800,74 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    stream: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": unknown;
+                };
+            };
+            206: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    file_subtitles: {
+        parameters: {
+            query?: {
+                /** @description The stream starts this far in; cues move earlier by as much. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+                index: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/vtt": unknown;
                 };
             };
             404: {
@@ -2541,6 +3266,137 @@ export interface operations {
             };
         };
     };
+    play: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlayRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayPlan"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_played: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetPlayed"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlayedChanged"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    report_progress: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Progress"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ItemWatch"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     refresh_item: {
         parameters: {
             query?: never;
@@ -2700,6 +3556,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    versions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Version"][];
                 };
             };
         };
@@ -2916,6 +3793,37 @@ export interface operations {
             };
         };
     };
+    update_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MeUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     search: {
         parameters: {
             query: {
@@ -3023,6 +3931,235 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MovieDetail"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    stop: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    session_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                file: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: {
+                /** @description Only this series' playlists. */
+                series_id?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Playlist"][];
+                };
+            };
+        };
+    };
+    create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaylistInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Playlist"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Playlist"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaylistInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Playlist"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
                 };
             };
             404: {
@@ -3657,6 +4794,38 @@ export interface operations {
             };
         };
     };
+    sidecar_subtitles: {
+        parameters: {
+            query?: {
+                /** @description The stream starts this far in; cues move earlier by as much. */
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/vtt": unknown;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     check_template: {
         parameters: {
             query?: never;
@@ -3679,6 +4848,132 @@ export interface operations {
                 };
             };
             400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_users: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"][];
+                };
+            };
+        };
+    };
+    create_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NewUser"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

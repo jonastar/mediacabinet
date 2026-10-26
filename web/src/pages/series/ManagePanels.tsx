@@ -5,7 +5,6 @@ import { SearchPicker } from '../review/Pickers'
 import { LocationActions } from './LocationActions'
 import styles from './ManagePanels.module.css'
 
-const NOT_BUILT = "This isn't built yet"
 const LOCKABLE = ['title', 'year', 'overview']
 
 const PROVIDERS: Record<string, string> = {
@@ -30,10 +29,17 @@ interface Props {
   onToggleMonitor: () => void
   /** Reload after a change here. */
   onChanged: () => Promise<unknown>
+  onNewPlaylist: () => void
 }
 
 /** Monitoring, Metadata, Orderings and Location: Manage mode only. */
-export function ManagePanels({ series, monitorPending, onToggleMonitor, onChanged }: Props) {
+export function ManagePanels({
+  series,
+  monitorPending,
+  onToggleMonitor,
+  onChanged,
+  onNewPlaylist,
+}: Props) {
   const [changingMatch, setChangingMatch] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const primary = series.external_ids.find((x) => x.is_primary)
@@ -192,7 +198,7 @@ export function ManagePanels({ series, monitorPending, onToggleMonitor, onChange
             </div>
           )
         })}
-        <button type="button" className={styles.button} disabled title={NOT_BUILT}>
+        <button type="button" className={styles.button} onClick={onNewPlaylist}>
           New playlist…
         </button>
       </section>

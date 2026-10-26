@@ -41,7 +41,23 @@ export type NewApiKey = Schemas['NewApiKey']
 export type Webhook = Schemas['Webhook']
 export type NewWebhook = Schemas['NewWebhook']
 export type MovePlan = Schemas['MovePlan']
+export type User = Schemas['User']
+export type AuthStatus = Schemas['AuthStatus']
+export type ItemWatch = Schemas['ItemWatch']
+export type Playlist = Schemas['Playlist']
+export type PlaylistInput = Schemas['PlaylistInput']
+export type Version = Schemas['Version']
+export type PlayPlan = Schemas['PlayPlan']
+export type ClientCaps = Schemas['ClientCaps']
+export type PlayContext = Schemas['PlayContext']
 export type LibraryKind = 'tv' | 'movies'
+
+export interface PlayChoice {
+  file_id?: number
+  audio_stream?: number
+  subtitle?: string | null
+  max_height?: number | null
+}
 
 export interface WebhookInput {
   name?: string
@@ -94,12 +110,24 @@ export function artworkUrl(item: { id: number; artwork: string[] }, kind: 'poste
   return item.artwork.includes(kind) ? `/api/artwork/${item.id}/${kind}` : null
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+/** Fired when the session has ended (signed out elsewhere, expired). */
+export const SIGNED_OUT_EVENT = 'mc:signed-out'
+
+async function request<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  init: RequestInit = {},
+): Promise<T> {
   const res = await fetch(path, {
     method,
     headers: body === undefined ? undefined : { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
+    ...init,
   })
+  if (res.status === 401 && !path.startsWith('/api/auth/')) {
+    window.dispatchEvent(new Event(SIGNED_OUT_EVENT))
+  }
   if (!res.ok) {
     const detail = await res.json().catch(() => null)
     throw new ApiError(res.status, detail?.error ?? `${method} ${path}: ${res.status}`)
@@ -202,4 +230,47 @@ export const api = {
     request<MovePlan>('POST', `/api/series/${seriesId}/move`, { root_id: rootId, dry_run: dryRun }),
   placementExample: (libraryId: number) =>
     request<PlacementExample | null>('GET', `/api/libraries/${libraryId}/placement-example`),
+
+  authStatus: () => request<AuthStatus>('GET', '/api/auth/status'),
+  setup: (name: string, password: string) =>
+    request<User>('POST', '/api/auth/setup', { name, password }),
+  login: (name: string, password: string) =>
+    request<User>('POST', '/api/auth/login', { name, password }),
+  logout: () => request<void>('POST', '/api/auth/logout'),
+  updateMe: (changes: { name?: string; password?: string; current_password?: string }) =>
+    request<User>('PATCH', '/api/me', changes),
+  users: () => request<User[]>('GET', '/api/users'),
+  createUser: (name: string, password: string, isAdmin: boolean) =>
+    request<User>('POST', '/api/users', { name, password, is_admin: isAdmin }),
+  updateUser: (id: number, changes: { name?: string; password?: string; is_admin?: boolean }) =>
+    request<User>('PATCH', `/api/users/${id}`, changes),
+  deleteUser: (id: number) => request<void>('DELETE', `/api/users/${id}`),
+
+  versions: (itemId: number) => request<Version[]>('GET', `/api/items/${itemId}/versions`),
+  play: (itemId: number, choice: PlayChoice, caps: ClientCaps, startSeconds?: number) =>
+    request<PlayPlan>('POST', `/api/items/${itemId}/play`, {
+      ...choice,
+      caps,
+      start_seconds: startSeconds,
+    }),
+  /** Keeps going when the page is closing, so the last position is saved. */
+  stopPlay: (sessionId: string) =>
+    request<void>('DELETE', `/api/play/${sessionId}`, undefined, { keepalive: true }),
+  progress: (itemId: number, position: number, duration?: number | null) =>
+    request<ItemWatch>(
+      'PUT',
+      `/api/items/${itemId}/progress`,
+      { position_seconds: position, duration_seconds: duration ?? undefined },
+      { keepalive: true },
+    ),
+  /** An episode or movie; for a series, all its episodes or just `episodes`. */
+  setPlayed: (itemId: number, played: boolean, episodes?: number[]) =>
+    request<{ changed: number }>('PUT', `/api/items/${itemId}/played`, { played, episodes }),
+
+  playlists: (seriesId?: number) =>
+    request<Playlist[]>('GET', `/api/playlists${seriesId ? `?series_id=${seriesId}` : ''}`),
+  createPlaylist: (input: PlaylistInput) => request<Playlist>('POST', '/api/playlists', input),
+  updatePlaylist: (id: number, input: PlaylistInput) =>
+    request<Playlist>('PATCH', `/api/playlists/${id}`, input),
+  deletePlaylist: (id: number) => request<void>('DELETE', `/api/playlists/${id}`),
 }

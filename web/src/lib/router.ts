@@ -15,11 +15,16 @@ export function useQueryParam(name: string): string | null {
   return new URLSearchParams(search).get(name)
 }
 
-export function navigate(to: string) {
+/** Goes to `to`; `replace` swaps the current history entry instead of adding one. */
+export function navigate(to: string, { replace = false }: { replace?: boolean } = {}) {
   if (to === window.location.pathname + window.location.search) {
     return
   }
-  window.history.pushState(null, '', to)
+  if (replace) {
+    window.history.replaceState(null, '', to)
+  } else {
+    window.history.pushState(null, '', to)
+  }
   window.dispatchEvent(new PopStateEvent('popstate'))
   window.scrollTo(0, 0)
 }

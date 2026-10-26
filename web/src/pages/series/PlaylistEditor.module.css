@@ -1,0 +1,120 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.editor h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  max-width: 520px;
+}
+
+.input {
+  min-height: var(--touch-target);
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-control);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+}
+
+.hint {
+  font-weight: 500;
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.picks {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.picks legend {
+  padding: 0 6px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pick,
+.check {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  font-size: 14px;
+}
+
+.pick input,
+.check input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.number {
+  min-width: 64px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.error {
+  margin: 0;
+  color: var(--state-missing-text);
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.primary,
+.button {
+  min-height: var(--touch-target);
+  padding: 0 18px;
+  border-radius: var(--radius-control);
+  font: inherit;
+  font-weight: 700;
+}
+
+.primary {
+  border: 0;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.primary:disabled {
+  opacity: 0.55;
+}
+
+.button {
+  border: 1px solid var(--border-control);
+  background: transparent;
+  color: var(--text);
+}

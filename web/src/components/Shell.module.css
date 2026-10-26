@@ -94,9 +94,42 @@
   color: var(--accent);
 }
 
+.name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .role {
   color: var(--text-muted);
   font-weight: 500;
+}
+
+.accountLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin: -4px 0 0 34px;
+}
+
+.accountLink {
+  min-height: 32px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+}
+
+.accountLink:hover {
+  background: var(--surface-raised);
+  color: var(--text);
 }
 
 .main {

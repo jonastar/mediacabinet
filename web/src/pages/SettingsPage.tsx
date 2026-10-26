@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { api, type NewApiKey, type NewWebhook, type Webhook } from '../api/client'
+import { api, type NewApiKey, type NewWebhook, type User, type Webhook } from '../api/client'
 import { useApi } from '../api/useApi'
 import { Failed, Loading } from '../components/Status'
 import { ago } from '../lib/format'
+import { useUser } from '../lib/session'
 import styles from './Settings.module.css'
 
 /** A secret shown once, with a copy button. */
@@ -25,6 +26,138 @@ function Secret({ label, value, onDone }: { label: string; value: string; onDone
         </button>
       </div>
     </div>
+  )
+}
+
+function UserRow({ user, me, onChange }: { user: User; me: User; onChange: () => void }) {
+  const [error, setError] = useState<string | null>(null)
+  const act = async (change: () => Promise<unknown>) => {
+    setError(null)
+    try {
+      await change()
+      onChange()
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+  const resetPassword = () => {
+    const password = window.prompt(
+      `New password for ${user.name} (at least 8 characters). They'll be signed out everywhere.`,
+    )
+    if (password) {
+      act(() => api.updateUser(user.id, { password }))
+    }
+  }
+  return (
+    <li className={styles.item}>
+      <span className={styles.itemText}>
+        <b>
+          {user.name}
+          {user.id === me.id && ' (you)'}
+        </b>
+        <span className={styles.muted}>
+          {user.is_admin ? 'Admin' : 'Viewer'} · added {ago(user.created_at)}
+        </span>
+        {error && <span className={styles.warning}>{error}</span>}
+      </span>
+      <span className={styles.row}>
+        <button type="button" className={styles.button} onClick={resetPassword}>
+          Reset password
+        </button>
+        <button
+          type="button"
+          className={styles.button}
+          onClick={() => act(() => api.updateUser(user.id, { is_admin: !user.is_admin }))}
+        >
+          {user.is_admin ? 'Make viewer' : 'Make admin'}
+        </button>
+        {user.id !== me.id && (
+          <button
+            type="button"
+            className={`${styles.button} ${styles.danger}`}
+            onClick={() =>
+              window.confirm(`Remove ${user.name} and their watch history?`) &&
+              act(() => api.deleteUser(user.id))
+            }
+          >
+            Remove
+          </button>
+        )}
+      </span>
+    </li>
+  )
+}
+
+function Users() {
+  const me = useUser()
+  const users = useApi('users', api.users)
+  const [draft, setDraft] = useState({ name: '', password: '', admin: false })
+  const [error, setError] = useState<string | null>(null)
+  if (users.error) {
+    return <Failed error={users.error} onRetry={users.reload} />
+  }
+  const create = async () => {
+    setError(null)
+    try {
+      await api.createUser(draft.name, draft.password, draft.admin)
+      setDraft({ name: '', password: '', admin: false })
+      users.reload()
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
+  return (
+    <section aria-labelledby="users" className={styles.panel}>
+      <h2 id="users">Users</h2>
+      <p className={styles.muted}>
+        Everyone gets their own watch history, resume points and playlists. Admins can also manage
+        libraries, matching and these settings.
+      </p>
+      {!users.data && <Loading />}
+      {users.data && (
+        <ul className={styles.list}>
+          {users.data.map((u) => (
+            <UserRow key={u.id} user={u} me={me} onChange={users.reload} />
+          ))}
+        </ul>
+      )}
+      <div className={styles.row}>
+        <input
+          className={styles.input}
+          aria-label="Name"
+          placeholder="Name"
+          autoComplete="off"
+          value={draft.name}
+          onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+        />
+        <input
+          className={styles.input}
+          aria-label="Password"
+          placeholder="Password (8+ characters)"
+          type="password"
+          autoComplete="new-password"
+          value={draft.password}
+          onChange={(e) => setDraft({ ...draft, password: e.target.value })}
+        />
+        <label className={styles.check}>
+          <input
+            type="checkbox"
+            checked={draft.admin}
+            onChange={(e) => setDraft({ ...draft, admin: e.target.checked })}
+          />
+          Admin
+        </label>
+        <button
+          type="button"
+          className={`${styles.button} ${styles.primary}`}
+          disabled={!draft.name.trim() || !draft.password}
+          onClick={create}
+        >
+          Add user
+        </button>
+      </div>
+      {error && <p className={styles.warning}>{error}</p>}
+    </section>
   )
 }
 
@@ -295,8 +428,9 @@ export function SettingsPage() {
       <div className={styles.inner}>
         <div className={styles.heading}>
           <h1>Settings</h1>
-          <p className={styles.muted}>Connections to other tools.</p>
+          <p className={styles.muted}>Who can sign in, and connections to other tools.</p>
         </div>
+        <Users />
         <ApiKeys />
         <ArrSetup />
         <Webhooks />

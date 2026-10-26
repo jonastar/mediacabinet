@@ -1,5 +1,12 @@
 import { useState } from 'react'
-import { api, artworkUrl, type Episode, type SeriesDetail, type View } from '../api/client'
+import {
+  api,
+  artworkUrl,
+  type Episode,
+  type Playlist,
+  type SeriesDetail,
+  type View,
+} from '../api/client'
 import { heroBackground } from '../lib/artwork'
 import { EditDetails } from '../components/EditDetails'
 import { useApi } from '../api/useApi'
@@ -12,9 +19,9 @@ import { useEpisodeLayout, useMode } from '../lib/prefs'
 import { Link } from '../components/Link'
 import { Episodes } from './series/Episodes'
 import { ManagePanels } from './series/ManagePanels'
+import { PlaylistEditor } from './series/PlaylistEditor'
+import { useUser } from '../lib/session'
 import styles from './SeriesPage.module.css'
-
-const PLAY_NOT_BUILT = "Playback isn't built yet"
 
 function viewNote(view: View | undefined, views: View[]): string {
   if (!view) {
@@ -46,6 +53,9 @@ export function SeriesPage({ id }: { id: number }) {
   const [seriesMonitorPending, setSeriesMonitorPending] = useState(false)
   const [editing, setEditing] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
+  /** The playlist being created (no playlist) or changed. */
+  const [editor, setEditor] = useState<{ playlist?: Playlist } | null>(null)
+  const user = useUser()
 
   const view = pickedView ?? detail.data?.selected_view ?? null
   const episodes = useApi(detail.data ? `episodes:${id}:${view ?? ''}` : null, () =>
@@ -113,6 +123,31 @@ export function SeriesPage({ id }: { id: number }) {
 
   const reloadAll = () => Promise.all([detail.reload(), episodes.reload()])
 
+  const playlistId = () => Number(currentView?.id.replace('playlist:', ''))
+
+  const editPlaylist = async () => {
+    const playlists = await api.playlists(id)
+    const playlist = playlists.find((p) => p.id === playlistId())
+    if (playlist) {
+      setEditor({ playlist })
+    }
+  }
+
+  const deletePlaylist = async () => {
+    if (!currentView || !window.confirm(`Delete the ${currentView.name} playlist?`)) {
+      return
+    }
+    await api.deletePlaylist(playlistId())
+    setPickedView(null)
+    await reloadAll()
+  }
+
+  const setPlayed = async (marked: Episode[], played: boolean) => {
+    const ids = marked.map((e) => e.item_id)
+    await (ids.length === 1 ? api.setPlayed(ids[0], played) : api.setPlayed(id, played, ids))
+    await episodes.reload()
+  }
+
   const runAction = async (label: string, action: () => Promise<string>) => {
     setNotice(`${label}…`)
     try {
@@ -130,6 +165,7 @@ export function SeriesPage({ id }: { id: number }) {
   )
   const upNext = list?.up_next != null ? list.entries[list.up_next] : null
   const resuming = (upNext?.watch?.position_seconds ?? 0) > 0
+  const first = list?.entries.find((e) => e.availability === 'available') ?? null
   const next = series.next_airing
   const meta = [
     series.year,
@@ -166,14 +202,16 @@ export function SeriesPage({ id }: { id: number }) {
               {series.overview && <p className={styles.overview}>{series.overview}</p>}
               <div className={styles.actions}>
                 {upNext && (
-                  <button type="button" className={styles.primary} title={PLAY_NOT_BUILT}>
+                  <Link to={`/play/${upNext.item_id}`} className={styles.primary}>
                     <PlayIcon />
                     {resuming ? 'Resume' : 'Play'} {episodeLabel(upNext.number)}
-                  </button>
+                  </Link>
                 )}
-                <button type="button" className={styles.secondary} title={PLAY_NOT_BUILT}>
-                  Watch from start
-                </button>
+                {first && first !== upNext && (
+                  <Link to={`/play/${first.item_id}?start=0`} className={styles.secondary}>
+                    Watch from start
+                  </Link>
+                )}
               </div>
             </>
           )}
@@ -258,6 +296,21 @@ export function SeriesPage({ id }: { id: number }) {
             monitorPending={seriesMonitorPending}
             onToggleMonitor={toggleSeriesMonitor}
             onChanged={reloadAll}
+            onNewPlaylist={() => setEditor({})}
+          />
+        )}
+        {editor && (
+          <PlaylistEditor
+            key={editor.playlist?.id ?? 'new'}
+            series={series as SeriesDetail}
+            playlist={editor.playlist}
+            canShare={user.is_admin}
+            onSaved={(p) => {
+              setEditor(null)
+              pickView(`playlist:${p.id}`)
+              episodes.reload()
+            }}
+            onCancel={() => setEditor(null)}
           />
         )}
 
@@ -285,7 +338,25 @@ export function SeriesPage({ id }: { id: number }) {
             ]}
           />
         </div>
-        <p className={styles.viewNote}>{viewNote(currentView, series.views)}</p>
+        <p className={styles.viewNote}>
+          {viewNote(currentView, series.views)}
+          {currentView?.kind === 'playlist' && (!currentView.shared || user.is_admin) && (
+            <>
+              {' '}
+              <button type="button" className={styles.noteAction} onClick={editPlaylist}>
+                Change
+              </button>
+              <button type="button" className={styles.noteAction} onClick={deletePlaylist}>
+                Delete
+              </button>
+            </>
+          )}
+          {!editor && (
+            <button type="button" className={styles.noteAction} onClick={() => setEditor({})}>
+              New playlist
+            </button>
+          )}
+        </p>
 
         {episodes.error && <Failed error={episodes.error} onRetry={episodes.reload} />}
         {!list && !episodes.error && <Loading label="Loading episodes…" />}
@@ -297,6 +368,7 @@ export function SeriesPage({ id }: { id: number }) {
             layout={layout}
             pendingMonitor={pendingMonitor}
             onToggleMonitor={toggleEpisodeMonitor}
+            onSetPlayed={setPlayed}
           />
         )}
       </div>

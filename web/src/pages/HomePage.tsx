@@ -151,7 +151,7 @@ function Hero({ home }: { home: Home }) {
             </h1>
             <p className={styles.heroMeta}>{heroLine(hero)}</p>
             <div className={styles.actions}>
-              <Link to={`/tv/${hero.series_id}`} className={styles.primary}>
+              <Link to={`/play/${hero.episode.item_id}`} className={styles.primary}>
                 <PlayIcon />
                 {hero.position_seconds > 0 ? 'Resume' : 'Play'}
               </Link>
@@ -245,7 +245,7 @@ function KeepWatching({ items, home }: { items: ContinueItem[]; home: Home }) {
         {items.map((c) => {
           const line = continueLine(c)
           return (
-            <Link key={c.series_id} to={`/tv/${c.series_id}`} className={styles.continue}>
+            <Link key={c.series_id} to={`/play/${c.episode.item_id}`} className={styles.continue}>
               <div
                 className={styles.continueArt}
                 style={{

@@ -127,26 +127,35 @@ pub async fn report_progress(
     Ok(get(pool, user, item).await?)
 }
 
-/// Marks an episode or movie, every episode of a series, or one season of an
-/// ordering (`season` is an ordering season of that series) as played or not.
-/// Returns how many items changed.
+/// Which of a series' episodes to mark.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Scope {
+    All,
+    /// An ordering season of the series.
+    Season(i64),
+    /// Episodes of the series.
+    Episodes(Vec<i64>),
+}
+
+/// Marks an episode or movie, or a series' episodes (all, one season of an
+/// ordering, or a list), as played or not. Returns how many items changed.
 pub async fn set_played(
     pool: &SqlitePool,
     user: i64,
     item: i64,
-    season: Option<i64>,
+    scope: Scope,
     played: bool,
     now: i64,
 ) -> Result<u64, WatchError> {
     let kind = kind(pool, item).await?;
-    let targets: Vec<i64> = match (kind.as_str(), season) {
-        ("series", None) => {
+    let targets: Vec<i64> = match (kind.as_str(), scope) {
+        ("series", Scope::All) => {
             sqlx::query_scalar("SELECT id FROM item WHERE parent_id = ? AND kind = 'episode'")
                 .bind(item)
                 .fetch_all(pool)
                 .await?
         }
-        ("series", Some(season)) => {
+        ("series", Scope::Season(season)) => {
             let targets: Vec<i64> = sqlx::query_scalar(
                 "SELECT DISTINCT e.item_id FROM ordering_entry e
                  JOIN ordering o ON o.id = e.ordering_id
@@ -163,10 +172,26 @@ pub async fn set_played(
             }
             targets
         }
-        ("episode" | "movie", None) => vec![item],
+        ("series", Scope::Episodes(episodes)) => {
+            let targets: Vec<i64> = sqlx::query_scalar(
+                "SELECT id FROM item WHERE parent_id = ? AND kind = 'episode'
+                 AND id IN (SELECT value FROM json_each(?))",
+            )
+            .bind(item)
+            .bind(serde_json::json!(episodes).to_string())
+            .fetch_all(pool)
+            .await?;
+            if targets.len() != episodes.len() {
+                return Err(WatchError::Invalid(
+                    "Those aren't all episodes of this series.".into(),
+                ));
+            }
+            targets
+        }
+        ("episode" | "movie", Scope::All) => vec![item],
         _ => {
             return Err(WatchError::Invalid(
-                "A season only applies to a series.".into(),
+                "Seasons and episodes only apply to a series.".into(),
             ));
         }
     };

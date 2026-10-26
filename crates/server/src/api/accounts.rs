@@ -122,7 +122,8 @@ pub struct MeUpdate {
     current_password: Option<String>,
 }
 
-/// Changes your own name or password. A new password signs out other sessions.
+/// Changes your own name or password. A new password signs out your other
+/// sessions; this one gets a new cookie.
 #[utoipa::path(
     patch,
     path = "/me",
@@ -133,26 +134,30 @@ pub struct MeUpdate {
 pub async fn update_me(
     State(state): State<AppState>,
     SignedIn(me): SignedIn,
+    headers: HeaderMap,
     Json(body): Json<MeUpdate>,
-) -> Result<Json<User>, ApiError> {
-    if body.password.is_some() {
-        let current = body.current_password.as_deref().unwrap_or_default();
-        if !accounts::check_password(&state.db, me.id, current).await? {
-            return Err(ApiError::BadRequest(
-                "Your current password isn't right.".into(),
-            ));
-        }
+) -> Result<Response, ApiError> {
+    let Some(password) = body.password else {
+        let user = accounts::update(&state.db, me.id, body.name.as_deref(), None, None).await?;
+        return Ok(Json(user).into_response());
+    };
+    let current = body.current_password.as_deref().unwrap_or_default();
+    if !accounts::check_password(&state.db, me.id, current).await? {
+        return Err(ApiError::BadRequest(
+            "Your current password isn't right.".into(),
+        ));
     }
-    Ok(Json(
-        accounts::update(
-            &state.db,
-            me.id,
-            body.name.as_deref(),
-            body.password.as_deref(),
-            None,
-        )
-        .await?,
-    ))
+    let user = accounts::update(
+        &state.db,
+        me.id,
+        body.name.as_deref(),
+        Some(&password),
+        None,
+    )
+    .await?;
+    // Every session ended; this one carries on with a new one.
+    let (user, token) = accounts::login(&state.db, &user.name, &password).await?;
+    Ok(signed_in(&headers, user, &token))
 }
 
 /// Everyone with an account.

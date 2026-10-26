@@ -10,8 +10,6 @@ import { ago, bytes, filesSummary, matchSummary, resolution, seriesTone } from '
 import { useMode } from '../lib/prefs'
 import styles from './SeriesPage.module.css'
 
-const PLAY_NOT_BUILT = "Playback isn't built yet"
-
 function runtime(seconds: number | null | undefined) {
   if (!seconds) {
     return null
@@ -86,10 +84,22 @@ export function MoviePage({ id }: { id: number }) {
           {!manage && (
             <div className={styles.actions}>
               {present.length > 0 ? (
-                <button type="button" className={styles.primary} title={PLAY_NOT_BUILT}>
-                  <PlayIcon />
-                  {(m.watch?.position_seconds ?? 0) > 0 && !m.watch?.played ? 'Resume' : 'Play'}
-                </button>
+                <>
+                  <Link to={`/play/${m.id}`} className={styles.primary}>
+                    <PlayIcon />
+                    {(m.watch?.position_seconds ?? 0) > 0 && !m.watch?.played ? 'Resume' : 'Play'}
+                  </Link>
+                  <button
+                    type="button"
+                    className={styles.secondary}
+                    aria-pressed={m.watch?.played ?? false}
+                    onClick={() =>
+                      api.setPlayed(m.id, !(m.watch?.played ?? false)).then(movie.reload)
+                    }
+                  >
+                    {m.watch?.played ? 'Watched ✓' : 'Mark watched'}
+                  </button>
+                </>
               ) : (
                 <span className={styles.heroMeta}>
                   {m.availability === 'missing' ? 'File offline' : 'Not in library'}

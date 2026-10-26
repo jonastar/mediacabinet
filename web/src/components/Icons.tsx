@@ -116,3 +116,88 @@ export const SettingsIcon = () => (
     <path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6" />
   </svg>
 )
+
+// ── Player ──────────────────────────────────────────────────────────────────
+
+const player = { width: 24, height: 24, viewBox: '0 0 24 24', 'aria-hidden': true } as const
+
+export const PlayLargeIcon = () => (
+  <svg {...player}>
+    <path d="M7 4.5l13 7.5-13 7.5z" fill="currentColor" />
+  </svg>
+)
+
+export const PauseIcon = () => (
+  <svg {...player}>
+    <path d="M6.5 4.5h4v15h-4zM13.5 4.5h4v15h-4z" fill="currentColor" />
+  </svg>
+)
+
+export const SkipBackIcon = () => (
+  <svg {...player} {...line} strokeWidth={1.8}>
+    <path d="M4 5v5h5" />
+    <path d="M4.6 14a8 8 0 1 0 1.9-7.3L4 10" />
+    <text x="12" y="15.5" fontSize="7" textAnchor="middle" fill="currentColor" stroke="none">
+      10
+    </text>
+  </svg>
+)
+
+export const SkipForwardIcon = () => (
+  <svg {...player} {...line} strokeWidth={1.8}>
+    <path d="M20 5v5h-5" />
+    <path d="M19.4 14a8 8 0 1 1-1.9-7.3L20 10" />
+    <text x="12" y="15.5" fontSize="7" textAnchor="middle" fill="currentColor" stroke="none">
+      30
+    </text>
+  </svg>
+)
+
+export const VolumeIcon = ({ muted }: { muted: boolean }) => (
+  <svg {...player} {...line} strokeWidth={1.8}>
+    <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" />
+    {muted ? (
+      <path d="M16 9.5l5 5M21 9.5l-5 5" />
+    ) : (
+      <path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" />
+    )}
+  </svg>
+)
+
+export const FullscreenIcon = ({ on }: { on: boolean }) => (
+  <svg {...player} {...line} strokeWidth={1.8}>
+    {on ? (
+      <path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5" />
+    ) : (
+      <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
+    )}
+  </svg>
+)
+
+export const TracksIcon = () => (
+  <svg {...player} {...line} strokeWidth={1.8}>
+    <rect x="3" y="5" width="18" height="14" rx="2.5" />
+    <path d="M7 12.5h4M13 12.5h4M7 15.5h7" />
+  </svg>
+)
+
+export const WatchedIcon = ({ watched }: { watched: boolean }) => (
+  <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+    <circle
+      cx="10"
+      cy="10"
+      r="8"
+      fill={watched ? 'currentColor' : 'none'}
+      stroke="currentColor"
+      strokeWidth="1.7"
+    />
+    <path
+      d="M6.5 10.2l2.4 2.4 4.6-5"
+      fill="none"
+      stroke={watched ? 'var(--bg)' : 'currentColor'}
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  </svg>
+)

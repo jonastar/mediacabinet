@@ -71,6 +71,8 @@ Set these in the environment, or in a `.env` file in the working directory (giti
 | `CABINET_SCAN_INTERVAL_MINUTES` | `360` | Rescan each scanned root this often; `0` turns it off |
 | `CABINET_WATCH` | `1` | Rescan a root shortly after its files change; `0` turns it off |
 | `CABINET_FFPROBE` | `ffprobe` | ffprobe to run |
+| `CABINET_FFMPEG` | `ffmpeg` | ffmpeg to run, for streams that aren't played directly and for subtitles |
+| `CABINET_HWACCEL` | `none` | Hardware video encoding: `vaapi` (or `vaapi:/dev/dri/renderD129`), `nvenc` or `qsv`. Checked at startup; falls back to software if it doesn't work |
 | `CABINET_TMDB_KEY` | none | TMDB API key (v3) or read access token (v4); needed to identify new folders |
 | `CABINET_METADATA_CATALOG` | none | Use an offline catalog instead of TMDB, e.g. `crates/core/tests/data/catalog.json` for the fixture library |
 | `CABINET_MATCH_THRESHOLD` | `0.85` | Matches at or above this confidence link automatically; below go to review |
@@ -96,3 +98,9 @@ If `web/dist` is missing when the server compiles, the binary still runs but ser
 docker build -t media-cabinet .
 docker run -p 8420:8420 -v cabinet-data:/data -v /path/to/media:/media:ro media-cabinet
 ```
+
+On first start, open the web UI to create the admin account.
+
+For VAAPI, pass the GPU in with `--device /dev/dri` and set `CABINET_HWACCEL=vaapi`. The image's ffmpeg also needs the GPU's VA driver (for example `intel-media-va-driver` or `mesa-va-drivers`). For NVENC, use the NVIDIA container toolkit (`--gpus all`) and set `CABINET_HWACCEL=nvenc`.
+
+**Remote access.** Put the server behind your own reverse proxy with HTTPS (Caddy, nginx, Traefik) or reach it over a VPN (WireGuard, Tailscale). Have the proxy pass `X-Forwarded-Proto`, so the session cookie is marked Secure.

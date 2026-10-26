@@ -1,8 +1,9 @@
 import { useCallback, useSyncExternalStore } from 'react'
+import { useSession } from './session'
 
 /**
- * Small per-browser preferences. Stored in localStorage until there are user
- * accounts; reads fall back to the default when storage is unavailable.
+ * Small per-browser preferences, in localStorage; reads fall back to the
+ * default when storage is unavailable.
  */
 const listeners = new Set<() => void>()
 
@@ -41,7 +42,15 @@ function usePref<T extends string>(key: string, options: readonly T[], fallback:
 export type Mode = 'watch' | 'manage'
 export type Layout = 'list' | 'grid'
 
-/** Watch is for viewing; Manage shows system states and technical detail. App-wide. */
-export const useMode = () => usePref<Mode>('mc.mode', ['watch', 'manage'], 'watch')
+/**
+ * Watch is for viewing; Manage shows system states and technical detail.
+ * App-wide, and only admins can manage.
+ */
+export function useMode() {
+  const [mode, setMode] = usePref<Mode>('mc.mode', ['watch', 'manage'], 'watch')
+  const session = useSession()
+  const admin = session.state === 'signedIn' && session.user.is_admin
+  return [admin ? mode : 'watch', setMode] as const
+}
 
 export const useEpisodeLayout = () => usePref<Layout>('mc.episodeLayout', ['list', 'grid'], 'list')

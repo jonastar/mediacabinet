@@ -238,6 +238,116 @@
         }
       }
     },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Signs in with a name and password, setting the session cookie.",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Ends this session.",
+        "operationId": "logout",
+        "responses": {
+          "204": {}
+        }
+      }
+    },
+    "/api/auth/setup": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "First run: creates the admin account and signs it in. Refused once set up.",
+        "operationId": "setup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Credentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/status": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Whether the app needs setting up, and who is signed in.",
+        "operationId": "status",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthStatus"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/calendar": {
       "get": {
         "tags": [
@@ -441,6 +551,98 @@
                   "$ref": "#/components/schemas/ErrorBody"
                 }
               }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/{id}/stream": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "A file as it is, with range requests, for playing directly.",
+        "operationId": "stream",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/octet-stream": {}
+            }
+          },
+          "206": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/files/{id}/subtitles/{index}": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "An embedded subtitle stream as WebVTT.",
+        "operationId": "file_subtitles",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "index",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "The stream starts this far in; cues move earlier by as much.",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/vtt": {}
             }
           },
           "404": {
@@ -961,6 +1163,192 @@
         }
       }
     },
+    "/api/items/{id}/play": {
+      "post": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Decides how to play an episode or movie on this client, and starts an HLS\nsession when it can't play the file directly.",
+        "operationId": "play",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlayRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayPlan"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/played": {
+      "put": {
+        "tags": [
+          "watch"
+        ],
+        "summary": "Marks an episode, movie, series or one season as played or unplayed.",
+        "operationId": "set_played",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPlayed"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlayedChanged"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/progress": {
+      "put": {
+        "tags": [
+          "watch"
+        ],
+        "summary": "Reports playback progress for an episode or movie. Past 90% it counts as\nplayed and the resume position clears.",
+        "operationId": "report_progress",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Progress"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ItemWatch"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/items/{id}/refresh": {
       "post": {
         "tags": [
@@ -1208,6 +1596,40 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/versions": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "The item's playable files, best first.",
+        "operationId": "versions",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Version"
+                  }
                 }
               }
             }
@@ -1495,6 +1917,45 @@
         }
       }
     },
+    "/api/me": {
+      "patch": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Changes your own name or password. A new password signs out your other\nsessions; this one gets a new cookie.",
+        "operationId": "update_me",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/metadata/search": {
       "get": {
         "tags": [
@@ -1651,6 +2112,305 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MovieDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/play/{id}": {
+      "delete": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "Stops an HLS session.",
+        "operationId": "stop",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/play/{id}/{file}": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "A file of an HLS session: the playlist, the init segment or a segment.",
+        "operationId": "session_file",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "file",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/playlists": {
+      "get": {
+        "tags": [
+          "playlists"
+        ],
+        "summary": "Shared playlists and your own.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "series_id",
+            "in": "query",
+            "description": "Only this series' playlists.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Playlist"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "playlists"
+        ],
+        "summary": "Creates a playlist: yours, or shared (admins only).",
+        "operationId": "create",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaylistInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Playlist"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/playlists/{id}": {
+      "get": {
+        "tags": [
+          "playlists"
+        ],
+        "summary": "A playlist you can see.",
+        "operationId": "get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Playlist"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "playlists"
+        ],
+        "summary": "Deletes a playlist. Anyone following it goes back to the default ordering.",
+        "operationId": "delete",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "playlists"
+        ],
+        "summary": "Renames a playlist or changes its rules or episodes.",
+        "operationId": "update",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlaylistInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Playlist"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
                 }
               }
             }
@@ -2486,6 +3246,52 @@
         }
       }
     },
+    "/api/sidecars/{id}/subtitles": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "A subtitle file next to the video, as WebVTT.",
+        "operationId": "sidecar_subtitles",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "The stream starts this far in; cues move earlier by as much.",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "format": "double"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/vtt": {}
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/templates/check": {
       "post": {
         "tags": [
@@ -2514,6 +3320,164 @@
             }
           },
           "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Everyone with an account.",
+        "operationId": "list_users",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/User"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Adds an account.",
+        "operationId": "create_user",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NewUser"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}": {
+      "delete": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Removes an account and its watch state. The last admin can't be removed.",
+        "operationId": "delete_user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Renames a user, resets their password or changes whether they're an admin.",
+        "operationId": "update_user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
             "content": {
               "application/json": {
                 "schema": {
@@ -2958,6 +3922,64 @@
           }
         }
       },
+      "AudioTrack": {
+        "type": "object",
+        "required": [
+          "index",
+          "is_default"
+        ],
+        "properties": {
+          "channels": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "codec": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "index": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "AuthStatus": {
+        "type": "object",
+        "required": [
+          "setup_needed"
+        ],
+        "properties": {
+          "setup_needed": {
+            "type": "boolean",
+            "description": "No account has a password yet: show the setup screen."
+          },
+          "user": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/User",
+                "description": "The signed-in user, if any."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
       "Availability": {
         "type": "string",
         "enum": [
@@ -3101,6 +4123,71 @@
           }
         }
       },
+      "Choice": {
+        "type": "object",
+        "description": "The parts of a request that shape the decision.",
+        "properties": {
+          "audio_stream": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "An audio stream index; defaults to the file's default audio."
+          },
+          "file_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Which file; defaults to the best present one."
+          },
+          "max_height": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Transcode down to this height (a quality choice), e.g. 720."
+          },
+          "subtitle": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`stream:<index>` or `sidecar:<id>`; none for no subtitles."
+          }
+        }
+      },
+      "ClientCaps": {
+        "type": "object",
+        "description": "What the client says it can play. Codec names are ffprobe's (`h264`, `hevc`,\n`av1`, `vp9`, `aac`, `mp3`, `opus`, `flac`, `ac3`, `eac3`); containers are\n`mp4`, `webm`, `mkv`.",
+        "properties": {
+          "audio_codecs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "containers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "hdr": {
+            "type": "boolean",
+            "description": "The screen shows HDR (PQ/HLG). Otherwise HDR video is tone-mapped."
+          },
+          "video_codecs": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "ComingUp": {
         "type": "object",
         "required": [
@@ -3181,6 +4268,21 @@
             "description": "`tv` or `movies`."
           },
           "name": {
+            "type": "string"
+          }
+        }
+      },
+      "Credentials": {
+        "type": "object",
+        "required": [
+          "name",
+          "password"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "password": {
             "type": "string"
           }
         }
@@ -4129,6 +5231,39 @@
           }
         }
       },
+      "ItemWatch": {
+        "type": "object",
+        "required": [
+          "item_id",
+          "position_seconds",
+          "played",
+          "play_count"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_played_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "play_count": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "played": {
+            "type": "boolean"
+          },
+          "position_seconds": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "Library": {
         "type": "object",
         "required": [
@@ -4336,6 +5471,38 @@
             "description": "`ordering:<id>` of this series, or null to try the default first."
           }
         }
+      },
+      "MeUpdate": {
+        "type": "object",
+        "properties": {
+          "current_password": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "password": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A new password; needs `current_password`."
+          }
+        }
+      },
+      "Mode": {
+        "type": "string",
+        "enum": [
+          "direct",
+          "remux",
+          "transcode"
+        ]
       },
       "Monitoring": {
         "type": "object",
@@ -4563,6 +5730,24 @@
             }
           }
         ]
+      },
+      "NewUser": {
+        "type": "object",
+        "required": [
+          "name",
+          "password"
+        ],
+        "properties": {
+          "is_admin": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
       },
       "NewWebhook": {
         "allOf": [
@@ -4841,6 +6026,298 @@
           }
         }
       },
+      "PlayContext": {
+        "type": "object",
+        "description": "Where an episode or movie sits, for the player.",
+        "required": [
+          "item_id",
+          "kind",
+          "title"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`episode` or `movie`."
+          },
+          "next": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EpisodeRef",
+                "description": "The next available episode there."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "number": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EpisodeNumber",
+                "description": "The episode's number in the user's ordering or playlist."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "series_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "series_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "PlayPlan": {
+        "type": "object",
+        "required": [
+          "mode",
+          "reasons",
+          "url",
+          "offset_seconds",
+          "start_seconds",
+          "version",
+          "subtitles",
+          "encoder",
+          "watch",
+          "context"
+        ],
+        "properties": {
+          "audio_stream": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "context": {
+            "$ref": "#/components/schemas/PlayContext"
+          },
+          "encoder": {
+            "type": "string",
+            "description": "The video encoder in use when transcoding: `software`, `vaapi`, `nvenc` or `qsv`."
+          },
+          "mode": {
+            "$ref": "#/components/schemas/Mode"
+          },
+          "offset_seconds": {
+            "type": "number",
+            "format": "double",
+            "description": "The stream's time 0 is this far into the file. Zero when direct: seek\nto `start_seconds` instead."
+          },
+          "reasons": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Why it isn't played directly."
+          },
+          "session_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The HLS session, to stop when done."
+          },
+          "start_seconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "subtitle": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subtitles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubtitleSource"
+            }
+          },
+          "url": {
+            "type": "string",
+            "description": "The file itself (direct) or an HLS playlist."
+          },
+          "version": {
+            "$ref": "#/components/schemas/Version"
+          },
+          "watch": {
+            "$ref": "#/components/schemas/ItemWatch"
+          }
+        }
+      },
+      "PlayRequest": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Choice"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "caps": {
+                "$ref": "#/components/schemas/ClientCaps"
+              },
+              "start_seconds": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "format": "double",
+                "description": "Where to start; defaults to the resume position."
+              }
+            }
+          }
+        ]
+      },
+      "PlayedChanged": {
+        "type": "object",
+        "required": [
+          "changed"
+        ],
+        "properties": {
+          "changed": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          }
+        }
+      },
+      "Playlist": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "series_id",
+          "shared",
+          "exclude_tags",
+          "items"
+        ],
+        "properties": {
+          "base_ordering_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Smart: the ordering it follows."
+          },
+          "exclude_tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Smart: episodes with any of these tags are left out."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Manual: the episodes, in order."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`smart` or `manual`."
+          },
+          "name": {
+            "type": "string"
+          },
+          "owner_user_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "series_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "shared": {
+            "type": "boolean",
+            "description": "Everyone sees it; otherwise only its owner."
+          }
+        }
+      },
+      "PlaylistInput": {
+        "type": "object",
+        "properties": {
+          "base_ordering_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Smart: an ordering of the series."
+          },
+          "exclude_tags": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "items": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "Manual: episode IDs of one series, in order."
+          },
+          "kind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`smart` or `manual` (create only)."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "shared": {
+            "type": "boolean",
+            "description": "Make it everyone's (admins only; create only)."
+          }
+        }
+      },
       "PolicyPlacement": {
         "allOf": [
           {
@@ -4859,6 +6336,26 @@
             }
           }
         ]
+      },
+      "Progress": {
+        "type": "object",
+        "required": [
+          "position_seconds"
+        ],
+        "properties": {
+          "duration_seconds": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "What the player knows; otherwise the file's probed duration is used."
+          },
+          "position_seconds": {
+            "type": "number",
+            "format": "double"
+          }
+        }
       },
       "Proposal": {
         "type": "object",
@@ -5430,6 +6927,36 @@
           }
         }
       },
+      "SetPlayed": {
+        "type": "object",
+        "required": [
+          "played"
+        ],
+        "properties": {
+          "episodes": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "For a series: only these of its episodes."
+          },
+          "played": {
+            "type": "boolean"
+          },
+          "season_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "For a series: only this season (an ordering season's ID)."
+          }
+        }
+      },
       "SetView": {
         "type": "object",
         "required": [
@@ -5540,6 +7067,80 @@
           "status": {
             "type": "string",
             "description": "Free text. Well-known values the UI styles: searching, queued, downloading,\nimporting, failed."
+          }
+        }
+      },
+      "SubtitleSource": {
+        "type": "object",
+        "required": [
+          "id",
+          "forced",
+          "hearing_impaired"
+        ],
+        "properties": {
+          "forced": {
+            "type": "boolean"
+          },
+          "hearing_impaired": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "description": "`stream:<index>` or `sidecar:<id>`."
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "WebVTT, timed to the stream. None when burned into the video."
+          }
+        }
+      },
+      "SubtitleTrack": {
+        "type": "object",
+        "required": [
+          "id",
+          "forced",
+          "hearing_impaired",
+          "text",
+          "external"
+        ],
+        "properties": {
+          "codec": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "external": {
+            "type": "boolean"
+          },
+          "forced": {
+            "type": "boolean"
+          },
+          "hearing_impaired": {
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string",
+            "description": "`stream:<index>` or `sidecar:<id>`."
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "text": {
+            "type": "boolean",
+            "description": "Text subtitles are sent as WebVTT; picture ones (PGS, DVD) are burned in."
           }
         }
       },
@@ -5664,6 +7265,138 @@
               "string",
               "null"
             ]
+          }
+        }
+      },
+      "User": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "is_admin",
+          "created_at"
+        ],
+        "properties": {
+          "created_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "is_admin": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "UserUpdate": {
+        "type": "object",
+        "properties": {
+          "is_admin": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "password": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Sets a new password, signing the user out everywhere."
+          }
+        }
+      },
+      "Version": {
+        "type": "object",
+        "description": "A file of the item, with what's in it.",
+        "required": [
+          "file_id",
+          "file_name",
+          "size",
+          "audio",
+          "subtitles"
+        ],
+        "properties": {
+          "audio": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AudioTrack"
+            }
+          },
+          "container": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`mp4`, `webm`, `mkv`, or ffprobe's own name for anything else."
+          },
+          "duration_seconds": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "file_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "file_name": {
+            "type": "string"
+          },
+          "hdr_format": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "height": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "subtitles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SubtitleTrack"
+            }
+          },
+          "video_codec": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "video_stream": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "width": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
           }
         }
       },

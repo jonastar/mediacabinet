@@ -14,12 +14,16 @@ Self-hosted media library manager and streaming server. Rust backend (`crates/`)
 - Migrations in `crates/core/migrations` are append-only: never edit an applied one (existing databases fail their checksum). Add `NNNN_name.sql`.
 - Derived state (availability, wanted, gaps, next up) is computed, never stored.
 
+## API
+
+- Auth is deny-by-default in one place, `crates/server/src/api/auth.rs`. A new write endpoint is admin-only unless `is_own_change` lists it, and admin-only reads go in `ADMIN_READS`. Per-user handlers take the `Viewer` extractor, never "the default user".
+
 ## Web UI conventions
 
 - Plain React: routing in `web/src/lib/router.ts` (+ `components/Link.tsx`), data via `api/useApi.ts`, typed calls in `api/client.ts`. Add libraries only when needed.
 - Styles are CSS Modules using the design tokens in `index.css`; reference designs are in `media-cabinet-handoff/design/screens/Hybrid*.dc.html`.
-- State wording per Watch/Manage mode lives in `lib/wording.ts`; controls for features not built yet are shown disabled with a title.
-- Try the UI with demo data: `CABINET_DATA_DIR=./data-demo cargo run -p media-cabinet -- seed-demo`, then run the server and `pnpm dev`.
+- State wording per Watch/Manage mode lives in `lib/wording.ts`; controls for features not built yet are shown disabled with a title. Only admins get Manage mode (`useMode`).
+- Try the UI with demo data: `CABINET_DATA_DIR=./data-demo cargo run -p media-cabinet -- seed-demo`, then run the server and `pnpm dev`. The first visit asks for an account; it takes over the demo's admin and its watch history.
 
 ## Code style
 

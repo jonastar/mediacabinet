@@ -67,10 +67,19 @@ Settles the stack and the build-blocking open questions in `media-cabinet-handof
 
 - React + TypeScript, built with Vite.
 - Plain CSS; the design tokens from `design.md` become CSS variables on `:root`.
-- Native `<video>` for direct play; hls.js where native HLS is not available.
+- Native `<video>` for direct play; hls.js for HLS wherever Media Source exists (Chrome claims native HLS but can't play these streams), native HLS only without it.
 - Keep the number of dependencies small. Add data fetching or routing libraries only when they're needed.
+
+## Users and playback
+
+- **Accounts.** Local accounts only, Argon2id passwords. The first run asks for the admin's name and password. Sessions are an HttpOnly, SameSite=Lax cookie holding a random token; only its SHA-256 is stored, and a session lasts 30 days from its last use. A new password signs the user out everywhere else.
+- **Who may do what.** Every `/api` request needs a session or an API key, apart from health, the login endpoints and the OpenAPI document. Changes need an admin unless they are the user's own: their account, watch state, series views, playlists and playback. A few reads also need an admin: users, API keys, webhooks, the review queue and browsing folders. The rule is one deny-by-default function (`crates/server/src/api/auth.rs`), so a new endpoint is admin-only until it's listed as a user's own. API keys act as an admin, and per-user state they touch belongs to the first admin.
+- **Watch state.** Past 90% of the duration counts as played: the play count goes up once and the resume point clears. Under 30 seconds isn't kept as a resume point.
+- **Playback.** The browser reports which codecs, containers and HDR it supports. The server then picks one of three ways to play a file. It plays directly (range requests) when everything fits. It repackages to HLS when only the container or audio doesn't fit. Otherwise it converts the video to H.264 in HLS: for an unsupported codec, a lower quality, HDR on an SDR screen (tone-mapped), or picture subtitles (burned in). Text subtitles are always WebVTT for the player to draw. An HLS session can start partway into the file, and seeking past what's converted starts a new one there. ffmpeg is paused when it's three minutes ahead of the player, and a session nobody uses for a minute is ended.
+- **Hardware encoding.** Hardware encoding (`CABINET_HWACCEL`: VAAPI, NVENC or QSV) is opt-in and only covers the encode. Decoding and filters stay in software, so everything ffmpeg can read still works. At startup a short test encode checks the hardware, and the server falls back to software if it fails. H.264 is the only output for now. A browser without H.264 can only play files directly.
+- **Remote access.** Use your own reverse proxy (Caddy, nginx, Traefik) or a VPN (WireGuard, Tailscale). There is no relay service in v1: it would need infrastructure someone has to run, and it would route everyone's media through it. Behind HTTPS the session cookie is marked Secure (from `X-Forwarded-Proto`).
 
 ## Still open
 
 - Licence.
-- The rest of the spec's open questions (remote access, quality profile ownership, confidence thresholds, wanted following a playlist, writing `.nfo` back out). None of them block the schema and scanner work.
+- The rest of the spec's open questions (quality profile ownership, confidence thresholds, wanted following a playlist, writing `.nfo` back out). None of them block the schema and scanner work.

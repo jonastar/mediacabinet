@@ -99,10 +99,18 @@
   font: inherit;
   font-weight: 800;
   font-size: 16px;
+  text-decoration: none;
   cursor: pointer;
 }
 
+/* Play buttons are links to the player. */
+.primary:hover {
+  color: var(--accent-ink);
+}
+
 .secondary {
+  display: inline-flex;
+  align-items: center;
   min-height: 52px;
   padding: 0 22px;
   border-radius: var(--radius-pill);
@@ -112,7 +120,12 @@
   font: inherit;
   font-weight: 600;
   font-size: 16px;
+  text-decoration: none;
   cursor: pointer;
+}
+
+.secondary:hover {
+  color: var(--text);
 }
 
 .counts {
@@ -223,4 +236,20 @@
   .hero {
     min-height: 440px;
   }
+}
+
+.noteAction {
+  min-height: 32px;
+  padding: 0 8px;
+  margin-left: 4px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+}
+
+.noteAction:hover {
+  background: var(--surface-raised);
 }

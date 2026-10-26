@@ -12,8 +12,22 @@ import { SeriesPage } from './pages/SeriesPage'
 import { ShowsPage } from './pages/ShowsPage'
 import { WantedPage } from './pages/WantedPage'
 import { match, usePath } from './lib/router'
+import { checkSession, useSession } from './lib/session'
+import { AuthPage } from './pages/AuthPage'
+import { AccountPage } from './pages/AccountPage'
+import { PlayerPage } from './pages/PlayerPage'
+import { Failed, Loading } from './components/Status'
 
-function Page({ path }: { path: string }) {
+/** Pages only admins can use. */
+const MANAGE_PATHS = ['/wanted', '/review', '/libraries', '/settings']
+
+function Page({ path, admin }: { path: string; admin: boolean }) {
+  if (!admin && MANAGE_PATHS.includes(path)) {
+    return <NotFoundPage />
+  }
+  if (path === '/account') {
+    return <AccountPage />
+  }
   if (path === '/') {
     return <HomePage />
   }
@@ -53,11 +67,28 @@ function Page({ path }: { path: string }) {
   return <NotFoundPage />
 }
 
+checkSession()
+
 export default function App() {
   const path = usePath()
+  const session = useSession()
+  if (session.state === 'checking') {
+    return <Loading />
+  }
+  if (session.state === 'unreachable') {
+    return <Failed error={session.error} onRetry={checkSession} />
+  }
+  if (session.state !== 'signedIn') {
+    return <AuthPage setup={session.state === 'setup'} />
+  }
+  const play = match('/play/:id', path)
+  if (play && /^\d+$/.test(play.id)) {
+    // Keyed so the next episode starts a fresh player.
+    return <PlayerPage key={play.id} id={Number(play.id)} />
+  }
   return (
     <Shell>
-      <Page path={path} />
+      <Page path={path} admin={session.user.is_admin} />
     </Shell>
   )
 }

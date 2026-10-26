@@ -516,7 +516,7 @@ pub(crate) async fn store_location(
     Ok(())
 }
 
-pub(crate) async fn load_index(pool: &SqlitePool, series: i64) -> Result<SeriesIndex, sqlx::Error> {
+pub async fn load_index(pool: &SqlitePool, series: i64) -> Result<SeriesIndex, sqlx::Error> {
     let (title, match_ordering): (String, Option<i64>) =
         sqlx::query_as("SELECT title, match_ordering_id FROM item WHERE id = ?")
             .bind(series)

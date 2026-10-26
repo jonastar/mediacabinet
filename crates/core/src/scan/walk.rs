@@ -124,12 +124,35 @@ pub fn walk(root: &Path) -> io::Result<Walk> {
     Ok(walk)
 }
 
+/// Identity and size of one file under `root`, as a walk would record it.
+pub fn stat(root: &Path, path: &Path) -> io::Result<Found> {
+    let metadata = std::fs::metadata(path)?;
+    let relative_path = relative(root, path).ok_or_else(|| {
+        io::Error::other(format!(
+            "{} isn't a UTF-8 path under the root",
+            path.display()
+        ))
+    })?;
+    let (device_id, inode) = identity(&metadata);
+    Ok(Found {
+        relative_path,
+        size: metadata.len() as i64,
+        mtime: mtime(&metadata),
+        device_id,
+        inode,
+    })
+}
+
+pub fn is_sidecar(path: &Path) -> bool {
+    super::sidecar::kind_of(path).is_some()
+}
+
 fn is_skipped(entry: &DirEntry) -> bool {
     let name = entry.file_name().to_string_lossy();
     name.starts_with('.') || (entry.file_type().is_dir() && SKIPPED_DIRS.contains(&name.as_ref()))
 }
 
-fn is_video(path: &Path) -> bool {
+pub fn is_video(path: &Path) -> bool {
     path.extension()
         .and_then(|e| e.to_str())
         .is_some_and(|e| VIDEO_EXTENSIONS.contains(&e.to_ascii_lowercase().as_str()))

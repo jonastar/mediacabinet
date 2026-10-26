@@ -103,12 +103,12 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Webhooks: subscribe, deliver with retries, resume from cursor, signed payloads
 - [x] \*arr compatibility: `/wanted` in the custom import list format
 - [x] \*arr compatibility: accept Connect webhooks and rescan affected paths
-- [ ] `POST /imports`: match, place by write policy, link
-- [ ] Placement: resolve `series_location` once; adaptive and managed policies; read-only roots never written
-- [ ] Managed roots: rename and move existing files to the template
-- [ ] Move a series between roots or folders (explicit action)
+- [x] `POST /imports`: match, place by write policy, link
+- [x] Placement: resolve `series_location` once; adaptive and managed policies; read-only roots never written
+- [x] Managed roots: rename and move existing files to the template
+- [x] Move a series between roots or folders (explicit action)
 - [x] API keys for external tools
-- [ ] Decide: write `.nfo` or embedded tags back out (default or opt-in)
+- [x] Decide: write `.nfo` or embedded tags back out (default or opt-in): not in v1; opt-in later
 - [ ] UI: Series Manage panel for location (move series)
 - [ ] UI: live updates from the event stream
 - [ ] UI: Settings for API keys and webhooks

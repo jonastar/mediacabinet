@@ -25,7 +25,7 @@ use plan::{Existing, MatchKind, Plan};
 pub use hash::partial_hash;
 pub use probe::{Probe, ProbeError, Prober, Stream};
 pub use service::{Phase, ScanProgress, ScanService, Trigger};
-pub use walk::{Found, Walk, walk};
+pub use walk::{Found, Walk, is_sidecar, is_video, stat, walk};
 
 #[derive(Debug, thiserror::Error)]
 pub enum ScanError {

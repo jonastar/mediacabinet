@@ -17,6 +17,7 @@ mod events;
 mod integration;
 mod items;
 mod library;
+mod organize;
 mod review;
 mod wanted;
 
@@ -79,7 +80,10 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(events::events))
         .routes(routes!(events::list_webhooks, events::create_webhook))
         .routes(routes!(events::update_webhook, events::delete_webhook))
-        .routes(routes!(events::test_webhook));
+        .routes(routes!(events::test_webhook))
+        .routes(routes!(organize::import))
+        .routes(routes!(organize::organize_item))
+        .routes(routes!(organize::move_series));
     OpenApiRouter::with_openapi(ApiDoc::openapi()).nest("/api", api)
 }
 

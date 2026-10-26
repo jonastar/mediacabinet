@@ -36,6 +36,15 @@ Settles the stack and the build-blocking open questions in `media-cabinet-handof
 - Wanted can follow a playlist (e.g. no filler): a series' `wanted_playlist_id` limits wanted to that playlist's episodes. Monitoring stays per item.
 - `item.wanted` / `item.unwanted` events come from diffing `item_wanted` against `wanted_snapshot`, right after changes that affect it and every minute for changes time makes (episodes airing).
 
+## Writing to disk
+
+- Imports hard-link by default (download clients keep seeding), falling back to a copy across filesystems; copy and move are options. Sidecars with the same name travel along.
+- Nothing is overwritten: a taken destination stops the operation. Across filesystems, moves copy, check the size, then remove the original.
+- Renaming files on managed roots (Organize) and moving a series are explicit actions with a dry run, never automatic on scan.
+- Replacing an older version on import only happens when asked (`replace`); the old file is marked `removed`, not `missing`.
+- Media Cabinet doesn't write `.nfo` files or embedded tags back out in v1. Writing them, opt-in, can come later.
+- Integration endpoints meant for tools (*arr lists and webhooks, imports) require an API key now. The rest require a session or key once logins exist (Phase 7).
+
 ## Backend stack
 
 | Concern | Choice | Notes |

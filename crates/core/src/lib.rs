@@ -11,6 +11,7 @@ pub mod layout;
 pub mod library;
 pub mod matcher;
 pub mod metadata;
+pub mod organize;
 pub mod parse;
 pub mod refs;
 pub mod scan;

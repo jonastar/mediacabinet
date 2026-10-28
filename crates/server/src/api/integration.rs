@@ -113,6 +113,9 @@ pub async fn gaps(
 pub struct AddItem {
     /// The metadata provider's ID (TMDB).
     provider_id: String,
+    /// The library to add it to. Defaults to the library of that kind with an
+    /// import target, else the first one.
+    library_id: Option<i64>,
     #[serde(default = "yes")]
     monitored: bool,
     quality_profile_id: Option<i64>,
@@ -140,6 +143,7 @@ pub async fn add_series(
         &state.provider,
         "series",
         &body.provider_id,
+        body.library_id,
         body.monitored,
         body.quality_profile_id,
     )
@@ -171,6 +175,7 @@ pub async fn add_movie(
         &state.provider,
         "movie",
         &body.provider_id,
+        body.library_id,
         body.monitored,
         body.quality_profile_id,
     )

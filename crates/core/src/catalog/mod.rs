@@ -104,6 +104,8 @@ pub struct EpisodeRef {
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct SeriesSummary {
     pub id: i64,
+    /// The library it belongs to; null only if it predates having one.
+    pub library_id: Option<i64>,
     pub title: String,
     pub year: Option<i64>,
     /// `continuing`, `ended` or `cancelled`.
@@ -233,6 +235,7 @@ pub struct Episode {
     pub wanted: bool,
     /// Why it's wanted: `missing`, `not_acquired` or `upgrade` (below the quality cutoff).
     pub wanted_reason: Option<String>,
+    pub overview: Option<String>,
     pub is_filler: bool,
     pub is_gap: bool,
     pub watch: Option<WatchState>,
@@ -297,6 +300,7 @@ pub struct Home {
 #[derive(sqlx::FromRow)]
 struct SeriesRow {
     id: i64,
+    library_id: Option<i64>,
     title: String,
     year: Option<i64>,
     overview: Option<String>,
@@ -327,6 +331,7 @@ struct EpisodeRow {
     last_played_at: Option<i64>,
     is_filler: bool,
     newest_file: Option<i64>,
+    overview: Option<String>,
 }
 
 /// One series with all its episodes and the user's state, loaded once.
@@ -347,7 +352,7 @@ impl Loaded {
         now: i64,
     ) -> Result<Loaded, CatalogError> {
         let series: SeriesRow = sqlx::query_as(
-            "SELECT i.id, i.title, i.year, i.overview, i.series_status, i.primary_provider,
+            "SELECT i.id, i.library_id, i.title, i.year, i.overview, i.series_status, i.primary_provider,
                     m.monitored, m.quality_profile_id, i.metadata_locked, i.match_ordering_id, i.wanted_playlist_id,
                     i.refreshed_at, i.refresh_error
              FROM item i LEFT JOIN monitor m ON m.item_id = i.id
@@ -359,7 +364,7 @@ impl Loaded {
         .ok_or(CatalogError::NotFound)?;
 
         let episodes: Vec<EpisodeRow> = sqlx::query_as(
-            "SELECT e.id, e.title, e.airs_at, e.airs_tz, e.runtime_seconds,
+            "SELECT e.id, e.title, e.overview, e.airs_at, e.airs_tz, e.runtime_seconds,
                     st.availability, st.monitored, w.reason AS wanted_reason,
                     s.position_seconds, s.played, s.last_played_at,
                     EXISTS (SELECT 1 FROM item_tag t WHERE t.item_id = e.id AND t.tag = 'filler')
@@ -463,6 +468,7 @@ impl Loaded {
             .count() as i64;
         SeriesSummary {
             id: self.series.id,
+            library_id: self.series.library_id,
             title: self.series.title.clone(),
             year: self.series.year,
             series_status: self.series.series_status.clone(),
@@ -744,23 +750,30 @@ pub fn now() -> i64 {
     chrono::Utc::now().timestamp()
 }
 
-async fn series_ids(conn: &mut SqliteConnection) -> Result<Vec<i64>, sqlx::Error> {
+/// Series by title, all or those in `library`.
+async fn series_ids(
+    conn: &mut SqliteConnection,
+    library: Option<i64>,
+) -> Result<Vec<i64>, sqlx::Error> {
     sqlx::query_scalar(
-        "SELECT id FROM item WHERE kind = 'series'
+        "SELECT id FROM item WHERE kind = 'series' AND (?1 IS NULL OR library_id = ?1)
          ORDER BY coalesce(sort_title, title) COLLATE NOCASE, id",
     )
+    .bind(library)
     .fetch_all(conn)
     .await
 }
 
+/// All series, or those in `library`.
 pub async fn list_series(
     pool: &SqlitePool,
     user: Option<i64>,
     now: i64,
+    library: Option<i64>,
 ) -> Result<Vec<SeriesSummary>, CatalogError> {
     let mut conn = pool.acquire().await?;
     let mut out = Vec::new();
-    for id in series_ids(&mut conn).await? {
+    for id in series_ids(&mut conn, library).await? {
         let loaded = Loaded::load(&mut conn, id, user, now).await?;
         let views = views(&mut conn, id, user).await?;
         let pref = user_view(&mut conn, id, user).await?;
@@ -942,6 +955,7 @@ pub async fn episodes(
                 monitored,
                 wanted: e.wanted_reason.is_some(),
                 wanted_reason: e.wanted_reason.clone(),
+                overview: e.overview.clone(),
                 is_filler: e.is_filler,
                 is_gap: *gap,
                 watch: e.position_seconds.map(|position_seconds| WatchState {
@@ -1018,7 +1032,7 @@ pub async fn home(pool: &SqlitePool, user: Option<i64>, now: i64) -> Result<Home
     let mut coming_up = Vec::new();
     let mut attention = Attention::default();
 
-    for id in series_ids(&mut conn).await? {
+    for id in series_ids(&mut conn, None).await? {
         let loaded = Loaded::load(&mut conn, id, user, now).await?;
         let views = views(&mut conn, id, user).await?;
         let pref = user_view(&mut conn, id, user).await?;
@@ -1118,7 +1132,7 @@ pub async fn home(pool: &SqlitePool, user: Option<i64>, now: i64) -> Result<Home
     attention.status_sources.sort();
 
     drop(conn);
-    let movies = movies::list_movies(pool, user).await?;
+    let movies = movies::list_movies(pool, user, None).await?;
     Ok(Home {
         movies,
         hero: keep_watching.first().cloned(),

@@ -1,4 +1,7 @@
 import type { ReactNode } from 'react'
+import { api, type Library } from '../api/client'
+import { useApi } from '../api/useApi'
+import { useLiveEvents } from '../lib/live'
 import { usePath } from '../lib/router'
 import { Link } from './Link'
 import { useMode } from '../lib/prefs'
@@ -25,8 +28,6 @@ interface NavItem {
 
 const WATCH_NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: <HomeIcon /> },
-  { to: '/movies', label: 'Movies', icon: <MoviesIcon /> },
-  { to: '/tv', label: 'TV Shows', icon: <TvIcon /> },
   { to: '/calendar', label: 'Calendar', icon: <CalendarIcon /> },
 ]
 
@@ -34,8 +35,17 @@ const MANAGE_NAV: NavItem[] = [
   { to: '/wanted', label: 'Wanted', icon: <WantedIcon /> },
   { to: '/review', label: 'Review queue', icon: <ReviewIcon /> },
   { to: '/libraries', label: 'Libraries & roots', icon: <FolderIcon /> },
-  { to: '/settings', label: 'Settings', icon: <SettingsIcon /> },
 ]
+
+const SETTINGS: NavItem = { to: '/settings', label: 'Settings', icon: <SettingsIcon /> }
+
+function libraryItem(library: Library): NavItem {
+  return {
+    to: `/library/${library.id}`,
+    label: library.name,
+    icon: library.kind === 'movies' ? <MoviesIcon /> : <TvIcon />,
+  }
+}
 
 function isCurrent(to: string, path: string) {
   return to === '/' ? path === '/' : path === to || path.startsWith(`${to}/`)
@@ -58,6 +68,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const path = usePath()
   const [mode, setMode] = useMode()
   const user = useUser()
+  const libraries = useApi('libraries', api.libraries)
+  useLiveEvents(['library.added', 'library.removed'], libraries.reload)
 
   return (
     <div className={styles.shell}>
@@ -69,6 +81,15 @@ export function Shell({ children }: { children: ReactNode }) {
         {WATCH_NAV.map((item) => (
           <NavLink key={item.to} item={item} path={path} />
         ))}
+        {libraries.data && libraries.data.length > 0 && (
+          <>
+            <div className={styles.divider} />
+            <span className={styles.section}>Libraries</span>
+            {libraries.data.map((library) => (
+              <NavLink key={library.id} item={libraryItem(library)} path={path} />
+            ))}
+          </>
+        )}
         {mode === 'manage' && (
           <>
             <div className={styles.divider} />
@@ -78,6 +99,9 @@ export function Shell({ children }: { children: ReactNode }) {
             ))}
           </>
         )}
+        <div className={styles.bottom}>
+          {mode === 'manage' && <NavLink item={SETTINGS} path={path} />}
+        </div>
         <div className={styles.user}>
           <span className={styles.who}>
             <span className={styles.avatar} aria-hidden="true">

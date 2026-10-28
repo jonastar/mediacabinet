@@ -8,7 +8,10 @@ const LABELS: Record<string, string> = {
   read_only: 'Read-only',
 }
 
-/** "Where does a new file go?", for the next episode a series here is missing. */
+/**
+ * "Where does a new file go?", for the next episode a series here is missing.
+ * Explanation rather than a setting, so it's folded away.
+ */
 export function PlacementPanel({ libraryId, version }: { libraryId: number; version: string }) {
   const example = useApi(`placement:${libraryId}:${version}`, () => api.placementExample(libraryId))
   const e = example.data
@@ -16,8 +19,8 @@ export function PlacementPanel({ libraryId, version }: { libraryId: number; vers
     return null
   }
   return (
-    <section aria-labelledby="placement" className={styles.panel}>
-      <h2 id="placement">Where does a new file go?</h2>
+    <details className={styles.aside}>
+      <summary>Where does a new file go?</summary>
       <p className={styles.muted}>
         Example:{' '}
         <b style={{ color: 'var(--text)' }}>
@@ -42,6 +45,6 @@ export function PlacementPanel({ libraryId, version }: { libraryId: number; vers
           </div>
         ))}
       </div>
-    </section>
+    </details>
   )
 }

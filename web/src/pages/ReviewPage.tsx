@@ -3,9 +3,37 @@ import { api } from '../api/client'
 import { useApi } from '../api/useApi'
 import { Failed, Loading } from '../components/Status'
 import { Detail } from './review/Detail'
-import { entries } from './review/entries'
+import { entries, type Entry } from './review/entries'
+import { GroupDetail } from './review/GroupDetail'
 import { useLiveEvents } from '../lib/live'
 import styles from './review/Review.module.css'
+
+function EntryButton({
+  entry,
+  current,
+  onSelect,
+}: {
+  entry: Entry
+  current: Entry
+  onSelect: (key: string) => void
+}) {
+  return (
+    <button
+      type="button"
+      className={`${styles.entry} ${entry.kind === 'group' ? styles.entryGroup : ''}`}
+      aria-current={entry.key === current.key}
+      onClick={() => onSelect(entry.key)}
+    >
+      <span className={entry.kind === 'group' ? styles.groupName : styles.entryName}>
+        {entry.label}
+      </span>
+      <span className={styles.entryMeta}>
+        <span className={styles.chip}>{entry.chip}</span>
+        {entry.root}
+      </span>
+    </button>
+  )
+}
 
 export function ReviewPage() {
   const queue = useApi('review', api.review)
@@ -20,6 +48,13 @@ export function ReviewPage() {
   }
   const list = entries(queue.data)
   const current = list.find((e) => e.key === selected) ?? list[0]
+  // A series' files show while it or one of them is selected, and it stays
+  // selected after deciding one of them.
+  const group = current && ('group' in current && current.group ? current.group : current.key)
+  const done = () => {
+    setSelected(group?.startsWith('group:') ? group : null)
+    queue.reload()
+  }
 
   return (
     <div className={styles.page}>
@@ -38,32 +73,37 @@ export function ReviewPage() {
         ) : (
           <div className={styles.columns}>
             <ul aria-label="To review" className={styles.list}>
-              {list.map((e) => (
-                <li key={e.key}>
-                  <button
-                    type="button"
-                    className={styles.entry}
-                    aria-current={e.key === current.key}
-                    onClick={() => setSelected(e.key)}
-                  >
-                    <span className={styles.entryName}>{e.label}</span>
-                    <span className={styles.entryMeta}>
-                      <span className={styles.chip}>{e.chip}</span>
-                      {e.root}
-                    </span>
-                  </button>
-                </li>
-              ))}
+              {list
+                .filter((e) => !('group' in e && e.group))
+                .map((e) => (
+                  <li key={e.key}>
+                    <EntryButton entry={e} current={current} onSelect={setSelected} />
+                    {e.kind === 'group' && group === e.key && (
+                      <ul aria-label={`${e.label} files`} className={styles.children}>
+                        {list
+                          .filter((c) => 'group' in c && c.group === e.key)
+                          .map((c) => (
+                            <li key={c.key}>
+                              <EntryButton entry={c} current={current} onSelect={setSelected} />
+                            </li>
+                          ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
             </ul>
             {/* Keyed so each entry starts with its own selection and picker state. */}
-            <Detail
-              key={current.key}
-              entry={current}
-              onDone={() => {
-                setSelected(null)
-                queue.reload()
-              }}
-            />
+            {current.kind === 'group' ? (
+              <GroupDetail
+                key={current.key}
+                title={current.label}
+                files={current.files}
+                onSelect={(id) => setSelected(`file:${id}`)}
+                onDone={done}
+              />
+            ) : (
+              <Detail key={current.key} entry={current} onDone={done} />
+            )}
           </div>
         )}
       </div>

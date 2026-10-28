@@ -22,7 +22,7 @@ async fn seed(pool: &SqlitePool) {
         "INSERT INTO library (id, name, kind) VALUES (1, 'TV', 'tv');
          INSERT INTO library_root (id, library_id, path, layout_template)
              VALUES (1, 1, '/media/tv', '{series}/Season {season:00}/{filename}');
-         INSERT INTO item (id, kind, title, primary_provider) VALUES (1, 'series', 'Show', 'tmdb');
+         INSERT INTO item (id, kind, title, primary_provider, library_id) VALUES (1, 'series', 'Show', 'tmdb', 1);
          INSERT INTO item (id, parent_id, kind, title) VALUES (2, 1, 'episode', 'Pilot');
          INSERT INTO item (id, parent_id, kind, title) VALUES (3, 1, 'episode', 'Second');",
     )
@@ -147,6 +147,41 @@ async fn only_primary_external_ids_are_unique() {
     assert_rejected(
         &pool,
         "INSERT INTO external_id (item_id, provider, value, is_primary) VALUES (3, 'tmdb', '100', 1)",
+    )
+    .await;
+    // Unique per library: the same show in another library has the same ID.
+    exec(
+        &pool,
+        "INSERT INTO library (id, name, kind) VALUES (2, 'Kids', 'tv');
+         INSERT INTO item (id, kind, title, library_id) VALUES (10, 'series', 'Show', 2);
+         INSERT INTO item (id, parent_id, kind, title) VALUES (11, 10, 'episode', 'Pilot');
+         INSERT INTO external_id (item_id, provider, value, is_primary) VALUES (11, 'tmdb', '100', 1);",
+    )
+    .await
+    .unwrap();
+}
+
+#[tokio::test]
+async fn items_and_files_stay_in_one_library() {
+    let (_dir, pool) = db().await;
+    seed(&pool).await;
+    exec(
+        &pool,
+        "INSERT INTO library (id, name, kind) VALUES (2, 'Kids', 'tv');
+         INSERT INTO library_root (id, library_id, path, layout_template)
+             VALUES (2, 2, '/media/kids', '{series}/{filename}');
+         INSERT INTO media_file (id, root_id, relative_path, size, mtime) VALUES (1, 2, 'a.mkv', 1, 1);",
+    )
+    .await
+    .unwrap();
+    assert_rejected(
+        &pool,
+        "INSERT INTO series_location (series_item_id, root_id, path) VALUES (1, 2, 'Show')",
+    )
+    .await;
+    assert_rejected(
+        &pool,
+        "INSERT INTO file_link (file_id, item_id, confidence, source) VALUES (1, 2, 1, 'user')",
     )
     .await;
 }

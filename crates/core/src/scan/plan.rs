@@ -76,11 +76,13 @@ fn claim(
     });
 }
 
+/// Calls `hashed(done, total)` as files without a known match are hashed.
 pub fn plan(
     existing: Vec<Existing>,
     walk: Walk,
     root: &Path,
     hash: impl Fn(&Path) -> io::Result<String>,
+    hashed: impl Fn(usize, usize),
 ) -> Plan {
     let mut plan = Plan::default();
 
@@ -157,7 +159,10 @@ pub fn plan(
         }
     }
     let mut taken = HashSet::new();
-    for found in unmatched {
+    let total = unmatched.len();
+    hashed(0, total);
+    for (done, found) in unmatched.into_iter().enumerate() {
+        hashed(done + 1, total);
         let Ok(h) = hash(&root.join(&found.relative_path)) else {
             plan.unreadable_new += 1;
             continue;
@@ -242,7 +247,13 @@ mod tests {
     fn swapped_files_follow_their_inode() {
         let existing = vec![row(1, "e01.mkv", 10, 5, "a"), row(2, "e02.mkv", 20, 6, "b")];
         let found = vec![found("e01.mkv", 20, 6), found("e02.mkv", 10, 5)];
-        let plan = plan(existing, walk(found), Path::new("/"), hash_by_name);
+        let plan = plan(
+            existing,
+            walk(found),
+            Path::new("/"),
+            hash_by_name,
+            |_, _| (),
+        );
         assert_eq!(
             kind_of(&plan, 1),
             &MatchKind::Moved {
@@ -269,6 +280,7 @@ mod tests {
             walk(vec![found("e01.mkv", 11, 9)]),
             Path::new("/"),
             hash_by_name,
+            |_, _| (),
         );
         assert_eq!(
             kind_of(&plan, 1),
@@ -286,6 +298,7 @@ mod tests {
             walk(vec![found("new/e01.mkv", 99, 5)]),
             Path::new("/"),
             hash_by_name,
+            |_, _| (),
         );
         assert_eq!(
             kind_of(&plan, 1),
@@ -299,7 +312,13 @@ mod tests {
     fn a_copy_of_a_present_file_is_new() {
         let existing = vec![row(1, "e01.mkv", 10, 5, "e01")];
         let found = vec![found("e01.mkv", 10, 5), found("e01-copy.mkv", 11, 5)];
-        let plan = plan(existing, walk(found), Path::new("/"), hash_by_name);
+        let plan = plan(
+            existing,
+            walk(found),
+            Path::new("/"),
+            hash_by_name,
+            |_, _| (),
+        );
         assert_eq!(kind_of(&plan, 1), &MatchKind::Same);
         assert_eq!(plan.added.len(), 1);
     }
@@ -314,7 +333,7 @@ mod tests {
             unreadable: vec!["locked".into()],
             ..Walk::default()
         };
-        let plan = plan(existing, walk, Path::new("/"), hash_by_name);
+        let plan = plan(existing, walk, Path::new("/"), hash_by_name, |_, _| ());
         assert_eq!(plan.missing, vec![(2, "open/e02.mkv".into())]);
     }
 
@@ -322,7 +341,13 @@ mod tests {
     fn ignored_files_are_never_marked_missing() {
         let mut ignored = row(1, "sample.mkv", 10, 5, "a");
         ignored.status = "ignored".into();
-        let plan = plan(vec![ignored], walk(vec![]), Path::new("/"), hash_by_name);
+        let plan = plan(
+            vec![ignored],
+            walk(vec![]),
+            Path::new("/"),
+            hash_by_name,
+            |_, _| (),
+        );
         assert!(plan.missing.is_empty());
     }
 }

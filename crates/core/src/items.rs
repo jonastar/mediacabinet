@@ -210,24 +210,70 @@ pub async fn rematch_series(
         .map_err(|e| ItemError::Invalid(e.to_string()))
 }
 
+/// The library to add a `kind` item to: `library` if given, else the library
+/// of that kind with an import target, else the first one.
+async fn library_for(
+    pool: &SqlitePool,
+    kind: &str,
+    library: Option<i64>,
+) -> Result<i64, ItemError> {
+    let library_kind = match kind {
+        "series" => "tv",
+        "movie" => "movies",
+        _ => return Err(ItemError::Invalid("kind is series or movie".into())),
+    };
+    if let Some(id) = library {
+        let found: Option<String> = sqlx::query_scalar("SELECT kind FROM library WHERE id = ?")
+            .bind(id)
+            .fetch_optional(pool)
+            .await?;
+        return match found {
+            Some(k) if k == library_kind => Ok(id),
+            Some(_) => Err(ItemError::Invalid(format!(
+                "That library doesn't hold {kind}s."
+            ))),
+            None => Err(ItemError::Invalid("No such library.".into())),
+        };
+    }
+    sqlx::query_scalar(
+        "SELECT l.id FROM library l WHERE l.kind = ?
+         ORDER BY EXISTS (SELECT 1 FROM library_root r WHERE r.library_id = l.id AND r.is_import_target) DESC, l.id
+         LIMIT 1",
+    )
+    .bind(library_kind)
+    .fetch_optional(pool)
+    .await?
+    .ok_or_else(|| {
+        let what = if kind == "series" {
+            "TV"
+        } else {
+            "movie"
+        };
+        ItemError::Invalid(format!("Add a {what} library first."))
+    })
+}
+
 /// Adds a series or movie by its provider ID, as an *arr or a person would:
-/// imports it (no files yet) and sets monitoring. Already in the library: it's
-/// refreshed and the monitoring is updated.
+/// imports it (no files yet) into `library` (see [`library_for`]) and sets
+/// monitoring. Already in that library: it's refreshed and the monitoring is
+/// updated.
 pub async fn add(
     pool: &SqlitePool,
     provider: &Provider,
     kind: &str,
     provider_id: &str,
+    library: Option<i64>,
     monitored: bool,
     quality_profile_id: Option<i64>,
 ) -> Result<ImportReport, ItemError> {
+    let library = library_for(pool, kind, library).await?;
     let report = match kind {
         "series" => {
             let data = provider
                 .series(provider_id)
                 .await
                 .map_err(|e| ItemError::Provider(e.to_string()))?;
-            crate::metadata::import::import_series(pool, &data)
+            crate::metadata::import::import_series(pool, library, &data)
                 .await
                 .map_err(|e| ItemError::Invalid(e.to_string()))?
         }
@@ -236,7 +282,7 @@ pub async fn add(
                 .movie(provider_id)
                 .await
                 .map_err(|e| ItemError::Provider(e.to_string()))?;
-            crate::metadata::import::import_movie(pool, &data)
+            crate::metadata::import::import_movie(pool, library, &data)
                 .await
                 .map_err(|e| ItemError::Invalid(e.to_string()))?
         }

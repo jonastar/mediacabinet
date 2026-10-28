@@ -116,8 +116,12 @@ async fn adding_by_provider_id_imports_and_monitors() {
     let provider = Provider::Fake(Arc::new(
         Catalog::from_json(include_str!("data/catalog.json")).unwrap(),
     ));
+    sqlx::query("INSERT INTO library (name, kind) VALUES ('TV Shows', 'tv')")
+        .execute(&pool)
+        .await
+        .unwrap();
 
-    let report = cabinet_core::items::add(&pool, &provider, "series", "99010", true, None)
+    let report = cabinet_core::items::add(&pool, &provider, "series", "99010", None, true, None)
         .await
         .unwrap();
     assert!(report.created);
@@ -133,7 +137,7 @@ async fn adding_by_provider_id_imports_and_monitors() {
         .unwrap();
     assert_eq!((wanted, events), (12, 12));
 
-    let again = cabinet_core::items::add(&pool, &provider, "series", "99010", false, None)
+    let again = cabinet_core::items::add(&pool, &provider, "series", "99010", None, false, None)
         .await
         .unwrap();
     assert_eq!((again.created, again.item_id), (false, report.item_id));
@@ -144,12 +148,12 @@ async fn adding_by_provider_id_imports_and_monitors() {
     assert_eq!(wanted, 0, "unmonitored on the second add");
 
     assert!(
-        cabinet_core::items::add(&pool, &provider, "series", "99010", true, Some(999))
+        cabinet_core::items::add(&pool, &provider, "series", "99010", None, true, Some(999))
             .await
             .is_err()
     );
     assert!(
-        cabinet_core::items::add(&pool, &provider, "podcast", "1", true, None)
+        cabinet_core::items::add(&pool, &provider, "podcast", "1", None, true, None)
             .await
             .is_err()
     );

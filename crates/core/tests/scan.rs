@@ -142,7 +142,8 @@ async fn renamed_file_keeps_its_row_and_links() {
     lib.scan().await;
     let id = lib.file_id("Show/e01.mkv").await;
     sqlx::raw_sql(
-        "INSERT INTO item (id, kind, title) VALUES (1, 'series', 'Show');
+        "INSERT INTO item (id, kind, title, library_id)
+             SELECT 1, 'series', 'Show', library_id FROM library_root LIMIT 1;
          INSERT INTO item (id, parent_id, kind, title) VALUES (2, 1, 'episode', 'Pilot');",
     )
     .execute(&lib.pool)

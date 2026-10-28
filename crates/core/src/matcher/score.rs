@@ -30,6 +30,25 @@ pub fn similarity(a: &str, b: &str) -> f64 {
     2.0 * shared / (ga.len() + gb.len()) as f64
 }
 
+/// Whether the shorter title appears in the longer one as whole words, like
+/// "Diet" in "The South Bronx Paradise Diet": one source's short title for an
+/// episode another source names in full.
+pub fn title_within(a: &str, b: &str) -> bool {
+    let (a, b) = (normalize(a), normalize(b));
+    let (short, long) = if a.len() <= b.len() {
+        (a, b)
+    } else {
+        (b, a)
+    };
+    let short: Vec<&str> = short.split(' ').collect();
+    let long: Vec<&str> = long.split(' ').collect();
+    // Too short to mean anything ("a", "ep").
+    if short.concat().chars().count() < 3 {
+        return false;
+    }
+    long.windows(short.len()).any(|w| w == short.as_slice())
+}
+
 static UNIQUE_ID: LazyLock<Regex> = LazyLock::new(|| {
     Regex::new(r#"(?is)<uniqueid[^>]*\btype\s*=\s*["']?(tmdb|tvdb|imdb|anidb)["']?[^>]*>\s*([^<\s]+)\s*</uniqueid>"#).unwrap()
 });
@@ -71,6 +90,19 @@ mod tests {
         assert_eq!(similarity("Signal & Noise", "Signal and Noise"), 1.0);
         assert!(similarity("Night Harbor", "Night Harbour") > 0.85);
         assert!(similarity("Night Harbor", "Glass Orchard") < 0.3);
+    }
+
+    #[test]
+    fn titles_within_titles() {
+        assert!(title_within("Diet", "The South Bronx Paradise Diet"));
+        assert!(title_within("The South Bronx Paradise Diet", "diet"));
+        assert!(title_within(
+            "Paradise Diet",
+            "The South Bronx Paradise Diet"
+        ));
+        assert!(!title_within("Die", "The South Bronx Paradise Diet"));
+        assert!(!title_within("Diet Plan", "The South Bronx Paradise Diet"));
+        assert!(!title_within("a", "A Night Out"));
     }
 
     #[test]

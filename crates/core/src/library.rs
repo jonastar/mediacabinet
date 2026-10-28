@@ -252,6 +252,15 @@ pub async fn delete(pool: &SqlitePool, id: i64) -> Result<(), LibraryError> {
             "Remove the library's folders first.".into(),
         ));
     }
+    let items: i64 = sqlx::query_scalar("SELECT count(*) FROM item WHERE library_id = ?")
+        .bind(id)
+        .fetch_one(pool)
+        .await?;
+    if items > 0 {
+        return Err(LibraryError::Conflict(format!(
+            "It still holds {items} series or movies, with their watch history."
+        )));
+    }
     let mut tx = crate::db::begin_write(pool).await?;
     let done = sqlx::query("DELETE FROM library WHERE id = ?")
         .bind(id)

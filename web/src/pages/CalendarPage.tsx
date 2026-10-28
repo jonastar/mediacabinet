@@ -120,7 +120,9 @@ export function CalendarPage() {
               <ul className={styles.list}>
                 {list.map((e) => {
                   const name = e.series_title ?? e.title
-                  const link = e.series_id ? `/tv/${e.series_id}` : `/movies/${e.item_id}`
+                  const link = e.series_id
+                    ? `/tv/${e.series_id}/${e.item_id}`
+                    : `/movies/${e.item_id}`
                   return (
                     <li key={e.item_id}>
                       <Link to={link} className={styles.row}>

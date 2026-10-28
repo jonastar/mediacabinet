@@ -407,3 +407,63 @@
     flex-basis: 100%;
   }
 }
+
+/* A series' files, decided together. */
+.entryGroup {
+  border-style: dashed;
+}
+
+.groupName {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.children {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 16px;
+  border-left: 2px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.groupTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.tickAll {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  cursor: pointer;
+}
+
+.tickAll input {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--accent);
+}
+
+.groupFile {
+  cursor: default;
+}
+
+.fileLink {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  text-align: left;
+  word-break: break-all;
+  cursor: pointer;
+}
+
+.fileLink:hover {
+  text-decoration: underline;
+}

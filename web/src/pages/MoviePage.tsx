@@ -2,7 +2,9 @@ import { useState } from 'react'
 import { api, artworkUrl, type LinkedFile } from '../api/client'
 import { useApi } from '../api/useApi'
 import { EditDetails } from '../components/EditDetails'
-import { BackIcon, PlayIcon } from '../components/Icons'
+import { PlayIcon } from '../components/Icons'
+import { LibraryBack } from '../components/LibraryBack'
+import { itemPath, useCanonicalPath } from '../lib/router'
 import { Link } from '../components/Link'
 import { Failed, Loading } from '../components/Status'
 import { heroBackground } from '../lib/artwork'
@@ -32,6 +34,7 @@ function versionLabel(f: LinkedFile) {
 export function MoviePage({ id }: { id: number }) {
   const [mode] = useMode()
   const movie = useApi(`movie:${id}`, () => api.movieDetail(id))
+  useCanonicalPath(movie.data ? itemPath('movie', id, movie.data.library_id) : null)
   const [editing, setEditing] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
   if (movie.error) {
@@ -69,10 +72,11 @@ export function MoviePage({ id }: { id: number }) {
         style={{ background }}
       >
         <div className={styles.heroBar}>
-          <Link to="/movies" className={styles.back}>
-            <BackIcon />
-            Movies
-          </Link>
+          <LibraryBack
+            libraryId={m.library_id}
+            fallback={{ to: '/movies', label: 'Movies' }}
+            className={styles.back}
+          />
         </div>
         <div className={styles.heroBody}>
           {manage && <span className={styles.managing}>Managing · changes apply for everyone</span>}

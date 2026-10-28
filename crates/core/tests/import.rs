@@ -19,8 +19,17 @@ async fn db() -> (TempDir, SqlitePool) {
     let pool = cabinet_core::db::open(&dir.path().join("cabinet.db"))
         .await
         .unwrap();
+    sqlx::raw_sql(
+        "INSERT INTO library (id, name, kind) VALUES (1, 'TV Shows', 'tv'), (2, 'Movies', 'movies')",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
     (dir, pool)
 }
+
+const TV: i64 = 1;
+const MOVIES: i64 = 2;
 
 async fn count(pool: &SqlitePool, sql: &'static str) -> i64 {
     sqlx::query_scalar(sql).fetch_one(pool).await.unwrap()
@@ -37,7 +46,7 @@ async fn episode_id(pool: &SqlitePool, title: &str) -> i64 {
 #[tokio::test]
 async fn imports_items_orderings_and_ids() {
     let (_dir, pool) = db().await;
-    let report = import_series(&pool, &night_harbor()).await.unwrap();
+    let report = import_series(&pool, TV, &night_harbor()).await.unwrap();
     assert!(report.created);
     assert_eq!(report.episodes_added, 13);
 
@@ -98,10 +107,10 @@ async fn imports_items_orderings_and_ids() {
 #[tokio::test]
 async fn reimporting_unchanged_data_changes_nothing() {
     let (_dir, pool) = db().await;
-    let first = import_series(&pool, &night_harbor()).await.unwrap();
+    let first = import_series(&pool, TV, &night_harbor()).await.unwrap();
     let ordering: i64 = count(&pool, "SELECT id FROM ordering WHERE kind = 'aired'").await;
 
-    let again = import_series(&pool, &night_harbor()).await.unwrap();
+    let again = import_series(&pool, TV, &night_harbor()).await.unwrap();
     assert_eq!(again.item_id, first.item_id);
     assert!(!again.created);
     assert_eq!(
@@ -122,14 +131,14 @@ async fn reimporting_unchanged_data_changes_nothing() {
 #[tokio::test]
 async fn changed_episode_ids_are_reconciled_not_duplicated() {
     let (_dir, pool) = db().await;
-    import_series(&pool, &night_harbor()).await.unwrap();
+    import_series(&pool, TV, &night_harbor()).await.unwrap();
     let pilot = episode_id(&pool, "Pilot").await;
 
     let mut data = night_harbor();
     for e in &mut data.episodes {
         e.id = format!("new-{}", e.id);
     }
-    let report = import_series(&pool, &data).await.unwrap();
+    let report = import_series(&pool, TV, &data).await.unwrap();
 
     assert_eq!(report.episodes_added, 0);
     assert_eq!(
@@ -152,7 +161,10 @@ async fn changed_episode_ids_are_reconciled_not_duplicated() {
 #[tokio::test]
 async fn dropped_episodes_are_kept_only_with_history() {
     let (_dir, pool) = db().await;
-    let series = import_series(&pool, &night_harbor()).await.unwrap().item_id;
+    let series = import_series(&pool, TV, &night_harbor())
+        .await
+        .unwrap()
+        .item_id;
     let pilot = episode_id(&pool, "Pilot").await;
     sqlx::query("INSERT INTO app_user (id, name) VALUES (1, 'u')")
         .execute(&pool)
@@ -198,7 +210,10 @@ async fn dropped_episodes_are_kept_only_with_history() {
 #[tokio::test]
 async fn locked_fields_survive_refresh() {
     let (_dir, pool) = db().await;
-    let series = import_series(&pool, &night_harbor()).await.unwrap().item_id;
+    let series = import_series(&pool, TV, &night_harbor())
+        .await
+        .unwrap()
+        .item_id;
     sqlx::query("UPDATE item SET title = 'Night Harbour (my spelling)', metadata_locked = '[\"title\"]' WHERE id = ?")
         .bind(series)
         .execute(&pool)
@@ -222,7 +237,7 @@ async fn locked_fields_survive_refresh() {
 #[tokio::test]
 async fn new_episodes_are_added_with_an_event() {
     let (_dir, pool) = db().await;
-    import_series(&pool, &night_harbor()).await.unwrap();
+    import_series(&pool, TV, &night_harbor()).await.unwrap();
     let mut data = night_harbor();
     data.episodes.push(EpisodeData {
         id: "999".into(),
@@ -235,7 +250,7 @@ async fn new_episodes_are_added_with_an_event() {
         number: 1,
     });
 
-    let report = import_series(&pool, &data).await.unwrap();
+    let report = import_series(&pool, TV, &data).await.unwrap();
 
     assert_eq!(report.episodes_added, 1);
     let events: Vec<String> = sqlx::query_scalar("SELECT type FROM event ORDER BY id DESC LIMIT 2")
@@ -249,9 +264,9 @@ async fn new_episodes_are_added_with_an_event() {
 async fn imports_movies() {
     let (_dir, pool) = db().await;
     let data = catalog().movie("99020").unwrap().clone();
-    let report = import_movie(&pool, &data).await.unwrap();
+    let report = import_movie(&pool, MOVIES, &data).await.unwrap();
     assert!(report.created);
-    let again = import_movie(&pool, &data).await.unwrap();
+    let again = import_movie(&pool, MOVIES, &data).await.unwrap();
     assert_eq!(again.item_id, report.item_id);
     assert_eq!(
         count(
@@ -270,8 +285,11 @@ async fn refresh_schedule_and_failures() {
     use std::sync::Arc;
 
     let (_dir, pool) = db().await;
-    let series = import_series(&pool, &night_harbor()).await.unwrap().item_id;
-    let ended = import_series(&pool, &catalog().series("99031").unwrap().clone())
+    let series = import_series(&pool, TV, &night_harbor())
+        .await
+        .unwrap()
+        .item_id;
+    let ended = import_series(&pool, TV, &catalog().series("99031").unwrap().clone())
         .await
         .unwrap()
         .item_id;
@@ -299,4 +317,28 @@ async fn refresh_schedule_and_failures() {
             .unwrap();
     assert_eq!(title, "Paper Moons");
     assert!(error.is_some());
+}
+
+#[tokio::test]
+async fn the_same_series_in_two_libraries_is_two_items() {
+    let (_dir, pool) = db().await;
+    sqlx::query("INSERT INTO library (id, name, kind) VALUES (3, 'Kids', 'tv')")
+        .execute(&pool)
+        .await
+        .unwrap();
+    let a = import_series(&pool, TV, &night_harbor()).await.unwrap();
+    let b = import_series(&pool, 3, &night_harbor()).await.unwrap();
+    assert!(a.created && b.created);
+    assert_ne!(a.item_id, b.item_id);
+    // Each has its own episodes, with the provider's IDs.
+    let episodes = count(
+        &pool,
+        "SELECT count(*) FROM external_id x JOIN item e ON e.id = x.item_id
+         WHERE e.kind = 'episode' AND x.is_primary",
+    )
+    .await;
+    assert_eq!(episodes as usize, 2 * a.episodes_added);
+    // Importing again finds each library's own.
+    let again = import_series(&pool, 3, &night_harbor()).await.unwrap();
+    assert_eq!((again.created, again.item_id), (false, b.item_id));
 }

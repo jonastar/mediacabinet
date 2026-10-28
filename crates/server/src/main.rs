@@ -20,7 +20,34 @@ pub struct AppState {
     pub transcoder: transcode::Transcoder,
     /// Derived files that can be rebuilt, such as subtitles as WebVTT.
     pub cache: PathBuf,
+    /// Turns true when the server starts shutting down, so endless streams can end.
+    pub shutdown: tokio::sync::watch::Receiver<bool>,
 }
+
+/// Resolves once `shutdown` turns true.
+pub async fn shutting_down(mut shutdown: tokio::sync::watch::Receiver<bool>) {
+    let _ = shutdown.wait_for(|down| *down).await;
+}
+
+/// Ctrl-C, or SIGTERM (e.g. `docker stop`).
+async fn stop_signal() {
+    #[cfg(unix)]
+    {
+        let mut term = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("installing a SIGTERM handler");
+        tokio::select! {
+            _ = tokio::signal::ctrl_c() => {}
+            _ = term.recv() => {}
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = tokio::signal::ctrl_c().await;
+    }
+}
+
+/// How long open requests (a video stream, a long poll) get to finish on shutdown.
+const SHUTDOWN_GRACE: Duration = Duration::from_secs(5);
 
 /// TMDB with CABINET_TMDB_KEY, or an offline catalog with CABINET_METADATA_CATALOG.
 fn metadata_provider() -> anyhow::Result<cabinet_core::metadata::Provider> {
@@ -143,6 +170,15 @@ async fn main() -> anyhow::Result<()> {
     .await;
     transcoder.spawn_reaper();
 
+    let (stop, shutdown) = tokio::sync::watch::channel(false);
+    tokio::spawn(async move {
+        stop_signal().await;
+        tracing::info!("shutting down; press Ctrl-C again to quit now");
+        let _ = stop.send(true);
+        stop_signal().await;
+        std::process::exit(130);
+    });
+
     let app = api::router(AppState {
         db,
         scans,
@@ -151,16 +187,20 @@ async fn main() -> anyhow::Result<()> {
         artwork: artwork::ArtworkCache::new(data_dir.join("artwork")),
         transcoder,
         cache: data_dir.join("cache"),
+        shutdown: shutdown.clone(),
     })
     .fallback(web::serve)
     .layer(tower_http::trace::TraceLayer::new_for_http());
 
     let listener = tokio::net::TcpListener::bind(bind).await?;
     tracing::info!(%bind, data_dir = %data_dir.display(), "Media Cabinet listening");
-    axum::serve(listener, app)
-        .with_graceful_shutdown(async {
-            let _ = tokio::signal::ctrl_c().await;
-        })
-        .await?;
+    let server = axum::serve(listener, app).with_graceful_shutdown(shutting_down(shutdown.clone()));
+    tokio::select! {
+        served = server.into_future() => served?,
+        _ = async {
+            shutting_down(shutdown).await;
+            tokio::time::sleep(SHUTDOWN_GRACE).await;
+        } => tracing::warn!("requests still open after {SHUTDOWN_GRACE:?}; quitting anyway"),
+    }
     Ok(())
 }

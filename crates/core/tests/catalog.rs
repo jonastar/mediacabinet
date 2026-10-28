@@ -293,3 +293,36 @@ async fn search_finds_series_and_episodes() {
         "wildcards are literal"
     );
 }
+
+#[tokio::test]
+async fn series_stay_in_their_library() {
+    let (_dir, pool, kitsune) = demo().await;
+    let all = catalog::list_series(&pool, None, catalog::now(), None)
+        .await
+        .unwrap();
+    assert!(all.iter().all(|s| s.library_id == Some(1)));
+    sqlx::raw_sql(
+        "INSERT INTO library (id, name, kind) VALUES (2, 'Anime', 'tv');
+         INSERT INTO library_root (id, library_id, path, write_policy, layout_template)
+         VALUES (99, 2, '/anime', 'read_only', '{series}/{filename}');",
+    )
+    .execute(&pool)
+    .await
+    .unwrap();
+
+    // A folder in another library's root can't belong to the series.
+    let moved = sqlx::query("UPDATE series_location SET root_id = 99 WHERE series_item_id = ?")
+        .bind(kitsune)
+        .execute(&pool)
+        .await;
+    assert!(moved.is_err());
+
+    let anime = catalog::list_series(&pool, None, catalog::now(), Some(2))
+        .await
+        .unwrap();
+    assert!(anime.is_empty());
+    let tv = catalog::list_series(&pool, None, catalog::now(), Some(1))
+        .await
+        .unwrap();
+    assert_eq!(tv.len(), all.len());
+}

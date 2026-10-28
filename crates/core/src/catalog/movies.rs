@@ -10,6 +10,8 @@ use super::{CatalogError, EpisodeRef, ExternalId, LinkedFile, SeriesSummary, Wat
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct MovieSummary {
     pub id: i64,
+    /// The library it belongs to; null only if it predates having one.
+    pub library_id: Option<i64>,
     pub title: String,
     pub year: Option<i64>,
     pub runtime_seconds: Option<i64>,
@@ -65,6 +67,7 @@ struct EpisodeHitRow {
 #[derive(sqlx::FromRow)]
 struct MovieRow {
     id: i64,
+    library_id: Option<i64>,
     title: String,
     year: Option<i64>,
     runtime_seconds: Option<i64>,
@@ -78,7 +81,8 @@ struct MovieRow {
     last_played_at: Option<i64>,
 }
 
-const MOVIE_SELECT: &str = "SELECT i.id, i.title, i.year, i.runtime_seconds, i.airs_at,
+const MOVIE_SELECT: &str =
+    "SELECT i.id, i.library_id, i.title, i.year, i.runtime_seconds, i.airs_at,
         (SELECT count(*) FROM file_link l JOIN media_file f ON f.id = l.file_id
          WHERE l.item_id = i.id AND f.status = 'present') AS present,
         st.availability, st.monitored, w.reason AS wanted_reason,
@@ -95,6 +99,7 @@ async fn summary(conn: &mut SqliteConnection, row: MovieRow) -> Result<MovieSumm
     let monitored = row.monitored;
     Ok(MovieSummary {
         id: row.id,
+        library_id: row.library_id,
         title: row.title,
         year: row.year,
         runtime_seconds: row.runtime_seconds,
@@ -113,15 +118,19 @@ async fn summary(conn: &mut SqliteConnection, row: MovieRow) -> Result<MovieSumm
     })
 }
 
+/// Movies by title, all or those in `library`.
 pub async fn list_movies(
     pool: &SqlitePool,
     user: Option<i64>,
+    library: Option<i64>,
 ) -> Result<Vec<MovieSummary>, CatalogError> {
     let mut conn = pool.acquire().await?;
     let rows: Vec<MovieRow> = sqlx::query_as(sqlx::AssertSqlSafe(format!(
-        "{MOVIE_SELECT} ORDER BY coalesce(i.sort_title, i.title) COLLATE NOCASE, i.id"
+        "{MOVIE_SELECT} AND (?2 IS NULL OR i.library_id = ?2)
+         ORDER BY coalesce(i.sort_title, i.title) COLLATE NOCASE, i.id"
     )))
     .bind(user)
+    .bind(library)
     .fetch_all(&mut *conn)
     .await?;
     let mut out = Vec::with_capacity(rows.len());

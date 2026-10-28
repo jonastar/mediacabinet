@@ -7,14 +7,38 @@ import {
   type LibraryKind,
   type WritePolicy,
 } from '../../api/client'
-import { POLICIES, POLICY_NOTES } from './roots'
-import { TemplateEditor } from './TemplateEditor'
+import { FolderLayout } from './FolderLayout'
+import { PolicyPicker } from './PolicyPicker'
 import styles from './Libraries.module.css'
 
 interface Props {
   library: Library
   onAdded: () => void
   onCancel: () => void
+}
+
+/** How well the folder fits the proposed layout: green when every video does. */
+function Fit({ proposal }: { proposal: FolderProposal }) {
+  const examples =
+    proposal.examples.length > 0 ? `, e.g. ${proposal.examples.slice(0, 3).join(', ')}` : ''
+  if (proposal.files === 0) {
+    return <p className={styles.muted}>No videos here yet. {proposal.reason}</p>
+  }
+  const all = proposal.grouped === proposal.files
+  const tone = all ? styles.fitOk : proposal.grouped === 0 ? styles.fitBad : styles.fitPartial
+  return (
+    <div className={`${styles.fit} ${tone}`} role="status">
+      <strong>
+        {all
+          ? `All ${proposal.files.toLocaleString()} videos fit this layout. Nothing to change.`
+          : `${proposal.grouped.toLocaleString()} of ${proposal.files.toLocaleString()} videos fit this layout.`}
+      </strong>
+      <span>
+        {examples && `Found${examples.slice(1)}. `}
+        {proposal.reason}
+      </span>
+    </div>
+  )
 }
 
 /** Pick a folder, see the proposed template, confirm it with a write policy. */
@@ -144,44 +168,22 @@ export function AddFolder({ library, onAdded, onCancel }: Props) {
 
       {proposal && (
         <>
-          <p className={styles.muted}>
-            {proposal.files === 0
-              ? 'No videos here yet.'
-              : `${proposal.grouped.toLocaleString()} of ${proposal.files.toLocaleString()} videos fit this layout`}
-            {proposal.examples.length > 0 && `, e.g. ${proposal.examples.slice(0, 3).join(', ')}`}.{' '}
-            {proposal.reason}
-          </p>
+          <Fit proposal={proposal} />
           <div className={styles.block}>
-            <label className={styles.label} htmlFor="add-template">
-              Layout template
-            </label>
-            <TemplateEditor
+            <span className={styles.label}>Folder layout</span>
+            <FolderLayout
+              // Remounted for each folder looked at, so the checkbox follows its proposal.
+              key={proposal.path}
               id="add-template"
               kind={kind}
+              policy={policy}
               value={template.value}
               onChange={(value, valid) => setTemplate({ value, valid })}
             />
           </div>
           <div className={styles.block}>
             <span className={styles.label}>Write policy</span>
-            <div
-              role="group"
-              aria-label="Write policy"
-              className={styles.policies}
-              style={{ alignSelf: 'flex-start' }}
-            >
-              {POLICIES.map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  aria-pressed={policy === value}
-                  onClick={() => setPolicy(value)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <p className={styles.note}>{POLICY_NOTES[policy]}</p>
+            <PolicyPicker name="add-policy" value={policy} onChange={setPolicy} />
           </div>
           <label className={styles.check}>
             <input
@@ -212,6 +214,11 @@ export function AddFolder({ library, onAdded, onCancel }: Props) {
         <button type="button" className={styles.button} onClick={onCancel}>
           Cancel
         </button>
+        {!proposal && !busy && (
+          <span className={styles.muted}>
+            Pick a folder, then Look at folder to see how it’s laid out.
+          </span>
+        )}
       </div>
     </section>
   )

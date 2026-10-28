@@ -96,26 +96,148 @@
   gap: 14px;
 }
 
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 20px 22px;
+/* The overview: a card per library, its folders listed under it. */
+.libraryCard {
   border-radius: 16px;
   background: var(--surface);
   border: 1px solid var(--border);
+  overflow: hidden;
 }
 
-.card.offline {
-  border-color: rgba(240, 122, 90, 0.45);
-}
-
-.cardTop {
+.libraryHead {
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px 20px;
   align-items: center;
-  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.libraryHead:hover,
+.rootRow:hover {
+  background: var(--surface-raised);
+}
+
+.libraryName {
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.libraryHead .identity {
+  flex: 1;
+}
+
+.empty {
+  padding: 0 22px 18px;
+}
+
+.rootList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.libraryCard .rootList {
+  border-top: 1px solid var(--border);
+}
+
+.rootRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 22px;
+  color: var(--text);
+  text-decoration: none;
+  border-left: 3px solid transparent;
+}
+
+.rootList li + li .rootRow {
+  border-top: 1px solid var(--border);
+}
+
+/* On a library's page the folders stand alone, each in a box. */
+.section > .rootList {
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.rootRow .identity {
+  flex: 1;
+}
+
+.rootRow.offline {
+  border-left-color: var(--state-missing);
+}
+
+.rowPath {
+  font-family: var(--font-mono);
+  font-size: 15px;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.policyTag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: var(--state-neutral-bg);
+  color: var(--template-below);
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.warnTag {
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: rgba(240, 122, 90, 0.14);
+  color: var(--state-missing-text);
+  font-size: 11.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.chevron {
+  color: var(--text-muted);
+  font-size: 24px;
+  line-height: 1;
+}
+
+.back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: -12px;
+}
+
+.back:hover {
+  color: var(--text);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.heading .rootTitle {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  word-break: break-all;
 }
 
 .identity {
@@ -130,13 +252,6 @@
   flex-wrap: wrap;
   gap: 10px;
   align-items: center;
-}
-
-.path {
-  font-family: var(--font-mono);
-  font-size: 17px;
-  font-weight: 500;
-  word-break: break-all;
 }
 
 .tag {
@@ -179,32 +294,53 @@
   color: var(--text-muted);
 }
 
-.policies {
+.policyOptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.policyOption {
   display: flex;
-  flex-wrap: wrap;
-  padding: 4px;
-  gap: 4px;
-  border-radius: 12px;
-  background: var(--bg);
+  gap: 12px;
+  align-items: flex-start;
+  padding: 14px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--border);
+  background: var(--bg);
+  cursor: pointer;
 }
 
-.policies button {
-  min-height: 40px;
-  padding: 0 14px;
-  border-radius: 9px;
-  border: 0;
-  background: transparent;
-  color: var(--template-below);
-  font: inherit;
-  font-weight: 600;
-  font-size: 14px;
+.policyOption:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(242, 181, 68, 0.07);
 }
 
-.policies button[aria-pressed='true'] {
-  background: var(--accent);
-  color: var(--accent-ink);
-  font-weight: 700;
+.policyOption:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.policyOption input {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  margin: 1px 0 0;
+  accent-color: var(--accent);
+}
+
+.policyText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.policyText b {
+  font-size: 15px;
+  color: var(--text);
 }
 
 .block {
@@ -226,18 +362,6 @@
   justify-content: space-between;
   align-items: baseline;
   gap: 12px;
-}
-
-.template {
-  margin: 0;
-  padding: 12px 14px;
-  border-radius: var(--radius-control);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  font-family: var(--font-mono);
-  font-size: 14px;
-  line-height: 1.6;
-  word-break: break-all;
 }
 
 .grouping {
@@ -266,6 +390,39 @@
   color: var(--text);
   font-family: var(--font-mono);
   font-size: 14px;
+}
+
+/* A template field: the input's text is transparent, and the coloured
+   backdrop behind it shows through in exactly the same place. */
+.templateField {
+  position: relative;
+  border-radius: var(--radius-control);
+  background: var(--bg);
+}
+
+.templateBackdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  overflow: hidden;
+  white-space: pre;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.templateInput {
+  position: relative;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--text);
+}
+
+.templateInput::selection {
+  background: rgba(110, 168, 254, 0.3);
 }
 
 .input[aria-invalid='true'] {
@@ -314,10 +471,50 @@
   border: 1px solid var(--border);
 }
 
+.warning {
+  gap: 6px;
+  border-color: rgba(240, 122, 90, 0.45);
+  color: var(--state-missing-text);
+}
+
 .panel h2 {
   margin: 0;
   font-size: 20px;
   font-weight: 800;
+}
+
+/* How well a folder fits its proposed layout. */
+.fit {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.fitOk {
+  border-color: rgba(76, 195, 138, 0.45);
+  background: rgba(76, 195, 138, 0.1);
+}
+
+.fitOk strong {
+  color: var(--state-available-text);
+}
+
+.fitPartial strong {
+  color: var(--accent-soft-text);
+}
+
+.fitBad {
+  border-color: rgba(240, 122, 90, 0.45);
+}
+
+.fitBad strong {
+  color: var(--state-missing-text);
 }
 
 .muted {
@@ -439,4 +636,43 @@
   .panel {
     padding: 16px;
   }
+}
+
+/* Background explanation, folded away: quieter than a panel. */
+.aside {
+  padding: 0 4px;
+}
+
+.aside summary {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.aside summary::-webkit-details-marker {
+  display: none;
+}
+
+.aside summary::before {
+  content: '›';
+  font-size: 18px;
+  transition: transform 0.15s ease;
+}
+
+.aside[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.aside summary:hover {
+  color: var(--text);
+}
+
+.aside[open] > * + * {
+  margin-top: 12px;
 }

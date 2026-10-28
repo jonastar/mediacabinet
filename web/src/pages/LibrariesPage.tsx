@@ -1,36 +1,18 @@
-import { useEffect, useState } from 'react'
-import { api, type LibraryKind } from '../api/client'
-import { useApi } from '../api/useApi'
-import { Segmented } from '../components/Segmented'
+import { useState } from 'react'
+import type { Library } from '../api/client'
+import { Link } from '../components/Link'
 import { Failed, Loading } from '../components/Status'
-import { AddFolder } from './libraries/AddFolder'
+import { navigate } from '../lib/router'
 import { NewLibrary } from './libraries/NewLibrary'
-import { PlacementPanel } from './libraries/PlacementPanel'
-import { RootCard } from './libraries/RootCard'
-import { Legend } from './libraries/TemplateText'
-import { useLiveEvents } from '../lib/live'
+import { librarySummary } from './libraries/roots'
+import { RootRow } from './libraries/RootRow'
+import { useLibraries } from './libraries/useLibraries'
 import styles from './libraries/Libraries.module.css'
 
+/** Every library and its folders; each leads to its own settings. */
 export function LibrariesPage() {
-  const libraries = useApi('libraries', api.libraries)
-  // Scans started elsewhere (schedule, watcher, *arr webhooks) show up as they finish.
-  useLiveEvents(
-    ['scan.finished', 'root.added', 'root.changed', 'root.removed', 'library.added'],
-    libraries.reload,
-  )
-  const [picked, setPicked] = useState<number | null>(null)
-  const [adding, setAdding] = useState<'folder' | 'library' | null>(null)
-
-  // While anything scans, refresh every second to show progress.
-  const scanning = libraries.data?.some((l) => l.roots.some((r) => r.scanning)) ?? false
-  const reload = libraries.reload
-  useEffect(() => {
-    if (!scanning) {
-      return
-    }
-    const timer = window.setInterval(reload, 1000)
-    return () => window.clearInterval(timer)
-  }, [scanning, reload])
+  const libraries = useLibraries()
+  const [adding, setAdding] = useState(false)
 
   if (libraries.error) {
     return <Failed error={libraries.error} onRetry={libraries.reload} />
@@ -39,126 +21,68 @@ export function LibrariesPage() {
     return <Loading />
   }
   const all = libraries.data
-  if (all.length === 0) {
-    return (
-      <div className={styles.page}>
-        <div className={styles.inner}>
-          <div className={styles.heading}>
-            <h1>Libraries & roots</h1>
-            <p className={styles.lead}>Start with a library, then add the folders that hold it.</p>
-          </div>
-          <NewLibrary
-            onCreated={(l) => {
-              setPicked(l.id)
-              setAdding('folder')
-              reload()
-            }}
-          />
-        </div>
-      </div>
-    )
-  }
-
-  const library = all.find((l) => l.id === picked) ?? all[0]
-  const kind = library.kind as LibraryKind
-  // Changes to roots change the placement example; refetch it when they do.
-  const version = library.roots
-    .map((r) => `${r.id}:${r.write_policy}:${r.layout_template}`)
-    .join('|')
-
-  const deleteLibrary = async () => {
-    if (window.confirm(`Delete the library ${library.name}?`)) {
-      await api.deleteLibrary(library.id)
-      setPicked(null)
-      reload()
-    }
-  }
+  const created = (l: Library) => navigate(`/libraries/${l.id}?add=1`)
 
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
-        {all.length > 1 && (
-          <Segmented
-            label="Library"
-            variant="pills"
-            value={String(library.id)}
-            onChange={(id) => {
-              setPicked(Number(id))
-              setAdding(null)
-            }}
-            options={all.map((l) => ({ value: String(l.id), label: l.name }))}
-          />
-        )}
         <div className={styles.header}>
           <div className={styles.heading}>
-            <h1>{library.name} · roots</h1>
+            <h1>Libraries & roots</h1>
             <p className={styles.lead}>
-              Each folder has its own layout and write policy. All of them feed one library.
+              A library holds one kind of media, from one or more folders. Choose one to change it.
             </p>
           </div>
-          <div className={styles.headerActions}>
-            <button type="button" className={styles.button} onClick={() => setAdding('library')}>
-              New library
-            </button>
-            <button type="button" className={styles.button} onClick={() => setAdding('folder')}>
-              Add a folder
-            </button>
-          </div>
+          {all.length > 0 && !adding && (
+            <div className={styles.headerActions}>
+              <button type="button" className={styles.button} onClick={() => setAdding(true)}>
+                New library
+              </button>
+            </div>
+          )}
         </div>
 
-        {adding === 'library' && (
+        {(adding || all.length === 0) && (
           <NewLibrary
-            onCreated={(l) => {
-              setPicked(l.id)
-              setAdding('folder')
-              reload()
-            }}
-            onCancel={() => setAdding(null)}
-          />
-        )}
-        {adding === 'folder' && (
-          <AddFolder
-            library={library}
-            onAdded={() => {
-              setAdding(null)
-              reload()
-            }}
-            onCancel={() => setAdding(null)}
+            onCreated={created}
+            onCancel={all.length > 0 ? () => setAdding(false) : undefined}
           />
         )}
 
-        {library.roots.length === 0 ? (
-          adding !== 'folder' && (
-            <div className={styles.panel}>
-              <p className={styles.muted}>No folders in this library yet.</p>
-              <div className={styles.actions}>
-                <button
-                  type="button"
-                  className={`${styles.button} ${styles.primary}`}
-                  onClick={() => setAdding('folder')}
-                >
-                  Add a folder
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.button} ${styles.danger}`}
-                  onClick={deleteLibrary}
-                >
-                  Delete library
-                </button>
-              </div>
-            </div>
-          )
-        ) : (
-          <ul className={styles.list}>
-            {library.roots.map((r) => (
-              <RootCard key={r.id} root={r} kind={kind} onChanged={reload} />
-            ))}
-          </ul>
-        )}
-
-        <Legend kind={library.kind} />
-        <PlacementPanel libraryId={library.id} version={version} />
+        <ul className={styles.list}>
+          {all.map((library) => {
+            const noTarget =
+              library.roots.length > 0 && !library.roots.some((r) => r.is_import_target)
+            return (
+              <li key={library.id} className={styles.libraryCard}>
+                <Link to={`/libraries/${library.id}`} className={styles.libraryHead}>
+                  <span className={styles.identity}>
+                    <span className={styles.libraryName}>{library.name}</span>
+                    <span className={styles.muted}>{librarySummary(library)}</span>
+                  </span>
+                  {noTarget && <span className={styles.warnTag}>No import target</span>}
+                  <span className={styles.chevron} aria-hidden="true">
+                    ›
+                  </span>
+                </Link>
+                {library.roots.length > 0 ? (
+                  <ul className={styles.rootList} aria-label={`Folders of ${library.name}`}>
+                    {library.roots.map((r) => (
+                      <RootRow key={r.id} root={r} libraryId={library.id} />
+                    ))}
+                  </ul>
+                ) : (
+                  <p className={`${styles.muted} ${styles.empty}`}>
+                    No folders yet.{' '}
+                    <Link to={`/libraries/${library.id}?add=1`} className={styles.link}>
+                      Add a folder
+                    </Link>
+                  </p>
+                )}
+              </li>
+            )
+          })}
+        </ul>
       </div>
     </div>
   )

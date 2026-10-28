@@ -477,6 +477,23 @@ pub async fn link_file(
             .fetch_optional(pool)
             .await?
             .ok_or(ReviewError::NotFound)?;
+    let elsewhere: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM item i LEFT JOIN item p ON p.id = i.parent_id
+         WHERE i.id IN (SELECT value FROM json_each(?))
+           AND coalesce(i.library_id, p.library_id) IS NOT
+               (SELECT r.library_id FROM media_file f JOIN library_root r ON r.id = f.root_id
+                WHERE f.id = ?)",
+    )
+    .bind(serde_json::to_string(items).expect("ids serialize"))
+    .bind(file)
+    .fetch_one(pool)
+    .await?;
+    if elsewhere > 0 {
+        return Err(ReviewError::Invalid(
+            "That item is in another library. A file can only link to items in its own library."
+                .into(),
+        ));
+    }
     let parsed = parse(edition.rsplit('/').next().unwrap_or(&edition));
     link(
         pool,
@@ -532,8 +549,8 @@ pub async fn identify_as(
     provider: &Provider,
     settings: MatchSettings,
 ) -> Result<i64, ReviewError> {
-    let kind: String = sqlx::query_scalar(
-        "SELECT l.kind FROM library_root r JOIN library l ON l.id = r.library_id WHERE r.id = ?",
+    let (library, kind): (i64, String) = sqlx::query_as(
+        "SELECT l.id, l.kind FROM library_root r JOIN library l ON l.id = r.library_id WHERE r.id = ?",
     )
     .bind(root)
     .fetch_optional(pool)
@@ -544,7 +561,7 @@ pub async fn identify_as(
             .movie(provider_id)
             .await
             .map_err(|e| ReviewError::Provider(e.to_string()))?;
-        let item = import_movie(pool, &data)
+        let item = import_movie(pool, library, &data)
             .await
             .map_err(|e| ReviewError::Provider(e.to_string()))?
             .item_id;
@@ -565,7 +582,7 @@ pub async fn identify_as(
             .series(provider_id)
             .await
             .map_err(|e| ReviewError::Provider(e.to_string()))?;
-        let item = import_series(pool, &data)
+        let item = import_series(pool, library, &data)
             .await
             .map_err(|e| ReviewError::Provider(e.to_string()))?
             .item_id;

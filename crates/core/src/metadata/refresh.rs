@@ -37,15 +37,17 @@ pub async fn refresh_item(
     provider: &Provider,
     item: i64,
 ) -> Result<ImportReport, RefreshError> {
-    let row: Option<(String, Option<String>, Option<String>)> = sqlx::query_as(
-        "SELECT i.kind, i.primary_provider,
+    // Kind, library, primary provider and its ID.
+    type Row = (String, Option<i64>, Option<String>, Option<String>);
+    let row: Option<Row> = sqlx::query_as(
+        "SELECT i.kind, i.library_id, i.primary_provider,
                 (SELECT value FROM external_id WHERE item_id = i.id AND is_primary)
          FROM item i WHERE i.id = ? AND i.kind IN ('series', 'movie')",
     )
     .bind(item)
     .fetch_optional(pool)
     .await?;
-    let Some((kind, primary, id)) = row else {
+    let Some((kind, library, primary, id)) = row else {
         return Err(RefreshError::NotFound);
     };
     let (Some(primary), Some(id)) = (primary, id) else {
@@ -58,6 +60,9 @@ pub async fn refresh_item(
             "Its metadata comes from {primary}, which isn't configured."
         )));
     }
+    let Some(library) = library else {
+        return Err(RefreshError::Import("It isn't in a library.".into()));
+    };
 
     let result = if kind == "series" {
         match provider.series(&id).await {
@@ -68,7 +73,7 @@ pub async fn refresh_item(
         }
     } else {
         match provider.movie(&id).await {
-            Ok(data) => import_movie(pool, &data)
+            Ok(data) => import_movie(pool, library, &data)
                 .await
                 .map_err(|e| RefreshError::Import(e.to_string())),
             Err(e) => Err(e.into()),

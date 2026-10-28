@@ -3,7 +3,7 @@
 
 use std::collections::HashMap;
 
-use super::score::similarity;
+use super::score::{similarity, title_within};
 use crate::parse::Parsed;
 
 #[derive(Debug, Clone)]
@@ -107,7 +107,7 @@ pub fn resolve(
         && let Some(e) = index.episodes.get(&items[0])
     {
         let s = similarity(title, &e.title);
-        if s >= 0.8 {
+        if s >= 0.8 || title_within(title, &e.title) {
             confidence += 0.04;
             reason.push_str("; episode title matches");
         } else if s < 0.3 && !e.title.starts_with("Episode ") {
@@ -341,6 +341,18 @@ mod tests {
         )
         .unwrap();
         assert!(wrong.confidence < 0.85, "{wrong:?}");
+        // Sources name episodes differently: a short title within a long one matches.
+        let longer = resolve(
+            &index(),
+            &parse("Show - S01E01 - The Extended Title 101 Cut.mkv"),
+            None,
+            None,
+        )
+        .unwrap();
+        assert!(
+            longer.reason.contains("episode title matches"),
+            "{longer:?}"
+        );
     }
 
     #[test]

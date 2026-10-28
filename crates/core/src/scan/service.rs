@@ -20,9 +20,9 @@ use sqlx::SqlitePool;
 use tokio::task::JoinHandle;
 use utoipa::ToSchema;
 
-use super::{ProbeRootError, Prober, ScanError, probe_root_with_progress, scan_root};
+use super::{ProbeRootError, Prober, ScanError, probe_root_with_progress, scan_root_with_progress};
 use crate::events;
-use crate::matcher::{MatchSettings, match_root};
+use crate::matcher::{MatchSettings, match_root_with_progress};
 use crate::metadata::Provider;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -49,6 +49,8 @@ impl Trigger {
 pub enum Phase {
     /// Walking the folders and matching files to known ones.
     Walking,
+    /// Fingerprinting new files, to recognise moved and copied ones.
+    Hashing,
     /// Reading streams from new and changed files.
     Probing,
     /// Identifying folders and linking files to items.
@@ -58,7 +60,8 @@ pub enum Phase {
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct ScanProgress {
     pub phase: Phase,
-    /// Files probed so far, during probing.
+    /// Files found while walking (with no total), files hashed or probed,
+    /// or folders matched so far.
     pub done: usize,
     pub total: usize,
     pub started_at: i64,
@@ -218,13 +221,25 @@ impl ScanService {
         .fetch_one(pool)
         .await?;
 
-        let (state, report, error) = match scan_root(pool, root_id).await {
+        let service = self.clone();
+        let scanned = scan_root_with_progress(pool, root_id, move |phase, done, total| {
+            service.set_progress(root_id, |p| {
+                p.phase = phase;
+                p.done = done;
+                p.total = total;
+            })
+        });
+        let (state, report, error) = match scanned.await {
             Ok(scan) => {
                 sqlx::query("UPDATE library_root SET offline_since = NULL WHERE id = ?")
                     .bind(root_id)
                     .execute(pool)
                     .await?;
-                self.set_progress(root_id, |p| p.phase = Phase::Probing);
+                self.set_progress(root_id, |p| {
+                    p.phase = Phase::Probing;
+                    p.done = 0;
+                    p.total = 0;
+                });
                 let probe =
                     probe_root_with_progress(pool, root_id, &self.inner.prober, |done, total| {
                         self.set_progress(root_id, |p| {
@@ -242,8 +257,24 @@ impl ScanService {
                     ),
                     Err(e) => (json!({ "scan": scan }), Some(e.to_string())),
                 };
-                self.set_progress(root_id, |p| p.phase = Phase::Matching);
-                match match_root(pool, root_id, &self.inner.provider, self.inner.settings).await {
+                self.set_progress(root_id, |p| {
+                    p.phase = Phase::Matching;
+                    p.done = 0;
+                    p.total = 0;
+                });
+                let matched = match_root_with_progress(
+                    pool,
+                    root_id,
+                    &self.inner.provider,
+                    self.inner.settings,
+                    |done, total| {
+                        self.set_progress(root_id, |p| {
+                            p.done = done;
+                            p.total = total;
+                        })
+                    },
+                );
+                match matched.await {
                     Ok(matched) => {
                         if let Some(e) = &matched.provider_error {
                             problem.get_or_insert_with(|| {

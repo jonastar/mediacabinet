@@ -46,19 +46,22 @@ fn now() -> i64 {
     chrono::Utc::now().timestamp()
 }
 
+/// The series or movie in `library` with this primary provider ID.
 async fn find_primary(
     conn: &mut SqliteConnection,
+    library: i64,
     provider: &str,
     id: &str,
     kind: &str,
 ) -> Result<Option<i64>, sqlx::Error> {
     sqlx::query_scalar(
         "SELECT i.id FROM external_id x JOIN item i ON i.id = x.item_id
-         WHERE x.provider = ? AND x.value = ? AND x.is_primary AND i.kind = ?",
+         WHERE x.provider = ? AND x.value = ? AND x.is_primary AND i.kind = ? AND i.library_id = ?",
     )
     .bind(provider)
     .bind(id)
     .bind(kind)
+    .bind(library)
     .fetch_optional(conn)
     .await
 }
@@ -215,16 +218,25 @@ async fn set_artwork(
     Ok(())
 }
 
+/// The library a series or movie belongs to.
+pub async fn item_library(conn: &mut SqliteConnection, item: i64) -> Result<i64, sqlx::Error> {
+    sqlx::query_scalar("SELECT library_id FROM item WHERE id = ? AND library_id IS NOT NULL")
+        .bind(item)
+        .fetch_one(conn)
+        .await
+}
+
 // ── Series ─────────────────────────────────────────────────────────────────
 
-/// Imports a series, or refreshes it if it's already in the library.
+/// Imports a series into `library`, or refreshes it if it's already there.
 pub async fn import_series(
     pool: &SqlitePool,
+    library: i64,
     data: &SeriesData,
 ) -> Result<ImportReport, ImportError> {
     let mut tx = crate::db::begin_write(pool).await?;
-    let existing = find_primary(&mut tx, &data.provider, &data.id, "series").await?;
-    let report = sync_series(&mut tx, existing, data).await?;
+    let existing = find_primary(&mut tx, library, &data.provider, &data.id, "series").await?;
+    let report = sync_series(&mut tx, library, existing, data).await?;
     tx.commit().await?;
     Ok(report)
 }
@@ -236,7 +248,8 @@ pub async fn refresh_series(
     data: &SeriesData,
 ) -> Result<ImportReport, ImportError> {
     let mut tx = crate::db::begin_write(pool).await?;
-    if let Some(other) = find_primary(&mut tx, &data.provider, &data.id, "series").await?
+    let library = item_library(&mut tx, series_id).await?;
+    if let Some(other) = find_primary(&mut tx, library, &data.provider, &data.id, "series").await?
         && other != series_id
     {
         return Err(ImportError::Conflict(format!(
@@ -244,7 +257,7 @@ pub async fn refresh_series(
             data.provider, data.id
         )));
     }
-    let report = sync_series(&mut tx, Some(series_id), data).await?;
+    let report = sync_series(&mut tx, library, Some(series_id), data).await?;
     tx.commit().await?;
     Ok(report)
 }
@@ -263,6 +276,7 @@ struct KnownEpisode {
 
 async fn sync_series(
     tx: &mut SqliteConnection,
+    library: i64,
     existing: Option<i64>,
     data: &SeriesData,
 ) -> Result<ImportReport, ImportError> {
@@ -273,10 +287,12 @@ async fn sync_series(
         None => {
             report.created = true;
             sqlx::query_scalar(
-                "INSERT INTO item (kind, title, primary_provider) VALUES ('series', ?, ?) RETURNING id",
+                "INSERT INTO item (kind, title, primary_provider, library_id)
+                 VALUES ('series', ?, ?, ?) RETURNING id",
             )
             .bind(&data.title)
             .bind(provider)
+            .bind(library)
             .fetch_one(&mut *tx)
             .await?
         }
@@ -627,22 +643,27 @@ async fn write_ordering(
 
 // ── Movies ─────────────────────────────────────────────────────────────────
 
-/// Imports a movie, or refreshes it if it's already in the library.
+/// Imports a movie into `library`, or refreshes it if it's already there.
 pub async fn import_movie(
     pool: &SqlitePool,
+    library: i64,
     data: &MovieData,
 ) -> Result<ImportReport, ImportError> {
     let mut tx = crate::db::begin_write(pool).await?;
     let mut report = ImportReport::default();
-    let id = match find_primary(&mut tx, &data.provider, &data.id, "movie").await? {
+    let id = match find_primary(&mut tx, library, &data.provider, &data.id, "movie").await? {
         Some(id) => id,
         None => {
             report.created = true;
-            sqlx::query_scalar("INSERT INTO item (kind, title, primary_provider) VALUES ('movie', ?, ?) RETURNING id")
-                .bind(&data.title)
-                .bind(&data.provider)
-                .fetch_one(&mut *tx)
-                .await?
+            sqlx::query_scalar(
+                "INSERT INTO item (kind, title, primary_provider, library_id)
+                 VALUES ('movie', ?, ?, ?) RETURNING id",
+            )
+            .bind(&data.title)
+            .bind(&data.provider)
+            .bind(library)
+            .fetch_one(&mut *tx)
+            .await?
         }
     };
     report.item_id = id;

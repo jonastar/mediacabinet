@@ -102,8 +102,8 @@ impl Seeder<'_> {
         tmdb: &str,
     ) -> Result<i64, sqlx::Error> {
         let id: i64 = sqlx::query_scalar(
-            "INSERT INTO item (kind, title, year, overview, series_status, primary_provider)
-             VALUES ('series', ?, ?, ?, ?, 'tmdb') RETURNING id",
+            "INSERT INTO item (kind, title, year, overview, series_status, primary_provider, library_id)
+             VALUES ('series', ?, ?, ?, ?, 'tmdb', 1) RETURNING id",
         )
         .bind(title)
         .bind(year)

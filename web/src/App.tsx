@@ -1,7 +1,11 @@
 import { Shell } from './components/Shell'
 import { CalendarPage } from './pages/CalendarPage'
+import { EpisodePage } from './pages/EpisodePage'
 import { HomePage } from './pages/HomePage'
 import { LibrariesPage } from './pages/LibrariesPage'
+import { LibraryDetail } from './pages/libraries/LibraryDetail'
+import { RootDetail } from './pages/libraries/RootDetail'
+import { LibraryItemPage, LibraryPage } from './pages/LibraryPage'
 import { MoviePage } from './pages/MoviePage'
 import { MoviesPage } from './pages/MoviesPage'
 import { SearchPage } from './pages/SearchPage'
@@ -22,7 +26,7 @@ import { Failed, Loading } from './components/Status'
 const MANAGE_PATHS = ['/wanted', '/review', '/libraries', '/settings']
 
 function Page({ path, admin }: { path: string; admin: boolean }) {
-  if (!admin && MANAGE_PATHS.includes(path)) {
+  if (!admin && MANAGE_PATHS.some((p) => path === p || path.startsWith(`${p}/`))) {
     return <NotFoundPage />
   }
   if (path === '/account') {
@@ -56,6 +60,38 @@ function Page({ path, admin }: { path: string; admin: boolean }) {
   if (path === '/libraries') {
     return <LibrariesPage />
   }
+  const managedLibrary = match('/libraries/:id', path)
+  if (managedLibrary && /^\d+$/.test(managedLibrary.id)) {
+    return <LibraryDetail key={managedLibrary.id} id={Number(managedLibrary.id)} />
+  }
+  const managedRoot = match('/libraries/:library/roots/:id', path)
+  if (managedRoot && /^\d+$/.test(managedRoot.library) && /^\d+$/.test(managedRoot.id)) {
+    return (
+      <RootDetail
+        key={managedRoot.id}
+        libraryId={Number(managedRoot.library)}
+        id={Number(managedRoot.id)}
+      />
+    )
+  }
+  const library = match('/library/:id', path)
+  if (library && /^\d+$/.test(library.id)) {
+    return <LibraryPage key={library.id} id={Number(library.id)} />
+  }
+  const libraryItem = match('/library/:library/:id', path)
+  if (libraryItem && /^\d+$/.test(libraryItem.library) && /^\d+$/.test(libraryItem.id)) {
+    return <LibraryItemPage libraryId={Number(libraryItem.library)} id={Number(libraryItem.id)} />
+  }
+  const libraryEpisode = match('/library/:library/:series/:id', path)
+  if (libraryEpisode && /^\d+$/.test(libraryEpisode.series) && /^\d+$/.test(libraryEpisode.id)) {
+    return (
+      <EpisodePage
+        key={libraryEpisode.id}
+        seriesId={Number(libraryEpisode.series)}
+        id={Number(libraryEpisode.id)}
+      />
+    )
+  }
   if (path === '/tv') {
     return <ShowsPage />
   }
@@ -63,6 +99,12 @@ function Page({ path, admin }: { path: string; admin: boolean }) {
   if (series && /^\d+$/.test(series.id)) {
     // Keyed so switching series starts from a clean state.
     return <SeriesPage key={series.id} id={Number(series.id)} />
+  }
+  const episode = match('/tv/:series/:id', path)
+  if (episode && /^\d+$/.test(episode.series) && /^\d+$/.test(episode.id)) {
+    return (
+      <EpisodePage key={episode.id} seriesId={Number(episode.series)} id={Number(episode.id)} />
+    )
   }
   return <NotFoundPage />
 }

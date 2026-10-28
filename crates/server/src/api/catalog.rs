@@ -28,15 +28,28 @@ pub async fn home(State(state): State<AppState>, viewer: Viewer) -> Result<Json<
     Ok(Json(catalog::home(&state.db, user, catalog::now()).await?))
 }
 
+#[derive(Deserialize, IntoParams)]
+pub struct LibraryQuery {
+    /// Only items in this library (and items not in any library yet).
+    pub library: Option<i64>,
+}
+
 /// All series, by title.
-#[utoipa::path(get, path = "/series", tag = "catalog", responses((status = 200, body = Vec<SeriesSummary>)))]
+#[utoipa::path(
+    get,
+    path = "/series",
+    tag = "catalog",
+    params(LibraryQuery),
+    responses((status = 200, body = Vec<SeriesSummary>))
+)]
 pub async fn list_series(
     State(state): State<AppState>,
     viewer: Viewer,
+    Query(query): Query<LibraryQuery>,
 ) -> Result<Json<Vec<SeriesSummary>>, ApiError> {
     let user = Some(viewer.0);
     Ok(Json(
-        catalog::list_series(&state.db, user, catalog::now()).await?,
+        catalog::list_series(&state.db, user, catalog::now(), query.library).await?,
     ))
 }
 

@@ -28,6 +28,10 @@ struct Session {
     /// The highest segment the player has asked for.
     requested: usize,
     paused: bool,
+    /// Has its first segment. Sessions still starting aren't stopped by a newer
+    /// start: two can race (the later request can arrive first), and the
+    /// player stops the one it doesn't use.
+    ready: bool,
 }
 
 #[derive(Clone)]
@@ -103,7 +107,7 @@ impl Transcoder {
     }
 
     /// Starts ffmpeg and waits for the first segment. Stops the user's earlier
-    /// sessions of the same item. Returns the session ID.
+    /// sessions of the same item that have started. Returns the session ID.
     pub async fn start(
         &self,
         user: i64,
@@ -116,7 +120,7 @@ impl Transcoder {
             let sessions = self.sessions.lock().unwrap();
             sessions
                 .iter()
-                .filter(|(_, s)| s.user == user && s.item == item)
+                .filter(|(_, s)| s.user == user && s.item == item && s.ready)
                 .map(|(id, _)| id.clone())
                 .collect()
         };
@@ -150,6 +154,7 @@ impl Transcoder {
                 last_access: Instant::now(),
                 requested: 0,
                 paused: false,
+                ready: false,
             },
         );
 
@@ -160,7 +165,13 @@ impl Transcoder {
                 .await
                 .unwrap_or_default();
             if playlist.contains("#EXTINF") {
-                return Ok(id);
+                return match self.sessions.lock().unwrap().get_mut(&id) {
+                    Some(s) => {
+                        s.ready = true;
+                        Ok(id)
+                    }
+                    None => Err("The stream was stopped.".into()),
+                };
             }
             let exited = {
                 let mut sessions = self.sessions.lock().unwrap();

@@ -65,6 +65,16 @@ pub struct ScanReport {
 
 /// Scans one library root and records what changed, with events, in one transaction.
 pub async fn scan_root(pool: &SqlitePool, root_id: i64) -> Result<ScanReport, ScanError> {
+    scan_root_with_progress(pool, root_id, |_, _, _| ()).await
+}
+
+/// `scan_root`, calling `progress(phase, done, total)` while walking (files
+/// found so far, no total) and while hashing new files.
+pub async fn scan_root_with_progress(
+    pool: &SqlitePool,
+    root_id: i64,
+    progress: impl Fn(Phase, usize, usize) + Send + 'static,
+) -> Result<ScanReport, ScanError> {
     let root: String = sqlx::query_scalar("SELECT path FROM library_root WHERE id = ?")
         .bind(root_id)
         .fetch_optional(pool)
@@ -85,10 +95,11 @@ pub async fn scan_root(pool: &SqlitePool, root_id: i64) -> Result<ScanReport, Sc
     let known = existing.iter().filter(|r| r.status == "present").count();
 
     let (plan, report, sidecars, unreadable) = tokio::task::spawn_blocking(move || {
-        let mut walk = walk::walk(&root).map_err(|source| ScanError::RootUnreachable {
-            path: root.clone(),
-            source,
-        })?;
+        let mut walk = walk::walk_with_progress(&root, |found| progress(Phase::Walking, found, 0))
+            .map_err(|source| ScanError::RootUnreachable {
+                path: root.clone(),
+                source,
+            })?;
         if walk.files.is_empty() && walk.unreadable.is_empty() && known > 0 {
             return Err(ScanError::RootEmpty { path: root, known });
         }
@@ -102,7 +113,9 @@ pub async fn scan_root(pool: &SqlitePool, root_id: i64) -> Result<ScanReport, Sc
             unreadable: walk.unreadable.clone(),
             ..Walk::default()
         };
-        let plan = plan::plan(existing, walk, &root, hash::partial_hash);
+        let plan = plan::plan(existing, walk, &root, hash::partial_hash, |done, total| {
+            progress(Phase::Hashing, done, total)
+        });
         report.unreadable += plan.unreadable_new;
         Ok((plan, report, sidecars, unreadable))
     })

@@ -183,18 +183,15 @@ async fn root(pool: &SqlitePool, id: i64) -> Result<RootRow, OrganizeError> {
         .ok_or(OrganizeError::NotFound)
 }
 
-/// The import target of a library of `kind`.
-async fn import_target(pool: &SqlitePool, kind: &str) -> Result<RootRow, OrganizeError> {
+/// The import target of `library`.
+async fn import_target(pool: &SqlitePool, library: i64) -> Result<RootRow, OrganizeError> {
     sqlx::query_as(sqlx::AssertSqlSafe(format!(
-        "{ROOT_SELECT} WHERE l.kind = ? AND r.is_import_target AND r.write_policy <> 'read_only'
-         ORDER BY l.id LIMIT 1"
+        "{ROOT_SELECT} WHERE l.id = ? AND r.is_import_target AND r.write_policy <> 'read_only'"
     )))
-    .bind(kind)
+    .bind(library)
     .fetch_optional(pool)
     .await?
-    .ok_or_else(|| {
-        OrganizeError::Invalid(format!("No {kind} library has an import target folder."))
-    })
+    .ok_or_else(|| OrganizeError::Invalid("Its library has no import target folder.".into()))
 }
 
 /// Token values for a series or movie and (for episodes) an episode.
@@ -346,10 +343,12 @@ pub async fn import_file(
             return invalid("A file can cover several episodes of one series, or one movie.");
         }
     }
-    let library_kind = if kind == "movie" {
-        "movies"
-    } else {
-        "tv"
+    let library: Option<i64> = sqlx::query_scalar("SELECT library_id FROM item WHERE id = ?")
+        .bind(top)
+        .fetch_one(pool)
+        .await?;
+    let Some(library) = library else {
+        return invalid("It isn't in a library.");
     };
 
     // Where: the series' primary folder's root if writable, else the import target.
@@ -373,7 +372,7 @@ pub async fn import_file(
     };
     let mut dest_root = match primary.or(movie_root) {
         Some(id) => root(pool, id).await?,
-        None => import_target(pool, library_kind).await?,
+        None => import_target(pool, library).await?,
     };
     let mut read_only_note = None;
     if dest_root.policy() == WritePolicy::ReadOnly {
@@ -381,7 +380,7 @@ pub async fn import_file(
             "{} is read-only, so it went to the import target.",
             dest_root.path
         ));
-        dest_root = import_target(pool, library_kind).await?;
+        dest_root = import_target(pool, library).await?;
     }
     let template = dest_root.template()?;
 
@@ -742,14 +741,21 @@ pub async fn move_series(
     to_root: i64,
     dry_run: bool,
 ) -> Result<MovePlan, OrganizeError> {
-    let kind: Option<String> = sqlx::query_scalar("SELECT kind FROM item WHERE id = ?")
-        .bind(series)
-        .fetch_optional(pool)
-        .await?;
-    if kind.as_deref() != Some("series") {
-        return Err(OrganizeError::NotFound);
-    }
+    let library: Option<i64> =
+        sqlx::query_scalar("SELECT library_id FROM item WHERE id = ? AND kind = 'series'")
+            .bind(series)
+            .fetch_optional(pool)
+            .await?
+            .ok_or(OrganizeError::NotFound)?;
     let target = root(pool, to_root).await?;
+    let target_library: i64 =
+        sqlx::query_scalar("SELECT library_id FROM library_root WHERE id = ?")
+            .bind(to_root)
+            .fetch_one(pool)
+            .await?;
+    if library != Some(target_library) {
+        return invalid("Move a series into a root of its own library.");
+    }
     if target.policy() == WritePolicy::ReadOnly {
         return invalid("That root is read-only.");
     }

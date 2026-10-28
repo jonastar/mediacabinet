@@ -245,26 +245,39 @@ function KeepWatching({ items, home }: { items: ContinueItem[]; home: Home }) {
         {items.map((c) => {
           const line = continueLine(c)
           return (
-            <Link key={c.series_id} to={`/play/${c.episode.item_id}`} className={styles.continue}>
-              <div
-                className={styles.continueArt}
-                style={{
-                  background: heroBackground(
-                    backdropOf(home, c.series_id),
-                    seriesTone(c.series_title),
-                  ),
-                }}
-              >
-                <span>{c.series_title}</span>
-                <Progress value={progress(c.episode.runtime_seconds, c.position_seconds, false)} />
-              </div>
-              <span className={styles.stack}>
-                <b>{line.episode}</b>
-                <span className={styles.muted}>
-                  {[c.view_name ? `${c.view_name}` : null, line.left].filter(Boolean).join(' · ')}
+            <div key={c.series_id} className={styles.continue}>
+              <Link to={`/tv/${c.series_id}/${c.episode.item_id}`} className={styles.continueLink}>
+                <div
+                  className={styles.continueArt}
+                  style={{
+                    background: heroBackground(
+                      backdropOf(home, c.series_id),
+                      seriesTone(c.series_title),
+                    ),
+                  }}
+                >
+                  <span>{c.series_title}</span>
+                  <Progress
+                    value={progress(c.episode.runtime_seconds, c.position_seconds, false)}
+                  />
+                </div>
+                <span className={styles.stack}>
+                  <b>{line.episode}</b>
+                  <span className={styles.muted}>
+                    {[c.view_name ? `${c.view_name}` : null, line.left].filter(Boolean).join(' · ')}
+                  </span>
                 </span>
-              </span>
-            </Link>
+              </Link>
+              {/* Beside the card's link rather than in it: playing skips the episode page. */}
+              <Link
+                to={`/play/${c.episode.item_id}`}
+                className={styles.continuePlay}
+                aria-label={`Play ${line.episode}`}
+                title="Play"
+              >
+                <PlayIcon />
+              </Link>
+            </div>
           )
         })}
       </div>
@@ -283,7 +296,11 @@ function ComingUp({ home }: { home: Home }) {
       </h2>
       <div className={styles.rail}>
         {home.coming_up.map((u) => (
-          <Link key={u.episode.item_id} to={`/tv/${u.series_id}`} className={styles.upcoming}>
+          <Link
+            key={u.episode.item_id}
+            to={`/tv/${u.series_id}/${u.episode.item_id}`}
+            className={styles.upcoming}
+          >
             <div className={styles.dayTile} style={{ background: seriesTone(u.series_title) }}>
               <b>{airWeekday(u.episode.airs_at ?? 0, u.episode.airs_time_known)}</b>
               <span>

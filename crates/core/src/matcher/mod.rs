@@ -101,6 +101,17 @@ pub async fn match_root(
     provider: &Provider,
     settings: MatchSettings,
 ) -> Result<MatchReport, MatchError> {
+    match_root_with_progress(pool, root_id, provider, settings, |_, _| ()).await
+}
+
+/// `match_root`, calling `progress(done, total)` as folders are matched.
+pub async fn match_root_with_progress(
+    pool: &SqlitePool,
+    root_id: i64,
+    provider: &Provider,
+    settings: MatchSettings,
+    progress: impl Fn(usize, usize),
+) -> Result<MatchReport, MatchError> {
     let (root_path, template, kind): (String, String, String) = sqlx::query_as(
         "SELECT r.path, r.layout_template, l.kind FROM library_root r
          JOIN library l ON l.id = r.library_id WHERE r.id = ?",
@@ -174,7 +185,10 @@ pub async fn match_root(
 
     let mut paths: Vec<String> = folders.keys().cloned().collect();
     paths.sort();
-    for path in paths {
+    let total = paths.len();
+    progress(0, total);
+    for (done, path) in paths.into_iter().enumerate() {
+        progress(done + 1, total);
         let folder = folders.remove(&path).expect("listed folder");
         let item = match known_item(pool, root_id, &path, kind).await? {
             Some(item) => Some((item, 1.0, "path_id")),
@@ -319,7 +333,7 @@ async fn identify_folder(
         return Ok(None);
     };
     if best.confidence >= settings.accept {
-        let item = match import(pool, provider, kind, &best.id).await {
+        let item = match import(pool, provider, root_id, kind, &best.id).await {
             Ok(item) => item,
             Err(e) => {
                 report.provider_error = Some(e);
@@ -473,23 +487,30 @@ fn score(r: &SearchResult, title: &str, year: Option<i64>) -> Identified {
     }
 }
 
+/// Imports a provider item into the library of `root`.
 async fn import(
     pool: &SqlitePool,
     provider: &Provider,
+    root: i64,
     kind: LibraryKind,
     id: &str,
 ) -> Result<i64, String> {
+    let library: i64 = sqlx::query_scalar("SELECT library_id FROM library_root WHERE id = ?")
+        .bind(root)
+        .fetch_one(pool)
+        .await
+        .map_err(|e| e.to_string())?;
     match kind {
         LibraryKind::Tv => {
             let data = provider.series(id).await.map_err(|e| e.to_string())?;
-            import_series(pool, &data)
+            import_series(pool, library, &data)
                 .await
                 .map(|r| r.item_id)
                 .map_err(|e| e.to_string())
         }
         LibraryKind::Movies => {
             let data = provider.movie(id).await.map_err(|e| e.to_string())?;
-            import_movie(pool, &data)
+            import_movie(pool, library, &data)
                 .await
                 .map(|r| r.item_id)
                 .map_err(|e| e.to_string())

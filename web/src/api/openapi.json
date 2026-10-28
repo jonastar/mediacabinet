@@ -2026,6 +2026,21 @@
         ],
         "summary": "All movies, by title.",
         "operationId": "list_movies",
+        "parameters": [
+          {
+            "name": "library",
+            "in": "query",
+            "description": "Only items in this library (and items not in any library yet).",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -2776,6 +2791,21 @@
         ],
         "summary": "All series, by title.",
         "operationId": "list_series",
+        "parameters": [
+          {
+            "name": "library",
+            "in": "query",
+            "description": "Only items in this library (and items not in any library yet).",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -3798,6 +3828,14 @@
           "provider_id"
         ],
         "properties": {
+          "library_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "The library to add it to. Defaults to the library of that kind with an\nimport target, else the first one."
+          },
           "monitored": {
             "type": "boolean"
           },
@@ -4329,6 +4367,12 @@
               },
               "monitored": {
                 "type": "boolean"
+              },
+              "overview": {
+                "type": [
+                  "string",
+                  "null"
+                ]
               },
               "statuses": {
                 "type": "array",
@@ -5664,6 +5708,14 @@
             "type": "integer",
             "format": "int64"
           },
+          "library_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "The library it belongs to; null only if it predates having one."
+          },
           "monitored": {
             "type": "boolean"
           },
@@ -5943,6 +5995,7 @@
         "type": "string",
         "enum": [
           "walking",
+          "hashing",
           "probing",
           "matching"
         ]
@@ -6595,7 +6648,7 @@
         "properties": {
           "done": {
             "type": "integer",
-            "description": "Files probed so far, during probing.",
+            "description": "Files found while walking (with no total), files hashed or probed,\nor folders matched so far.",
             "minimum": 0
           },
           "phase": {
@@ -6880,6 +6933,14 @@
           "id": {
             "type": "integer",
             "format": "int64"
+          },
+          "library_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "The library it belongs to; null only if it predates having one."
           },
           "new_episodes": {
             "type": "integer",

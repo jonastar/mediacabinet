@@ -107,6 +107,8 @@ pub async fn events(
             },
         )
         .flat_map(futures::stream::iter)
+        // Never ends by itself; without this, shutdown waits on every open tab.
+        .take_until(crate::shutting_down(state.shutdown.clone()))
         .map(|e| {
             Ok::<_, Infallible>(
                 Event::default()

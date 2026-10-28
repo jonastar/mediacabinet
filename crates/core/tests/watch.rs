@@ -24,6 +24,7 @@ async fn db() -> (TempDir, SqlitePool) {
          INSERT INTO library_root (id, library_id, path, layout_template) VALUES (1, 1, '/m', '{movie}/{filename}');
          INSERT INTO media_file (id, root_id, relative_path, size, mtime, duration_seconds)
              VALUES (1, 1, 'Film/film.mkv', 1, 1, 100);
+         UPDATE item SET library_id = 1 WHERE id = 5;
          INSERT INTO file_link (file_id, item_id, confidence, source) VALUES (1, 5, 1, 'user');",
     )
     .execute(&pool)

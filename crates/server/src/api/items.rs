@@ -16,6 +16,7 @@ use utoipa::{IntoParams, ToSchema};
 
 use super::ApiError;
 use super::auth::Viewer;
+use super::catalog::LibraryQuery;
 use super::error::ErrorBody;
 use crate::AppState;
 
@@ -43,13 +44,22 @@ impl From<RefreshError> for ApiError {
 }
 
 /// All movies, by title.
-#[utoipa::path(get, path = "/movies", tag = "catalog", responses((status = 200, body = Vec<MovieSummary>)))]
+#[utoipa::path(
+    get,
+    path = "/movies",
+    tag = "catalog",
+    params(LibraryQuery),
+    responses((status = 200, body = Vec<MovieSummary>))
+)]
 pub async fn list_movies(
     State(state): State<AppState>,
     viewer: Viewer,
+    Query(query): Query<LibraryQuery>,
 ) -> Result<Json<Vec<MovieSummary>>, ApiError> {
     let user = Some(viewer.0);
-    Ok(Json(movies::list_movies(&state.db, user).await?))
+    Ok(Json(
+        movies::list_movies(&state.db, user, query.library).await?,
+    ))
 }
 
 /// A movie with its files (versions, editions and parts).

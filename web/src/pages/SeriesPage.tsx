@@ -10,7 +10,9 @@ import {
 import { heroBackground } from '../lib/artwork'
 import { EditDetails } from '../components/EditDetails'
 import { useApi } from '../api/useApi'
-import { BackIcon, GridIcon, ListIcon, PlayIcon } from '../components/Icons'
+import { GridIcon, ListIcon, PlayIcon } from '../components/Icons'
+import { LibraryBack } from '../components/LibraryBack'
+import { episodePath, itemPath, useCanonicalPath } from '../lib/router'
 import { Segmented } from '../components/Segmented'
 import { Failed, Loading } from '../components/Status'
 import { airDayLabel, episodeLabel, seriesTone } from '../lib/format'
@@ -23,12 +25,13 @@ import { PlaylistEditor } from './series/PlaylistEditor'
 import { useUser } from '../lib/session'
 import styles from './SeriesPage.module.css'
 
-function viewNote(view: View | undefined, views: View[]): string {
-  if (!view) {
-    return 'Every episode, by air date.'
-  }
-  if (view.kind === 'playlist') {
+/** What the current ordering means; nothing when it's the only one. */
+function viewNote(view: View | undefined, views: View[]): string | null {
+  if (view?.kind === 'playlist') {
     return `${view.name} playlist. Up next follows it.`
+  }
+  if (!view || views.length <= 1) {
+    return null
   }
   const base: Record<string, string> = {
     aired: 'Aired order. Seasons as broadcast.',
@@ -38,7 +41,7 @@ function viewNote(view: View | undefined, views: View[]): string {
     custom: `${view.name}: a custom ordering.`,
   }
   const note = base[view.kind] ?? view.name
-  return view.is_default && views.length > 1 ? note.replace('.', ' (default).') : note
+  return view.is_default ? note.replace('.', ' (default).') : note
 }
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
@@ -47,6 +50,7 @@ export function SeriesPage({ id }: { id: number }) {
   const [mode] = useMode()
   const [layout, setLayout] = useEpisodeLayout()
   const detail = useApi(`series:${id}`, () => api.seriesDetail(id))
+  useCanonicalPath(detail.data ? itemPath('series', id, detail.data.library_id) : null)
   // The view the user picked on this page; until then, their saved one.
   const [pickedView, setPickedView] = useState<string | null>(null)
   const [pendingMonitor, setPendingMonitor] = useState(new Map<number, boolean>())
@@ -186,10 +190,11 @@ export function SeriesPage({ id }: { id: number }) {
         style={{ background }}
       >
         <div className={styles.heroBar}>
-          <Link to="/tv" className={styles.back}>
-            <BackIcon />
-            TV Shows
-          </Link>
+          <LibraryBack
+            libraryId={series.library_id}
+            fallback={{ to: '/tv', label: 'TV Shows' }}
+            className={styles.back}
+          />
         </div>
         <div className={styles.heroBody}>
           {manage && <span className={styles.managing}>Managing · changes apply for everyone</span>}
@@ -366,6 +371,7 @@ export function SeriesPage({ id }: { id: number }) {
             upNext={list.up_next}
             mode={mode}
             layout={layout}
+            episodeLink={(e) => episodePath(id, e.item_id, series.library_id)}
             pendingMonitor={pendingMonitor}
             onToggleMonitor={toggleEpisodeMonitor}
             onSetPlayed={setPlayed}

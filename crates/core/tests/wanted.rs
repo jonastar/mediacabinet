@@ -35,7 +35,7 @@ async fn library(pool: &SqlitePool) {
         pool,
         "INSERT INTO library (id, name, kind) VALUES (1, 'TV', 'tv');
          INSERT INTO library_root (id, library_id, path, layout_template) VALUES (1, 1, '/tv', '{series}/{filename}');
-         INSERT INTO item (id, kind, title) VALUES (1, 'series', 'Show');
+         INSERT INTO item (id, kind, title, library_id) VALUES (1, 'series', 'Show', 1);
          INSERT INTO item (id, parent_id, kind, title, airs_at) VALUES
              (2, 1, 'episode', 'present', 1000),
              (3, 1, 'episode', 'missing', 1000),

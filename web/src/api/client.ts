@@ -141,7 +141,8 @@ async function request<T>(
 export const api = {
   health: () => request<Health>('GET', '/api/health'),
   home: () => request<Home>('GET', '/api/home'),
-  series: () => request<SeriesSummary[]>('GET', '/api/series'),
+  series: (library?: number) =>
+    request<SeriesSummary[]>('GET', `/api/series${library ? `?library=${library}` : ''}`),
   seriesDetail: (id: number) => request<SeriesDetail>('GET', `/api/series/${id}`),
   episodes: (id: number, view?: string | null) =>
     request<EpisodeList>(
@@ -155,6 +156,8 @@ export const api = {
   libraries: () => request<Library[]>('GET', '/api/libraries'),
   createLibrary: (name: string, kind: LibraryKind) =>
     request<Library>('POST', '/api/libraries', { name, kind }),
+  renameLibrary: (id: number, name: string) =>
+    request<Library>('PATCH', `/api/libraries/${id}`, { name }),
   deleteLibrary: (id: number) => request<void>('DELETE', `/api/libraries/${id}`),
   addRoot: (libraryId: number, root: NewRoot) =>
     request<Root>('POST', `/api/libraries/${libraryId}/roots`, root),
@@ -186,7 +189,8 @@ export const api = {
       'GET',
       `/api/metadata/search?kind=${kind}&query=${encodeURIComponent(query)}${year ? `&year=${year}` : ''}`,
     ),
-  movies: () => request<MovieSummary[]>('GET', '/api/movies'),
+  movies: (library?: number) =>
+    request<MovieSummary[]>('GET', `/api/movies${library ? `?library=${library}` : ''}`),
   movieDetail: (id: number) => request<MovieDetail>('GET', `/api/movies/${id}`),
   search: (q: string) => request<SearchResults>('GET', `/api/search?q=${encodeURIComponent(q)}`),
   editItem: (id: number, edit: ItemEdit) => request<void>('PATCH', `/api/items/${id}`, edit),

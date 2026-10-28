@@ -1247,6 +1247,12 @@ export interface components {
             pin?: boolean;
         };
         AddItem: {
+            /**
+             * Format: int64
+             * @description The library to add it to. Defaults to the library of that kind with an
+             *     import target, else the first one.
+             */
+            library_id?: number | null;
             monitored?: boolean;
             /** @description The metadata provider's ID (TMDB). */
             provider_id: string;
@@ -1419,6 +1425,7 @@ export interface components {
             is_filler: boolean;
             is_gap: boolean;
             monitored: boolean;
+            overview?: string | null;
             statuses: components["schemas"]["ExternalStatus"][];
             wanted: boolean;
             /** @description Why it's wanted: `missing`, `not_acquired` or `upgrade` (below the quality cutoff). */
@@ -1791,6 +1798,11 @@ export interface components {
             genres: string[];
             /** Format: int64 */
             id: number;
+            /**
+             * Format: int64
+             * @description The library it belongs to; null only if it predates having one.
+             */
+            library_id?: number | null;
             monitored: boolean;
             /**
              * Format: int64
@@ -1869,7 +1881,7 @@ export interface components {
             text: string;
         };
         /** @enum {string} */
-        Phase: "walking" | "probing" | "matching";
+        Phase: "walking" | "hashing" | "probing" | "matching";
         Placement: {
             note: string;
             /** @description Relative to the root; None when nothing is written to this root. */
@@ -2064,7 +2076,10 @@ export interface components {
             write_policy: string;
         };
         ScanProgress: {
-            /** @description Files probed so far, during probing. */
+            /**
+             * @description Files found while walking (with no total), files hashed or probed,
+             *     or folders matched so far.
+             */
             done: number;
             phase: components["schemas"]["Phase"];
             /** @description Another scan is due when this one finishes. */
@@ -2136,6 +2151,11 @@ export interface components {
             genres: string[];
             /** Format: int64 */
             id: number;
+            /**
+             * Format: int64
+             * @description The library it belongs to; null only if it predates having one.
+             */
+            library_id?: number | null;
             /**
              * Format: int64
              * @description Available, unplayed episodes whose file arrived in the last 7 days.
@@ -3858,7 +3878,10 @@ export interface operations {
     };
     list_movies: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Only items in this library (and items not in any library yet). */
+                library?: number | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -4449,7 +4472,10 @@ export interface operations {
     };
     list_series: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Only items in this library (and items not in any library yet). */
+                library?: number | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;

@@ -58,6 +58,11 @@ impl Walk {
 
 /// Lists the video files under `root`. Fails only if the root itself can't be read.
 pub fn walk(root: &Path) -> io::Result<Walk> {
+    walk_with_progress(root, |_| ())
+}
+
+/// `walk`, calling `found(files)` as videos turn up.
+pub fn walk_with_progress(root: &Path, found: impl Fn(usize)) -> io::Result<Walk> {
     // Fail early, and distinctly, for an unreachable root.
     std::fs::read_dir(root)?;
 
@@ -120,7 +125,11 @@ pub fn walk(root: &Path) -> io::Result<Walk> {
             device_id,
             inode,
         });
+        if walk.files.len() % 100 == 0 {
+            found(walk.files.len());
+        }
     }
+    found(walk.files.len());
     Ok(walk)
 }
 

@@ -68,7 +68,7 @@ export function SearchPage() {
           <ul className={styles.hits}>
             {r.episodes.map((e) => (
               <li key={e.item_id}>
-                <Link to={`/tv/${e.series_id}`} className={styles.hit}>
+                <Link to={`/tv/${e.series_id}/${e.item_id}`} className={styles.hit}>
                   <b>{e.title}</b>
                   <span className={styles.muted}>
                     {e.series_title} · {episodeLabel(e.number)}

@@ -6,6 +6,7 @@ import {
   type LibraryKind,
   type PathPiece,
 } from '../../api/client'
+import { barColor, pct } from './confidence'
 import type { Entry } from './entries'
 import { EpisodePicker, SearchPicker } from './Pickers'
 import styles from './Review.module.css'
@@ -42,10 +43,6 @@ function Facts({ facts }: { facts: Fact[] }) {
     </div>
   )
 }
-
-const pct = (c: number) => `${Math.round(c * 100)}%`
-const barColor = (c: number) =>
-  c >= 0.85 ? 'var(--state-available)' : c >= 0.5 ? 'var(--accent)' : 'var(--state-missing)'
 
 const SOURCES: Record<string, string> = {
   parser: 'parser',
@@ -134,7 +131,13 @@ function fileFacts(f: FileReview): Fact[] {
   return facts
 }
 
-export function Detail({ entry, onDone }: { entry: Entry; onDone: () => void }) {
+export function Detail({
+  entry,
+  onDone,
+}: {
+  entry: Exclude<Entry, { kind: 'group' }>
+  onDone: () => void
+}) {
   const candidates = entry.kind === 'folder' ? entry.folder.candidates : entry.file.candidates
   const [picked, setPicked] = useState<number | null>(candidates[0]?.id ?? null)
   const [mode, setMode] = useState<'candidates' | 'search'>(

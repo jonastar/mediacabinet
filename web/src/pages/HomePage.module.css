@@ -166,13 +166,40 @@
 }
 
 .continue {
+  position: relative;
   flex: 0 0 340px;
   max-width: 80vw;
+}
+
+.continueLink {
   display: flex;
   flex-direction: column;
   gap: 12px;
   color: var(--text);
   text-decoration: none;
+}
+
+.continuePlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.continuePlay:hover {
+  color: var(--accent-ink);
+  filter: brightness(1.08);
+}
+
+.continuePlay svg {
+  width: 18px;
+  height: 18px;
 }
 
 .continueArt {

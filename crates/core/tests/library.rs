@@ -154,11 +154,12 @@ async fn removing_a_root_keeps_user_matches_safe() {
         .await
         .unwrap();
     cabinet_core::scan::scan_root(&pool, root.id).await.unwrap();
-    sqlx::raw_sql(
-        "INSERT INTO item (id, kind, title) VALUES (1, 'series', 'Show');
+    sqlx::query(
+        "INSERT INTO item (id, kind, title, library_id) VALUES (1, 'series', 'Show', ?);
          INSERT INTO item (id, parent_id, kind, title) VALUES (2, 1, 'episode', 'Pilot');
          INSERT INTO file_link (file_id, item_id, confidence, source) SELECT id, 2, 1, 'user' FROM media_file;",
     )
+    .bind(tv.id)
     .execute(&pool)
     .await
     .unwrap();
@@ -178,6 +179,12 @@ async fn removing_a_root_keeps_user_matches_safe() {
         .await
         .unwrap();
     assert_eq!(files, 0);
+    let err = library::delete(&pool, tv.id).await.unwrap_err();
+    assert!(message(err).contains("still holds 1"));
+    sqlx::raw_sql("DELETE FROM item WHERE id = 2; DELETE FROM item WHERE id = 1;")
+        .execute(&pool)
+        .await
+        .unwrap();
     library::delete(&pool, tv.id).await.unwrap();
 }
 

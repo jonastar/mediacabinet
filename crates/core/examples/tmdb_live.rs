@@ -15,6 +15,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let tmdb = Tmdb::new(key);
     let dir = tempfile::tempdir()?;
     let pool = cabinet_core::db::open(&dir.path().join("cabinet.db")).await?;
+    sqlx::raw_sql(
+        "INSERT INTO library (id, name, kind) VALUES (1, 'TV', 'tv'), (2, 'Movies', 'movies')",
+    )
+    .execute(&pool)
+    .await?;
 
     let results = tmdb.search_series(&series_query, None).await?;
     println!("search \"{series_query}\": {} results", results.len());
@@ -43,9 +48,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             o.entries.len()
         );
     }
-    let report = import_series(&pool, &data).await?;
+    let report = import_series(&pool, 1, &data).await?;
     println!("  imported: {report:?}");
-    let again = import_series(&pool, &data).await?;
+    let again = import_series(&pool, 1, &data).await?;
     println!(
         "  re-imported: added {}, updated {}",
         again.episodes_added, again.episodes_updated
@@ -62,7 +67,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         movie.external_ids,
         movie.poster
     );
-    import_movie(&pool, &movie).await?;
+    import_movie(&pool, 2, &movie).await?;
 
     if let Some((_, tvdb)) = data.external_ids.iter().find(|(p, _)| p == "tvdb") {
         println!("find tvdb:{tvdb} -> {:?}", tmdb.find("tvdb", tvdb).await?);

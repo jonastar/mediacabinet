@@ -68,10 +68,11 @@ impl Lib {
         let provider = Provider::Fake(Arc::new(
             Catalog::from_json(include_str!("data/catalog.json")).unwrap(),
         ));
-        let series = cabinet_core::items::add(&pool, &provider, "series", "99010", true, None)
-            .await
-            .unwrap()
-            .item_id;
+        let series =
+            cabinet_core::items::add(&pool, &provider, "series", "99010", None, true, None)
+                .await
+                .unwrap()
+                .item_id;
         Lib {
             pool,
             adaptive: roots[0],

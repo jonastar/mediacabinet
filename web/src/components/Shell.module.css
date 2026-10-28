@@ -66,9 +66,16 @@
   color: var(--text-muted);
 }
 
+/* Pinned to the bottom: settings, then the user menu. */
+.bottom {
+  margin-top: auto;
+  padding-top: 16px;
+  display: flex;
+  flex-direction: column;
+}
+
 /* The user menu: who you are and the app-wide mode. */
 .user {
-  margin-top: auto;
   padding: 16px 12px 0;
   display: flex;
   flex-direction: column;
@@ -139,6 +146,17 @@
   flex-direction: column;
 }
 
+/* Beside the page, the sidebar stays in view (with the user menu at its foot)
+   however long the page is. */
+@media (min-width: 801px) {
+  .sidebar {
+    position: sticky;
+    top: 0;
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+}
+
 @media (max-width: 800px) {
   .sidebar {
     border-right: 0;
@@ -146,7 +164,7 @@
     padding: 16px;
   }
 
-  .user {
+  .bottom {
     margin-top: 8px;
   }
 }

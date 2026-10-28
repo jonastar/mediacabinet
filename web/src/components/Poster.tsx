@@ -2,6 +2,7 @@ import { artworkUrl, type MovieSummary, type SeriesSummary } from '../api/client
 import { CoverImage } from './Artwork'
 import { airWeekday, seriesTone } from '../lib/format'
 import type { Mode } from '../lib/prefs'
+import { itemPath } from '../lib/router'
 import { Link } from './Link'
 import styles from './Poster.module.css'
 
@@ -32,7 +33,7 @@ export function Poster({ series: s, mode }: { series: SeriesSummary; mode: Mode 
         : `${c.available} episodes ready`
   const width = (n: number) => `${c.total ? (n / c.total) * 100 : 0}%`
   return (
-    <Link to={`/tv/${s.id}`} className={styles.poster}>
+    <Link to={itemPath('series', s.id, s.library_id)} className={styles.poster}>
       <div className={styles.art} style={{ background: seriesTone(s.title) }}>
         <CoverImage src={artworkUrl(s, 'poster')} alt={s.title} />
         {badge && <span className={styles.badge}>{badge}</span>}
@@ -66,7 +67,7 @@ export function MoviePoster({ movie: m, mode }: { movie: MovieSummary; mode: Mod
       : [m.year, runtime(m.runtime_seconds)].filter(Boolean).join(' · ')
   const available = m.availability === 'available'
   return (
-    <Link to={`/movies/${m.id}`} className={styles.poster}>
+    <Link to={itemPath('movie', m.id, m.library_id)} className={styles.poster}>
       <div className={styles.art} style={{ background: seriesTone(m.title) }}>
         <CoverImage src={artworkUrl(m, 'poster')} alt={m.title} />
         {m.watch?.played && <span className={styles.badge}>Watched</span>}

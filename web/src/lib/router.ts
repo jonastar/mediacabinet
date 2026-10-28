@@ -1,4 +1,4 @@
-import { useSyncExternalStore } from 'react'
+import { useEffect, useSyncExternalStore } from 'react'
 
 function subscribe(onChange: () => void) {
   window.addEventListener('popstate', onChange)
@@ -27,6 +27,29 @@ export function navigate(to: string, { replace = false }: { replace?: boolean } 
   }
   window.dispatchEvent(new PopStateEvent('popstate'))
   window.scrollTo(0, 0)
+}
+
+/** Replaces the URL with `path` (keeping the query) once it's known, without a history entry. */
+export function useCanonicalPath(path: string | null) {
+  const current = usePath()
+  useEffect(() => {
+    if (path && path !== current) {
+      navigate(path + window.location.search, { replace: true })
+    }
+  }, [path, current])
+}
+
+/** Where a series or movie's page is: under its library when it has one. */
+export function itemPath(kind: 'series' | 'movie', id: number, libraryId?: number | null) {
+  if (libraryId) {
+    return `/library/${libraryId}/${id}`
+  }
+  return kind === 'series' ? `/tv/${id}` : `/movies/${id}`
+}
+
+/** Where an episode's page is: under its series' page. */
+export function episodePath(seriesId: number, episodeId: number, libraryId?: number | null) {
+  return `${itemPath('series', seriesId, libraryId)}/${episodeId}`
 }
 
 /** Matches `/tv/:id`-style patterns. Returns the params, or null. */

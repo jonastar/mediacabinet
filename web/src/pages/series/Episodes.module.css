@@ -9,17 +9,71 @@
   gap: 4px;
 }
 
+/* ── Seasons ──────────────────────────────────────────────────────────── */
+
+.seasons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.seasonGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+}
+
+.seasonGroup:first-child {
+  border-top: 0;
+}
+
 .season {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 18px 4px 8px;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  padding-top: 8px;
+}
+
+.seasonToggle {
+  flex: 1;
+  min-height: var(--touch-target);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+}
+
+.chevron {
+  width: 16px;
+  font-size: 22px;
+  line-height: 1;
   color: var(--text-muted);
+  transition: transform 0.15s ease;
+}
+
+.seasonToggle[aria-expanded='true'] .chevron {
+  transform: rotate(90deg);
+}
+
+.seasonName {
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.seasonSummary {
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+.seasonToggle:hover .seasonName {
+  text-decoration: underline;
 }
 
 .row {
@@ -60,10 +114,8 @@
   background: none;
   color: var(--text-muted);
   font: inherit;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: none;
 }
 
 .seasonAction:hover {
@@ -107,6 +159,12 @@
 .title {
   font-weight: 700;
   font-size: 16px;
+  color: inherit;
+  text-decoration: none;
+}
+
+a.title:hover {
+  text-decoration: underline;
 }
 
 .tag {

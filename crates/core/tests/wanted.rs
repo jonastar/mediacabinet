@@ -36,18 +36,20 @@ async fn library(pool: &SqlitePool) {
         "INSERT INTO library (id, name, kind) VALUES (1, 'TV', 'tv');
          INSERT INTO library_root (id, library_id, path, layout_template) VALUES (1, 1, '/tv', '{series}/{filename}');
          INSERT INTO item (id, kind, title, library_id) VALUES (1, 'series', 'Show', 1);
-         INSERT INTO item (id, parent_id, kind, title, airs_at) VALUES
-             (2, 1, 'episode', 'present', 1000),
-             (3, 1, 'episode', 'missing', 1000),
-             (4, 1, 'episode', 'never had a file', 1000),
-             (5, 1, 'episode', 'airs next year', unixepoch() + 365 * 86400),
-             (6, 1, 'episode', 'no date', NULL),
-             (7, 1, 'episode', 'removed file', 1000);
-         INSERT INTO media_file (id, root_id, relative_path, size, mtime, status) VALUES
-             (1, 1, 'Show/a.mkv', 1, 1, 'present'),
-             (2, 1, 'Show/b.mkv', 1, 1, 'missing'),
-             (3, 1, 'Show/c.mkv', 1, 1, 'removed');
-         INSERT INTO file_link (file_id, item_id, confidence, source) VALUES (1, 2, 1, 'user'), (2, 3, 1, 'user'), (3, 7, 1, 'user');
+         INSERT INTO series (item_id) VALUES (1);
+         INSERT INTO item (id, parent_id, library_id, kind, title, airs_at) VALUES
+             (2, 1, 1, 'episode', 'present', 1000),
+             (3, 1, 1, 'episode', 'missing', 1000),
+             (4, 1, 1, 'episode', 'never had a file', 1000),
+             (5, 1, 1, 'episode', 'airs next year', unixepoch() + 365 * 86400),
+             (6, 1, 1, 'episode', 'no date', NULL),
+             (7, 1, 1, 'episode', 'removed file', 1000);
+         INSERT INTO media_file (id, root_id, library_id, relative_path, size, mtime, status) VALUES
+             (1, 1, 1, 'Show/a.mkv', 1, 1, 'present'),
+             (2, 1, 1, 'Show/b.mkv', 1, 1, 'missing'),
+             (3, 1, 1, 'Show/c.mkv', 1, 1, 'removed');
+         INSERT INTO file_link (file_id, item_id, library_id, confidence, source)
+             VALUES (1, 2, 1, 1, 'user'), (2, 3, 1, 1, 'user'), (3, 7, 1, 1, 'user');
          INSERT INTO media_stream (file_id, stream_index, kind, height) VALUES (1, 0, 'video', 720);",
     )
     .await;
@@ -206,7 +208,7 @@ async fn events_follow_changes_including_time() {
     // A file arrives for one wanted episode.
     exec(
         &pool,
-        "INSERT INTO file_link (file_id, item_id, confidence, source) VALUES (1, 4, 1, 'user')",
+        "INSERT INTO file_link (file_id, item_id, library_id, confidence, source) VALUES (1, 4, 1, 1, 'user')",
     )
     .await;
     assert_eq!(wanted::sync(&pool).await.unwrap(), (0, 1));

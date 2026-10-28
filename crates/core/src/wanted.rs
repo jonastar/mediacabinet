@@ -168,23 +168,11 @@ pub async fn list(
             "reason is missing, not_acquired or upgrade".into(),
         ));
     }
-    // An episode belongs to its series' libraries: where the series has a stored
-    // folder, or where any of its episodes has a file. A movie, where its files are.
     const WHERE: &str = "
         WHERE (?1 IS NULL OR w.parent_id = ?1)
           AND (?2 IS NULL OR w.reason = ?2)
           AND (?3 IS NULL OR w.kind = ?3)
-          AND (?4 IS NULL
-            OR EXISTS (
-              SELECT 1 FROM series_location sl JOIN library_root r ON r.id = sl.root_id
-              WHERE sl.series_item_id = w.parent_id AND r.library_id = ?4)
-            OR EXISTS (
-              SELECT 1 FROM file_link l
-              JOIN item x ON x.id = l.item_id
-              JOIN media_file f ON f.id = l.file_id
-              JOIN library_root r ON r.id = f.root_id
-              WHERE r.library_id = ?4
-                AND (x.id = w.item_id OR (w.parent_id IS NOT NULL AND x.parent_id = w.parent_id))))";
+          AND (?4 IS NULL OR (SELECT library_id FROM item WHERE id = w.item_id) = ?4)";
     let total: i64 = sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
         "SELECT count(*) FROM item_wanted w {WHERE}"
     )))
@@ -504,7 +492,7 @@ pub async fn set_monitoring(
                 ));
             }
         }
-        sqlx::query("UPDATE item SET wanted_playlist_id = ? WHERE id = ?")
+        sqlx::query("UPDATE series SET wanted_playlist_id = ? WHERE item_id = ?")
             .bind(playlist)
             .bind(item)
             .execute(&mut *tx)

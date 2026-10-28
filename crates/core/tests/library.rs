@@ -155,9 +155,11 @@ async fn removing_a_root_keeps_user_matches_safe() {
         .unwrap();
     cabinet_core::scan::scan_root(&pool, root.id).await.unwrap();
     sqlx::query(
-        "INSERT INTO item (id, kind, title, library_id) VALUES (1, 'series', 'Show', ?);
-         INSERT INTO item (id, parent_id, kind, title) VALUES (2, 1, 'episode', 'Pilot');
-         INSERT INTO file_link (file_id, item_id, confidence, source) SELECT id, 2, 1, 'user' FROM media_file;",
+        "INSERT INTO item (id, kind, title, library_id) VALUES (1, 'series', 'Show', ?1);
+         INSERT INTO series (item_id) VALUES (1);
+         INSERT INTO item (id, parent_id, library_id, kind, title) VALUES (2, 1, ?1, 'episode', 'Pilot');
+         INSERT INTO file_link (file_id, item_id, library_id, confidence, source)
+             SELECT id, 2, library_id, 1, 'user' FROM media_file;",
     )
     .bind(tv.id)
     .execute(&pool)

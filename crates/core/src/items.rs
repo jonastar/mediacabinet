@@ -180,12 +180,11 @@ pub async fn set_match_ordering(
             ));
         }
     }
-    let done =
-        sqlx::query("UPDATE item SET match_ordering_id = ? WHERE id = ? AND kind = 'series'")
-            .bind(ordering)
-            .bind(series)
-            .execute(pool)
-            .await?;
+    let done = sqlx::query("UPDATE series SET match_ordering_id = ? WHERE item_id = ?")
+        .bind(ordering)
+        .bind(series)
+        .execute(pool)
+        .await?;
     if done.rows_affected() == 0 {
         return Err(ItemError::NotFound);
     }

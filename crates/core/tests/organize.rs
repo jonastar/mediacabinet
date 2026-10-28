@@ -248,12 +248,15 @@ async fn dry_runs_change_nothing_and_replacing_removes_the_old_version() {
 #[tokio::test]
 async fn read_only_roots_are_never_written() {
     let lib = Lib::new().await;
-    sqlx::query("INSERT INTO series_location (series_item_id, root_id, path, is_primary) VALUES (?, ?, 'Night Harbor', 1)")
-        .bind(lib.series)
-        .bind(lib.read_only)
-        .execute(&lib.pool)
-        .await
-        .unwrap();
+    sqlx::query(
+        "INSERT INTO series_location (series_item_id, root_id, library_id, path, is_primary)
+         SELECT ?1, ?2, library_id, 'Night Harbor', 1 FROM library_root WHERE id = ?2",
+    )
+    .bind(lib.series)
+    .bind(lib.read_only)
+    .execute(&lib.pool)
+    .await
+    .unwrap();
     let r = lib
         .import(
             &lib.download("nh.s01e03.mkv"),

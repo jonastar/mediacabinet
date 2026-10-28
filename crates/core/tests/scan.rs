@@ -144,13 +144,16 @@ async fn renamed_file_keeps_its_row_and_links() {
     sqlx::raw_sql(
         "INSERT INTO item (id, kind, title, library_id)
              SELECT 1, 'series', 'Show', library_id FROM library_root LIMIT 1;
-         INSERT INTO item (id, parent_id, kind, title) VALUES (2, 1, 'episode', 'Pilot');",
+         INSERT INTO series (item_id) VALUES (1);
+         INSERT INTO item (id, parent_id, library_id, kind, title)
+             SELECT 2, 1, library_id, 'episode', 'Pilot' FROM item WHERE id = 1;",
     )
     .execute(&lib.pool)
     .await
     .unwrap();
     sqlx::query(
-        "INSERT INTO file_link (file_id, item_id, confidence, source) VALUES (?, 2, 1, 'user')",
+        "INSERT INTO file_link (file_id, item_id, library_id, confidence, source)
+         SELECT id, 2, library_id, 1, 'user' FROM media_file WHERE id = ?",
     )
     .bind(id)
     .execute(&lib.pool)

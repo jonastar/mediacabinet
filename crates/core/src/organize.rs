@@ -520,8 +520,9 @@ pub async fn import_file(
     let mut tx = crate::db::begin_write(pool).await?;
     for item in items {
         sqlx::query(
-            "INSERT INTO file_link (file_id, item_id, edition, part, confidence, source, pinned)
-             VALUES (?, ?, ?, ?, 1, 'path_id', 1) ON CONFLICT DO NOTHING",
+            "INSERT INTO file_link (file_id, item_id, library_id, edition, part, confidence, source, pinned)
+             SELECT ?1, ?2, library_id, ?3, ?4, 1, 'path_id', 1 FROM media_file WHERE id = ?1
+             ON CONFLICT DO NOTHING",
         )
         .bind(file_id)
         .bind(item)
@@ -589,8 +590,10 @@ async fn record_file(
     let hash = scan::partial_hash(&full)?;
     let mut tx = crate::db::begin_write(pool).await?;
     let id: i64 = sqlx::query_scalar(
-        "INSERT INTO media_file (root_id, relative_path, size, mtime, device_id, inode, content_hash)
-         VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id",
+        "INSERT INTO media_file
+             (root_id, library_id, relative_path, size, mtime, device_id, inode, content_hash)
+         SELECT ?1, library_id, ?2, ?3, ?4, ?5, ?6, ?7 FROM library_root WHERE id = ?1
+         RETURNING id",
     )
     .bind(root_id)
     .bind(relative)
@@ -921,6 +924,12 @@ async fn apply_moves(
 
         let found = scan::stat(Path::new(&dest_root_path), &to)?;
         let mut tx = crate::db::begin_write(pool).await?;
+        // Sidecar rows are rebuilt by the next scan; drop the stale ones now, before
+        // the file's root changes under them.
+        sqlx::query("DELETE FROM sidecar WHERE file_id = ?")
+            .bind(m.file_id)
+            .execute(&mut *tx)
+            .await?;
         sqlx::query(
             "UPDATE media_file SET root_id = ?, relative_path = ?, device_id = ?, inode = ?, mtime = ?,
                  last_seen = unixepoch() WHERE id = ?",
@@ -933,11 +942,6 @@ async fn apply_moves(
         .bind(m.file_id)
         .execute(&mut *tx)
         .await?;
-        // Sidecar rows are rebuilt by the next scan; drop the stale ones now.
-        sqlx::query("DELETE FROM sidecar WHERE file_id = ?")
-            .bind(m.file_id)
-            .execute(&mut *tx)
-            .await?;
         events::emit(
             &mut tx,
             events::FILE_MOVED,

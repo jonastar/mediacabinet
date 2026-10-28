@@ -252,10 +252,12 @@ pub async fn delete(pool: &SqlitePool, id: i64) -> Result<(), LibraryError> {
             "Remove the library's folders first.".into(),
         ));
     }
-    let items: i64 = sqlx::query_scalar("SELECT count(*) FROM item WHERE library_id = ?")
-        .bind(id)
-        .fetch_one(pool)
-        .await?;
+    let items: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM item WHERE library_id = ? AND kind IN ('series', 'movie')",
+    )
+    .bind(id)
+    .fetch_one(pool)
+    .await?;
     if items > 0 {
         return Err(LibraryError::Conflict(format!(
             "It still holds {items} series or movies, with their watch history."
@@ -525,15 +527,14 @@ pub async fn placement_example(
     let library = get(pool, library_id).await?;
     let kind = kind_of(&library.kind);
     let candidate: Option<ExampleRow> = sqlx::query_as(
-        "SELECT s.id AS series_id, s.title AS series, s.year, sl.path AS location, r.id AS root_id,
+        "SELECT s.id AS series_id, s.title AS series, s.year, sl.path AS location, sl.root_id,
                 e.id AS episode_id, e.title AS episode_title
          FROM series_location sl
-         JOIN library_root r ON r.id = sl.root_id
          JOIN item s ON s.id = sl.series_item_id
          JOIN ordering o ON o.series_id = s.id AND o.is_default
          JOIN ordering_entry oe ON oe.ordering_id = o.id
          JOIN item e ON e.id = oe.item_id
-         WHERE r.library_id = ? AND sl.is_primary
+         WHERE sl.library_id = ? AND sl.is_primary
            AND NOT EXISTS (SELECT 1 FROM file_link l JOIN media_file f ON f.id = l.file_id
                            WHERE l.item_id = e.id AND f.status = 'present')
          ORDER BY e.airs_at IS NULL, e.airs_at, oe.position

@@ -154,3 +154,4 @@ TMDB is v1's only provider. These plug in behind the same `Provider` interface.
 - Light theme
 - Music and books
 - Localized titles, people and credits, collections, per-user library scoping
+- A "work" identity built from external IDs, shared by the copies of a title in different libraries: watch history synced across libraries, and a stable key for third-party integrations. Watch history stays on `item_id` until then.

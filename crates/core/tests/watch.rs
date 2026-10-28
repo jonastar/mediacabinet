@@ -13,19 +13,19 @@ async fn db() -> (TempDir, SqlitePool) {
         .unwrap();
     sqlx::raw_sql(
         "INSERT INTO app_user (id, name, is_admin) VALUES (1, 'jo', 1);
-         INSERT INTO item (id, kind, title) VALUES (1, 'series', 'Show'), (5, 'movie', 'Film');
-         INSERT INTO item (id, parent_id, kind, title) VALUES
-             (2, 1, 'episode', 'one'), (3, 1, 'episode', 'two'), (4, 1, 'episode', 'three');
+         INSERT INTO library (id, name, kind) VALUES (1, 'Films', 'movies'), (2, 'TV', 'tv');
+         INSERT INTO item (id, kind, title, library_id) VALUES (1, 'series', 'Show', 2), (5, 'movie', 'Film', 1);
+         INSERT INTO series (item_id) VALUES (1);
+         INSERT INTO item (id, parent_id, library_id, kind, title) VALUES
+             (2, 1, 2, 'episode', 'one'), (3, 1, 2, 'episode', 'two'), (4, 1, 2, 'episode', 'three');
          INSERT INTO ordering (id, series_id, name, kind, source, is_default) VALUES (1, 1, 'Aired', 'aired', 'tmdb', 1);
          INSERT INTO ordering_season (id, ordering_id, number) VALUES (1, 1, 1), (2, 1, 2);
          INSERT INTO ordering_entry (ordering_id, position, item_id, ordering_season_id, episode_number)
              VALUES (1, 1, 2, 1, 1), (1, 2, 3, 1, 2), (1, 3, 4, 2, 1);
-         INSERT INTO library (id, name, kind) VALUES (1, 'Films', 'movies');
          INSERT INTO library_root (id, library_id, path, layout_template) VALUES (1, 1, '/m', '{movie}/{filename}');
-         INSERT INTO media_file (id, root_id, relative_path, size, mtime, duration_seconds)
-             VALUES (1, 1, 'Film/film.mkv', 1, 1, 100);
-         UPDATE item SET library_id = 1 WHERE id = 5;
-         INSERT INTO file_link (file_id, item_id, confidence, source) VALUES (1, 5, 1, 'user');",
+         INSERT INTO media_file (id, root_id, library_id, relative_path, size, mtime, duration_seconds)
+             VALUES (1, 1, 1, 'Film/film.mkv', 1, 1, 100);
+         INSERT INTO file_link (file_id, item_id, library_id, confidence, source) VALUES (1, 5, 1, 1, 'user');",
     )
     .execute(&pool)
     .await

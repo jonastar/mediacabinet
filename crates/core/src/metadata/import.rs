@@ -55,8 +55,8 @@ async fn find_primary(
     kind: &str,
 ) -> Result<Option<i64>, sqlx::Error> {
     sqlx::query_scalar(
-        "SELECT i.id FROM external_id x JOIN item i ON i.id = x.item_id
-         WHERE x.provider = ? AND x.value = ? AND x.is_primary AND i.kind = ? AND i.library_id = ?",
+        "SELECT item_id FROM external_id
+         WHERE provider = ? AND value = ? AND is_primary AND kind = ? AND library_id = ?",
     )
     .bind(provider)
     .bind(id)
@@ -102,9 +102,7 @@ async fn update_fields(
             }
             "airs_at" => "UPDATE item SET airs_at = ? WHERE id = ? AND airs_at IS NOT ?",
             "airs_tz" => "UPDATE item SET airs_tz = ? WHERE id = ? AND airs_tz IS NOT ?",
-            "series_status" => {
-                "UPDATE item SET series_status = ? WHERE id = ? AND series_status IS NOT ?"
-            }
+            "series_status" => "UPDATE series SET status = ? WHERE item_id = ? AND status IS NOT ?",
             _ => unreachable!("unknown field {column}"),
         };
         let query = sqlx::query(sql);
@@ -141,15 +139,22 @@ async fn set_external_ids(
         .bind(id)
         .execute(&mut *conn)
         .await?;
-    sqlx::query("INSERT OR IGNORE INTO external_id (item_id, provider, value, is_primary) VALUES (?, ?, ?, 1)")
-        .bind(item)
-        .bind(provider)
-        .bind(id)
-        .execute(&mut *conn)
-        .await?;
+    // Only an existing row is skipped: a primary ID taken by another item is an error.
+    sqlx::query(
+        "INSERT INTO external_id (item_id, library_id, kind, provider, value, is_primary)
+         SELECT id, library_id, kind, ?2, ?3, 1 FROM item WHERE id = ?1
+         ON CONFLICT (item_id, provider, value) DO NOTHING",
+    )
+    .bind(item)
+    .bind(provider)
+    .bind(id)
+    .execute(&mut *conn)
+    .await?;
     for (p, v) in others {
         sqlx::query(
-            "INSERT OR IGNORE INTO external_id (item_id, provider, value) VALUES (?, ?, ?)",
+            "INSERT INTO external_id (item_id, library_id, kind, provider, value)
+             SELECT id, library_id, kind, ?2, ?3 FROM item WHERE id = ?1
+             ON CONFLICT (item_id, provider, value) DO NOTHING",
         )
         .bind(item)
         .bind(p)
@@ -218,9 +223,9 @@ async fn set_artwork(
     Ok(())
 }
 
-/// The library a series or movie belongs to.
+/// The library an item belongs to.
 pub async fn item_library(conn: &mut SqliteConnection, item: i64) -> Result<i64, sqlx::Error> {
-    sqlx::query_scalar("SELECT library_id FROM item WHERE id = ? AND library_id IS NOT NULL")
+    sqlx::query_scalar("SELECT library_id FROM item WHERE id = ?")
         .bind(item)
         .fetch_one(conn)
         .await
@@ -286,7 +291,7 @@ async fn sync_series(
         Some(id) => id,
         None => {
             report.created = true;
-            sqlx::query_scalar(
+            let id: i64 = sqlx::query_scalar(
                 "INSERT INTO item (kind, title, primary_provider, library_id)
                  VALUES ('series', ?, ?, ?) RETURNING id",
             )
@@ -294,7 +299,12 @@ async fn sync_series(
             .bind(provider)
             .bind(library)
             .fetch_one(&mut *tx)
-            .await?
+            .await?;
+            sqlx::query("INSERT INTO series (item_id) VALUES (?)")
+                .bind(id)
+                .execute(&mut *tx)
+                .await?;
+            id
         }
     };
     report.item_id = series;
@@ -383,10 +393,12 @@ async fn sync_series(
             }
             None => {
                 let id: i64 = sqlx::query_scalar(
-                    "INSERT INTO item (parent_id, kind, title) VALUES (?, 'episode', ?) RETURNING id",
+                    "INSERT INTO item (parent_id, kind, title, library_id)
+                     VALUES (?, 'episode', ?, ?) RETURNING id",
                 )
                 .bind(series)
                 .bind(&e.title)
+                .bind(library)
                 .fetch_one(&mut *tx)
                 .await?;
                 update_episode(tx, id, e).await?;

@@ -102,15 +102,19 @@ impl Seeder<'_> {
         tmdb: &str,
     ) -> Result<i64, sqlx::Error> {
         let id: i64 = sqlx::query_scalar(
-            "INSERT INTO item (kind, title, year, overview, series_status, primary_provider, library_id)
-             VALUES ('series', ?, ?, ?, ?, 'tmdb', 1) RETURNING id",
+            "INSERT INTO item (kind, title, year, overview, primary_provider, library_id)
+             VALUES ('series', ?, ?, ?, 'tmdb', 1) RETURNING id",
         )
         .bind(title)
         .bind(year)
         .bind(overview)
-        .bind(status)
         .fetch_one(&mut *self.conn)
         .await?;
+        sqlx::query("INSERT INTO series (item_id, status) VALUES (?, ?)")
+            .bind(id)
+            .bind(status)
+            .execute(&mut *self.conn)
+            .await?;
         self.external_id(id, "tmdb", tmdb, true).await?;
         sqlx::query(
             "INSERT INTO monitor (item_id, monitored, quality_profile_id)
@@ -130,7 +134,8 @@ impl Seeder<'_> {
         primary: bool,
     ) -> Result<(), sqlx::Error> {
         sqlx::query(
-            "INSERT INTO external_id (item_id, provider, value, is_primary) VALUES (?, ?, ?, ?)",
+            "INSERT INTO external_id (item_id, library_id, kind, provider, value, is_primary)
+             SELECT id, library_id, kind, ?2, ?3, ?4 FROM item WHERE id = ?1",
         )
         .bind(item)
         .bind(provider)
@@ -149,8 +154,9 @@ impl Seeder<'_> {
         runtime_minutes: i64,
     ) -> Result<i64, sqlx::Error> {
         sqlx::query_scalar(
-            "INSERT INTO item (parent_id, kind, title, airs_at, airs_tz, runtime_seconds)
-             VALUES (?, 'episode', ?, ?, 'Asia/Tokyo', ?) RETURNING id",
+            "INSERT INTO item (parent_id, library_id, kind, title, airs_at, airs_tz, runtime_seconds)
+             SELECT ?1, library_id, 'episode', ?2, ?3, 'Asia/Tokyo', ?4 FROM item WHERE id = ?1
+             RETURNING id",
         )
         .bind(series)
         .bind(title)
@@ -228,9 +234,11 @@ impl Seeder<'_> {
     ) -> Result<i64, sqlx::Error> {
         let id: i64 = sqlx::query_scalar(
             "INSERT INTO media_file
-                 (root_id, relative_path, size, mtime, content_hash, status, container,
+                 (root_id, library_id, relative_path, size, mtime, content_hash, status, container,
                   duration_seconds, probed_at, first_seen, last_seen)
-             VALUES (?, ?, ?, ?, ?, ?, 'matroska,webm', 1440, ?, ?, ?) RETURNING id",
+             SELECT ?1, library_id, ?2, ?3, ?4, ?5, ?6, 'matroska,webm', 1440, ?7, ?8, ?9
+             FROM library_root WHERE id = ?1
+             RETURNING id",
         )
         .bind(root)
         .bind(path)
@@ -267,7 +275,8 @@ impl Seeder<'_> {
         .await?;
         let (source, confidence, pinned) = link;
         sqlx::query(
-            "INSERT INTO file_link (file_id, item_id, confidence, source, pinned) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO file_link (file_id, item_id, library_id, confidence, source, pinned)
+             SELECT ?1, ?2, library_id, ?3, ?4, ?5 FROM media_file WHERE id = ?1",
         )
         .bind(id)
         .bind(item)
@@ -348,13 +357,16 @@ async fn kitsune_road(s: &mut Seeder<'_>, tv: i64, old: i64) -> Result<(), sqlx:
         (tv, "anime/Kitsune Road", true),
         (old, "Kitsune Road", false),
     ] {
-        sqlx::query("INSERT INTO series_location (series_item_id, root_id, path, is_primary) VALUES (?, ?, ?, ?)")
-            .bind(series)
-            .bind(root)
-            .bind(path)
-            .bind(primary)
-            .execute(&mut *s.conn)
-            .await?;
+        sqlx::query(
+            "INSERT INTO series_location (series_item_id, root_id, library_id, path, is_primary)
+             SELECT ?1, ?2, library_id, ?3, ?4 FROM library_root WHERE id = ?2",
+        )
+        .bind(series)
+        .bind(root)
+        .bind(path)
+        .bind(primary)
+        .execute(&mut *s.conn)
+        .await?;
     }
 
     let aired = s.ordering(series, "Aired", "aired", "tmdb", true).await?;
@@ -713,12 +725,15 @@ async fn other_show(s: &mut Seeder<'_>, tv: i64, show: &Show) -> Result<(), sqlx
             show.tmdb,
         )
         .await?;
-    sqlx::query("INSERT INTO series_location (series_item_id, root_id, path, is_primary) VALUES (?, ?, ?, 1)")
-        .bind(series)
-        .bind(tv)
-        .bind(show.title)
-        .execute(&mut *s.conn)
-        .await?;
+    sqlx::query(
+        "INSERT INTO series_location (series_item_id, root_id, library_id, path, is_primary)
+         SELECT ?1, ?2, library_id, ?3, 1 FROM library_root WHERE id = ?2",
+    )
+    .bind(series)
+    .bind(tv)
+    .bind(show.title)
+    .execute(&mut *s.conn)
+    .await?;
     let aired = s.ordering(series, "Aired", "aired", "tmdb", true).await?;
 
     let total: i64 = show.seasons.iter().sum();

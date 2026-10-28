@@ -352,11 +352,12 @@ impl Loaded {
         now: i64,
     ) -> Result<Loaded, CatalogError> {
         let series: SeriesRow = sqlx::query_as(
-            "SELECT i.id, i.library_id, i.title, i.year, i.overview, i.series_status, i.primary_provider,
-                    m.monitored, m.quality_profile_id, i.metadata_locked, i.match_ordering_id, i.wanted_playlist_id,
-                    i.refreshed_at, i.refresh_error
-             FROM item i LEFT JOIN monitor m ON m.item_id = i.id
-             WHERE i.id = ? AND i.kind = 'series'",
+            "SELECT i.id, i.library_id, i.title, i.year, i.overview, s.status AS series_status,
+                    i.primary_provider, m.monitored, m.quality_profile_id, i.metadata_locked,
+                    s.match_ordering_id, s.wanted_playlist_id, i.refreshed_at, i.refresh_error
+             FROM series s JOIN item i ON i.id = s.item_id
+             LEFT JOIN monitor m ON m.item_id = i.id
+             WHERE s.item_id = ?",
         )
         .bind(series_id)
         .fetch_optional(&mut *conn)

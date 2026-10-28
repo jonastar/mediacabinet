@@ -478,11 +478,9 @@ pub async fn link_file(
             .await?
             .ok_or(ReviewError::NotFound)?;
     let elsewhere: i64 = sqlx::query_scalar(
-        "SELECT count(*) FROM item i LEFT JOIN item p ON p.id = i.parent_id
-         WHERE i.id IN (SELECT value FROM json_each(?))
-           AND coalesce(i.library_id, p.library_id) IS NOT
-               (SELECT r.library_id FROM media_file f JOIN library_root r ON r.id = f.root_id
-                WHERE f.id = ?)",
+        "SELECT count(*) FROM item
+         WHERE id IN (SELECT value FROM json_each(?))
+           AND library_id IS NOT (SELECT library_id FROM media_file WHERE id = ?)",
     )
     .bind(serde_json::to_string(items).expect("ids serialize"))
     .bind(file)

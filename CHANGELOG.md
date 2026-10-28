@@ -12,4 +12,5 @@ Details belong in the commit, docs or API reference.
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
+- Migration 0009 rebuilds the item, file and link tables (backed up first); the wanted list's library filter now uses each item's own library.
 - Episode inspector in Manage mode: links (unlink, set edition), numbers in each ordering, history.

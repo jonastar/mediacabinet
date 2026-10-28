@@ -214,9 +214,9 @@ async fn apply(
     for (f, hash) in &plan.added {
         let id: i64 = sqlx::query_scalar(
             "INSERT INTO media_file
-                 (root_id, relative_path, size, mtime, device_id, inode, content_hash,
+                 (root_id, library_id, relative_path, size, mtime, device_id, inode, content_hash,
                   first_seen, last_seen)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+             SELECT ?1, library_id, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9 FROM library_root WHERE id = ?1
              RETURNING id",
         )
         .bind(root_id)

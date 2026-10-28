@@ -23,8 +23,9 @@ async fn seed(pool: &SqlitePool) {
          INSERT INTO library_root (id, library_id, path, layout_template)
              VALUES (1, 1, '/media/tv', '{series}/Season {season:00}/{filename}');
          INSERT INTO item (id, kind, title, primary_provider, library_id) VALUES (1, 'series', 'Show', 'tmdb', 1);
-         INSERT INTO item (id, parent_id, kind, title) VALUES (2, 1, 'episode', 'Pilot');
-         INSERT INTO item (id, parent_id, kind, title) VALUES (3, 1, 'episode', 'Second');",
+         INSERT INTO series (item_id) VALUES (1);
+         INSERT INTO item (id, parent_id, library_id, kind, title) VALUES (2, 1, 1, 'episode', 'Pilot');
+         INSERT INTO item (id, parent_id, library_id, kind, title) VALUES (3, 1, 1, 'episode', 'Second');",
     )
     .await
     .unwrap();
@@ -66,19 +67,62 @@ async fn episodes_need_a_series_parent() {
     seed(&pool).await;
     assert_rejected(
         &pool,
-        "INSERT INTO item (kind, title) VALUES ('episode', 'Orphan')",
+        "INSERT INTO item (library_id, kind, title) VALUES (1, 'episode', 'Orphan')",
     )
     .await;
     assert_rejected(
         &pool,
-        "INSERT INTO item (parent_id, kind, title) VALUES (2, 'episode', 'Child of episode')",
+        "INSERT INTO item (parent_id, library_id, kind, title) VALUES (2, 1, 'episode', 'Child of episode')",
     )
     .await;
     assert_rejected(
         &pool,
-        "INSERT INTO item (parent_id, kind, title) VALUES (1, 'movie', 'Movie with parent')",
+        "INSERT INTO item (parent_id, library_id, kind, title) VALUES (1, 1, 'movie', 'Movie with parent')",
     )
     .await;
+    // Only a series has a series row.
+    exec(
+        &pool,
+        "INSERT INTO item (id, library_id, kind, title) VALUES (4, 1, 'movie', 'Film')",
+    )
+    .await
+    .unwrap();
+    assert_rejected(&pool, "INSERT INTO series (item_id) VALUES (4)").await;
+    assert_rejected(&pool, "UPDATE item SET kind = 'movie' WHERE id = 1").await;
+}
+
+#[tokio::test]
+async fn episodes_are_in_their_series_library() {
+    let (_dir, pool) = db().await;
+    seed(&pool).await;
+    exec(
+        &pool,
+        "INSERT INTO library (id, name, kind) VALUES (2, 'Kids', 'tv')",
+    )
+    .await
+    .unwrap();
+    assert_rejected(
+        &pool,
+        "INSERT INTO item (parent_id, library_id, kind, title) VALUES (1, 2, 'episode', 'Elsewhere')",
+    )
+    .await;
+    assert_rejected(&pool, "UPDATE item SET library_id = 2 WHERE id = 2").await;
+    // Moving a series takes its episodes and external IDs along.
+    exec(
+        &pool,
+        "INSERT INTO external_id (item_id, library_id, kind, provider, value, is_primary)
+             VALUES (2, 1, 'episode', 'tmdb', '100', 1);
+         UPDATE item SET library_id = 2 WHERE id = 1;",
+    )
+    .await
+    .unwrap();
+    let moved: Vec<i64> = sqlx::query_scalar(
+        "SELECT library_id FROM item UNION ALL SELECT library_id FROM external_id",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    assert_eq!(moved, [2, 2, 2, 2]);
 }
 
 #[tokio::test]
@@ -138,15 +182,28 @@ async fn only_primary_external_ids_are_unique() {
     seed(&pool).await;
     exec(
         &pool,
-        "INSERT INTO external_id (item_id, provider, value, is_primary) VALUES (2, 'tmdb', '100', 1);
+        "INSERT INTO external_id (item_id, library_id, kind, provider, value, is_primary)
+             VALUES (2, 1, 'episode', 'tmdb', '100', 1);
          -- A secondary ID may cover two items (a merged double episode).
-         INSERT INTO external_id (item_id, provider, value) VALUES (2, 'tvdb', '900'), (3, 'tvdb', '900');",
+         INSERT INTO external_id (item_id, library_id, kind, provider, value)
+             VALUES (2, 1, 'episode', 'tvdb', '900'), (3, 1, 'episode', 'tvdb', '900');
+         -- A series and an episode may share a number.
+         INSERT INTO external_id (item_id, library_id, kind, provider, value, is_primary)
+             VALUES (1, 1, 'series', 'tmdb', '100', 1);",
     )
     .await
     .unwrap();
     assert_rejected(
         &pool,
-        "INSERT INTO external_id (item_id, provider, value, is_primary) VALUES (3, 'tmdb', '100', 1)",
+        "INSERT INTO external_id (item_id, library_id, kind, provider, value, is_primary)
+             VALUES (3, 1, 'episode', 'tmdb', '100', 1)",
+    )
+    .await;
+    // The copied library and kind must be the item's.
+    assert_rejected(
+        &pool,
+        "INSERT INTO external_id (item_id, library_id, kind, provider, value, is_primary)
+             VALUES (3, 1, 'series', 'tmdb', '100', 1)",
     )
     .await;
     // Unique per library: the same show in another library has the same ID.
@@ -154,8 +211,10 @@ async fn only_primary_external_ids_are_unique() {
         &pool,
         "INSERT INTO library (id, name, kind) VALUES (2, 'Kids', 'tv');
          INSERT INTO item (id, kind, title, library_id) VALUES (10, 'series', 'Show', 2);
-         INSERT INTO item (id, parent_id, kind, title) VALUES (11, 10, 'episode', 'Pilot');
-         INSERT INTO external_id (item_id, provider, value, is_primary) VALUES (11, 'tmdb', '100', 1);",
+         INSERT INTO series (item_id) VALUES (10);
+         INSERT INTO item (id, parent_id, library_id, kind, title) VALUES (11, 10, 2, 'episode', 'Pilot');
+         INSERT INTO external_id (item_id, library_id, kind, provider, value, is_primary)
+             VALUES (11, 2, 'episode', 'tmdb', '100', 1);",
     )
     .await
     .unwrap();
@@ -170,28 +229,69 @@ async fn items_and_files_stay_in_one_library() {
         "INSERT INTO library (id, name, kind) VALUES (2, 'Kids', 'tv');
          INSERT INTO library_root (id, library_id, path, layout_template)
              VALUES (2, 2, '/media/kids', '{series}/{filename}');
-         INSERT INTO media_file (id, root_id, relative_path, size, mtime) VALUES (1, 2, 'a.mkv', 1, 1);",
+         INSERT INTO media_file (id, root_id, library_id, relative_path, size, mtime)
+             VALUES (1, 2, 2, 'a.mkv', 1, 1);",
     )
     .await
     .unwrap();
+    // A file's library is its root's.
     assert_rejected(
         &pool,
-        "INSERT INTO series_location (series_item_id, root_id, path) VALUES (1, 2, 'Show')",
+        "INSERT INTO media_file (root_id, library_id, relative_path, size, mtime) VALUES (2, 1, 'b.mkv', 1, 1)",
+    )
+    .await;
+    // With either library, one side of the folder or link is in the other.
+    assert_rejected(
+        &pool,
+        "INSERT INTO series_location (series_item_id, root_id, library_id, path) VALUES (1, 2, 2, 'Show')",
     )
     .await;
     assert_rejected(
         &pool,
-        "INSERT INTO file_link (file_id, item_id, confidence, source) VALUES (1, 2, 1, 'user')",
+        "INSERT INTO series_location (series_item_id, root_id, library_id, path) VALUES (1, 2, 1, 'Show')",
     )
     .await;
+    assert_rejected(
+        &pool,
+        "INSERT INTO file_link (file_id, item_id, library_id, confidence, source) VALUES (1, 2, 2, 1, 'user')",
+    )
+    .await;
+    assert_rejected(
+        &pool,
+        "INSERT INTO file_link (file_id, item_id, library_id, confidence, source) VALUES (1, 2, 1, 1, 'user')",
+    )
+    .await;
+    // A sidecar's root is its video's.
+    assert_rejected(
+        &pool,
+        "INSERT INTO sidecar (file_id, root_id, relative_path, kind) VALUES (1, 1, 'a.srt', 'subtitle')",
+    )
+    .await;
+}
+
+#[tokio::test]
+async fn a_series_with_files_stays_in_its_library() {
+    let (_dir, pool) = db().await;
+    seed(&pool).await;
+    exec(
+        &pool,
+        "INSERT INTO library (id, name, kind) VALUES (2, 'Kids', 'tv');
+         INSERT INTO media_file (id, root_id, library_id, relative_path, size, mtime)
+             VALUES (1, 1, 1, 'a.mkv', 1, 1);
+         INSERT INTO file_link (file_id, item_id, library_id, confidence, source)
+             VALUES (1, 2, 1, 1, 'user');",
+    )
+    .await
+    .unwrap();
+    assert_rejected(&pool, "UPDATE item SET library_id = 2 WHERE id = 1").await;
 }
 
 #[tokio::test]
 async fn only_present_files_hold_their_path() {
     let (_dir, pool) = db().await;
     seed(&pool).await;
-    let insert = "INSERT INTO media_file (root_id, relative_path, size, mtime)
-                  VALUES (1, 'Show/Season 01/e01.mkv', 1, 1)";
+    let insert = "INSERT INTO media_file (root_id, library_id, relative_path, size, mtime)
+                  VALUES (1, 1, 'Show/Season 01/e01.mkv', 1, 1)";
     exec(&pool, insert).await.unwrap();
     assert_rejected(&pool, insert).await;
     exec(&pool, "UPDATE media_file SET status = 'missing'")
@@ -213,8 +313,10 @@ async fn linked_files_and_items_cannot_be_deleted() {
     seed(&pool).await;
     exec(
         &pool,
-        "INSERT INTO media_file (id, root_id, relative_path, size, mtime) VALUES (1, 1, 'a.mkv', 1, 1);
-         INSERT INTO file_link (file_id, item_id, confidence, source) VALUES (1, 2, 0.95, 'parser');",
+        "INSERT INTO media_file (id, root_id, library_id, relative_path, size, mtime)
+             VALUES (1, 1, 1, 'a.mkv', 1, 1);
+         INSERT INTO file_link (file_id, item_id, library_id, confidence, source)
+             VALUES (1, 2, 1, 0.95, 'parser');",
     )
     .await
     .unwrap();
@@ -228,25 +330,34 @@ async fn review_candidates_have_one_subject_and_one_target() {
     seed(&pool).await;
     exec(
         &pool,
-        "INSERT INTO media_file (id, root_id, relative_path, size, mtime) VALUES (1, 1, 'a.mkv', 1, 1);
-         INSERT INTO match_candidate (file_id, item_id, confidence, source, reason)
-             VALUES (1, 2, 0.6, 'parser', 'S01E01 parsed, runtime off by 9 min');
-         INSERT INTO match_candidate (root_id, folder_path, provider, provider_value, provider_title,
-                                      confidence, source, reason)
-             VALUES (1, 'Some Show', 'tmdb', '1399', 'Some Show', 0.7, 'search', 'folder name search');",
+        "INSERT INTO media_file (id, root_id, library_id, relative_path, size, mtime)
+             VALUES (1, 1, 1, 'a.mkv', 1, 1);
+         INSERT INTO match_candidate (library_id, file_id, item_id, confidence, source, reason)
+             VALUES (1, 1, 2, 0.6, 'parser', 'S01E01 parsed, runtime off by 9 min');
+         INSERT INTO match_candidate (library_id, root_id, folder_path, provider, provider_value,
+                                      provider_title, confidence, source, reason)
+             VALUES (1, 1, 'Some Show', 'tmdb', '1399', 'Some Show', 0.7, 'search', 'folder name search');",
     )
     .await
     .unwrap();
     assert_rejected(
         &pool,
-        "INSERT INTO match_candidate (file_id, root_id, folder_path, item_id, confidence, source, reason)
-             VALUES (1, 1, 'x', 2, 0.5, 'parser', 'both subjects')",
+        "INSERT INTO match_candidate (library_id, file_id, root_id, folder_path, item_id, confidence, source, reason)
+             VALUES (1, 1, 1, 'x', 2, 0.5, 'parser', 'both subjects')",
     )
     .await;
     assert_rejected(
         &pool,
-        "INSERT INTO match_candidate (file_id, item_id, provider, provider_value, confidence, source, reason)
-             VALUES (1, 2, 'tmdb', '1', 0.5, 'parser', 'both targets')",
+        "INSERT INTO match_candidate (library_id, file_id, item_id, provider, provider_value, confidence, source, reason)
+             VALUES (1, 1, 2, 'tmdb', '1', 0.5, 'parser', 'both targets')",
+    )
+    .await;
+    // A proposal is in its subject's library.
+    assert_rejected(
+        &pool,
+        "INSERT INTO library (id, name, kind) VALUES (2, 'Kids', 'tv');
+         INSERT INTO match_candidate (library_id, file_id, item_id, confidence, source, reason)
+             VALUES (2, 1, 2, 0.5, 'parser', 'wrong library')",
     )
     .await;
 }

@@ -89,13 +89,13 @@ pub async fn refresh_item(
 /// Series and movies due a refresh, oldest first.
 pub async fn due(pool: &SqlitePool, provider: &str, now: i64) -> Result<Vec<i64>, sqlx::Error> {
     sqlx::query_scalar(
-        "SELECT id FROM item
-         WHERE kind IN ('series', 'movie') AND primary_provider = ?
-           AND coalesce(refreshed_at, 0) < CASE
-               WHEN kind = 'series' AND coalesce(series_status, 'continuing') = 'continuing' THEN ? - ?
+        "SELECT i.id FROM item i LEFT JOIN series s ON s.item_id = i.id
+         WHERE i.kind IN ('series', 'movie') AND i.primary_provider = ?
+           AND coalesce(i.refreshed_at, 0) < CASE
+               WHEN i.kind = 'series' AND coalesce(s.status, 'continuing') = 'continuing' THEN ? - ?
                ELSE ? - 7 * ?
            END
-         ORDER BY coalesce(refreshed_at, 0)",
+         ORDER BY coalesce(i.refreshed_at, 0)",
     )
     .bind(provider)
     .bind(now)

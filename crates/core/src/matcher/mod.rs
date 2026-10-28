@@ -349,9 +349,9 @@ async fn identify_folder(
     let mut tx = crate::db::begin_write(pool).await?;
     for c in found.iter().take(3) {
         sqlx::query(
-            "INSERT INTO match_candidate (root_id, folder_path, provider, provider_value, provider_title,
-                                          confidence, source, reason)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO match_candidate (library_id, root_id, folder_path, provider, provider_value,
+                                          provider_title, confidence, source, reason)
+             SELECT library_id, ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8 FROM library_root WHERE id = ?1",
         )
         .bind(root_id)
         .bind(path)
@@ -526,8 +526,10 @@ pub(crate) async fn store_location(
     path: &str,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "INSERT OR IGNORE INTO series_location (series_item_id, root_id, path, is_primary)
-         VALUES (?1, ?2, ?3, NOT EXISTS (SELECT 1 FROM series_location WHERE series_item_id = ?1))",
+        "INSERT OR IGNORE INTO series_location (series_item_id, root_id, library_id, path, is_primary)
+         SELECT ?1, ?2, library_id, ?3,
+                NOT EXISTS (SELECT 1 FROM series_location WHERE series_item_id = ?1)
+         FROM library_root WHERE id = ?2",
     )
     .bind(series)
     .bind(root)
@@ -538,11 +540,13 @@ pub(crate) async fn store_location(
 }
 
 pub async fn load_index(pool: &SqlitePool, series: i64) -> Result<SeriesIndex, sqlx::Error> {
-    let (title, match_ordering): (String, Option<i64>) =
-        sqlx::query_as("SELECT title, match_ordering_id FROM item WHERE id = ?")
-            .bind(series)
-            .fetch_one(pool)
-            .await?;
+    let (title, match_ordering): (String, Option<i64>) = sqlx::query_as(
+        "SELECT i.title, s.match_ordering_id FROM item i
+             LEFT JOIN series s ON s.item_id = i.id WHERE i.id = ?",
+    )
+    .bind(series)
+    .fetch_one(pool)
+    .await?;
     let orderings: Vec<(i64, String, String, bool)> = sqlx::query_as(
         "SELECT id, name, kind, is_default FROM ordering WHERE series_id = ? ORDER BY id",
     )
@@ -670,8 +674,9 @@ pub(crate) async fn link(
             continue;
         }
         let inserted = sqlx::query(
-            "INSERT OR IGNORE INTO file_link (file_id, item_id, edition, part, confidence, source, pinned)
-             VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT OR IGNORE INTO file_link
+                 (file_id, item_id, library_id, edition, part, confidence, source, pinned)
+             SELECT ?1, ?2, library_id, ?3, ?4, ?5, ?6, ?7 FROM media_file WHERE id = ?1",
         )
         .bind(file)
         .bind(item)
@@ -732,7 +737,8 @@ async fn queue_file(
             continue;
         }
         sqlx::query(
-            "INSERT INTO match_candidate (file_id, item_id, confidence, source, reason) VALUES (?, ?, ?, 'parser', ?)",
+            "INSERT INTO match_candidate (library_id, file_id, item_id, confidence, source, reason)
+             SELECT library_id, ?1, ?2, ?3, 'parser', ?4 FROM media_file WHERE id = ?1",
         )
         .bind(file)
         .bind(item)

@@ -132,7 +132,7 @@ Real API, seeded data. Seeing and testing the design early.
 ## Phase 8 — Release
 
 - [ ] Keyboard navigation and accessibility pass across all screens
-- [ ] Episode inspector (every link, number in each ordering, event history)
+- [x] Episode inspector (every link, number in each ordering, event history)
 - [ ] Published Docker image and release binaries
 - [ ] Smaller image (static ffmpeg)
 - [ ] Upgrade test: migrate a large database from an older version, with backup

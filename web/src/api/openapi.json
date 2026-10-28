@@ -6,7 +6,7 @@
     "license": {
       "name": ""
     },
-    "version": "0.1.0"
+    "version": "1.0.0-dev"
   },
   "paths": {
     "/api/api-keys": {
@@ -565,6 +565,96 @@
         }
       }
     },
+    "/api/files/{id}/links/{item}": {
+      "delete": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Removes a link: the file isn't that item. Scans won't link them again, and\nthe file goes to review if nothing else links it.",
+        "operationId": "unlink_file",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Changes a link: which edition the file is.",
+        "operationId": "edit_link",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "item",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditLink"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/files/{id}/stream": {
       "get": {
         "tags": [
@@ -954,6 +1044,53 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/events": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "An item's history, newest first: its own events and those of its files.",
+        "operationId": "item_events",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "How many, newest first (default 50, max 500).",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EventRecord"
+                  }
                 }
               }
             }
@@ -4330,6 +4467,18 @@
         "properties": {
           "dry_run": {
             "type": "boolean"
+          }
+        }
+      },
+      "EditLink": {
+        "type": "object",
+        "properties": {
+          "edition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Which edition of the item the file is, such as \"Director's Cut\"; null or\nempty for the only or usual one."
           }
         }
       },

@@ -47,6 +47,30 @@ pub struct EventsPage {
     cursor: i64,
 }
 
+#[derive(Deserialize, IntoParams)]
+pub struct ItemEventsQuery {
+    /// How many, newest first (default 50, max 500).
+    limit: Option<i64>,
+}
+
+/// An item's history, newest first: its own events and those of its files.
+#[utoipa::path(
+    get,
+    path = "/items/{id}/events",
+    tag = "events",
+    params(("id" = i64, Path), ItemEventsQuery),
+    responses((status = 200, body = Vec<EventRecord>))
+)]
+pub async fn item_events(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+    Query(q): Query<ItemEventsQuery>,
+) -> Result<Json<Vec<EventRecord>>, ApiError> {
+    Ok(Json(
+        events::for_item(&state.db, id, q.limit.unwrap_or(50)).await?,
+    ))
+}
+
 /// The event outbox, from a cursor. With `Accept: text/event-stream` it streams
 /// (SSE, resumable with Last-Event-ID); otherwise it returns a page, long-polling
 /// with `wait`. Consumers that keep their cursor never miss an event.

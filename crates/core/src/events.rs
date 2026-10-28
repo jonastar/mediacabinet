@@ -18,7 +18,9 @@ pub const ITEM_REFRESHED: &str = "item.refreshed";
 pub const ITEM_UNWANTED: &str = "item.unwanted";
 pub const ITEM_WANTED: &str = "item.wanted";
 pub const LIBRARY_ADDED: &str = "library.added";
+pub const LINK_CHANGED: &str = "link.changed";
 pub const LINK_CREATED: &str = "link.created";
+pub const LINK_REMOVED: &str = "link.removed";
 pub const MATCH_NEEDS_REVIEW: &str = "match.needs_review";
 pub const LIBRARY_REMOVED: &str = "library.removed";
 pub const ROOT_ADDED: &str = "root.added";
@@ -52,6 +54,15 @@ pub struct EventRecord {
     pub created_at: i64,
 }
 
+fn record((id, kind, payload, created_at): (i64, String, String, i64)) -> EventRecord {
+    EventRecord {
+        id,
+        kind,
+        payload: serde_json::from_str(&payload).unwrap_or(Value::Null),
+        created_at,
+    }
+}
+
 /// Events after `cursor`, oldest first, optionally only some types.
 pub async fn since(
     pool: &sqlx::SqlitePool,
@@ -69,15 +80,30 @@ pub async fn since(
     .bind(limit.clamp(1, 1000))
     .fetch_all(pool)
     .await?;
-    Ok(rows
-        .into_iter()
-        .map(|(id, kind, payload, created_at)| EventRecord {
-            id,
-            kind,
-            payload: serde_json::from_str(&payload).unwrap_or(Value::Null),
-            created_at,
-        })
-        .collect())
+    Ok(rows.into_iter().map(record).collect())
+}
+
+/// An item's history, newest first: its own events and those of the files linked
+/// to it now. Earlier files show up through the item's own link events.
+pub async fn for_item(
+    pool: &sqlx::SqlitePool,
+    item: i64,
+    limit: i64,
+) -> Result<Vec<EventRecord>, sqlx::Error> {
+    let rows: Vec<(i64, String, String, i64)> = sqlx::query_as(
+        "SELECT id, type, payload, created_at FROM event
+         WHERE json_extract(payload, '$.item_id') = ?1
+         UNION
+         SELECT id, type, payload, created_at FROM event
+         -- + drops file_id's affinity, so the comparison can use event_file.
+         WHERE json_extract(payload, '$.file_id') IN (SELECT +file_id FROM file_link WHERE item_id = ?1)
+         ORDER BY id DESC LIMIT ?2",
+    )
+    .bind(item)
+    .bind(limit.clamp(1, 500))
+    .fetch_all(pool)
+    .await?;
+    Ok(rows.into_iter().map(record).collect())
 }
 
 /// The newest event's ID, or 0: where a new consumer starts to see only new events.

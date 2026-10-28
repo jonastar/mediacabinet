@@ -116,6 +116,48 @@ pub async fn link_file(
     Ok(StatusCode::NO_CONTENT)
 }
 
+/// Removes a link: the file isn't that item. Scans won't link them again, and
+/// the file goes to review if nothing else links it.
+#[utoipa::path(
+    delete,
+    path = "/files/{id}/links/{item}",
+    tag = "review",
+    params(("id" = i64, Path), ("item" = i64, Path)),
+    responses((status = 204), (status = 404, body = ErrorBody))
+)]
+pub async fn unlink_file(
+    State(state): State<AppState>,
+    Path((id, item)): Path<(i64, i64)>,
+) -> Result<StatusCode, ApiError> {
+    review::unlink(&state.db, id, item).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct EditLink {
+    /// Which edition of the item the file is, such as "Director's Cut"; null or
+    /// empty for the only or usual one.
+    edition: Option<String>,
+}
+
+/// Changes a link: which edition the file is.
+#[utoipa::path(
+    patch,
+    path = "/files/{id}/links/{item}",
+    tag = "review",
+    params(("id" = i64, Path), ("item" = i64, Path)),
+    request_body = EditLink,
+    responses((status = 204), (status = 404, body = ErrorBody))
+)]
+pub async fn edit_link(
+    State(state): State<AppState>,
+    Path((id, item)): Path<(i64, i64)>,
+    Json(body): Json<EditLink>,
+) -> Result<StatusCode, ApiError> {
+    review::set_edition(&state.db, id, item, body.edition.as_deref()).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 /// Excludes a file from matching (samples, junk).
 #[utoipa::path(
     post,

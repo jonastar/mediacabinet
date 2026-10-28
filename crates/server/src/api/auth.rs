@@ -6,7 +6,8 @@
 //!
 //! Changes need an admin, apart from a user's own things: their account, watch
 //! state, views and playlists. A few reads need an admin too: keys, webhooks,
-//! users, the review queue and browsing the server's folders.
+//! users, the review queue, an item's event history and browsing the server's
+//! folders.
 
 use axum::extract::{FromRequestParts, Request, State};
 use axum::http::request::Parts;
@@ -54,6 +55,7 @@ fn is_own_change(path: &str) -> bool {
 fn needs_admin(method: &Method, path: &str) -> bool {
     if method == Method::GET || method == Method::HEAD {
         ADMIN_READS.iter().any(|prefix| path.starts_with(prefix))
+            || (path.starts_with("/api/items/") && path.ends_with("/events"))
     } else {
         !is_own_change(path)
     }
@@ -240,6 +242,8 @@ mod tests {
         assert!(!needs_admin(&Method::GET, "/api/series/1"));
         assert!(needs_admin(&Method::GET, "/api/api-keys"));
         assert!(needs_admin(&Method::GET, "/api/folders?path=/"));
+        assert!(needs_admin(&Method::GET, "/api/items/4/events"));
+        assert!(needs_admin(&Method::DELETE, "/api/files/3/links/4"));
         assert!(needs_admin(&Method::POST, "/api/libraries"));
         assert!(needs_admin(&Method::PATCH, "/api/items/4"));
         assert!(!needs_admin(&Method::PUT, "/api/series/1/view"));

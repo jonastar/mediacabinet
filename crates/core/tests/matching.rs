@@ -347,3 +347,68 @@ async fn uncertain_matches_go_to_review() {
     assert_eq!((source.as_str(), pinned), ("user", true));
     assert!(review::queue(&lib.pool).await.unwrap().files.is_empty());
 }
+
+#[tokio::test]
+async fn unlinked_files_stay_unlinked() {
+    let lib = Lib::new().await;
+    let tv = lib.base.join("tv");
+    write(
+        &tv,
+        "Night Harbor (2019)/tvshow.nfo",
+        r#"<tvshow><uniqueid type="tmdb" default="true">99010</uniqueid></tvshow>"#,
+    );
+    video(
+        &tv,
+        "Night Harbor (2019)/Season 01/Night Harbor - S01E01 - Pilot.mkv",
+    );
+    let root = lib
+        .root("TV", "tv", "tv", "{series}/Season {season:00}/{filename}")
+        .await;
+    lib.scan_and_match(root).await;
+    let (file, item): (i64, i64) = sqlx::query_as("SELECT file_id, item_id FROM file_link")
+        .fetch_one(&lib.pool)
+        .await
+        .unwrap();
+
+    review::set_edition(&lib.pool, file, item, Some(" Extended "))
+        .await
+        .unwrap();
+    let edition: Option<String> = sqlx::query_scalar("SELECT edition FROM file_link")
+        .fetch_one(&lib.pool)
+        .await
+        .unwrap();
+    assert_eq!(edition.as_deref(), Some("Extended"));
+
+    review::unlink(&lib.pool, file, item).await.unwrap();
+    assert!(matches!(
+        review::unlink(&lib.pool, file, item).await,
+        Err(review::ReviewError::NotFound)
+    ));
+    // Scans don't link it again, and it waits in review.
+    let again = lib.scan_and_match(root).await;
+    assert_eq!((again.files_queued, lib.links(root).await.len()), (0, 0));
+    assert_eq!(review::queue(&lib.pool).await.unwrap().unmatched.len(), 1);
+
+    // The episode's history has the link, the edition and the unlink.
+    let history: Vec<String> = cabinet_core::events::for_item(&lib.pool, item, 50)
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|e| e.kind)
+        .collect();
+    assert_eq!(
+        history[..3],
+        ["link.removed", "link.changed", "link.created"]
+    );
+
+    // A person can link it again.
+    review::link_file(&lib.pool, file, &[item], false)
+        .await
+        .unwrap();
+    assert_eq!(lib.links(root).await.len(), 1);
+    let rejections: i64 = sqlx::query_scalar("SELECT count(*) FROM link_rejection")
+        .fetch_one(&lib.pool)
+        .await
+        .unwrap();
+    assert_eq!(rejections, 0);
+}

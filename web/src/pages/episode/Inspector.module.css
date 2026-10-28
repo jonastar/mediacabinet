@@ -1,0 +1,149 @@
+.inspector {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 32px 40px 0;
+  padding: 20px 22px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.ids {
+  flex: 1;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.block h3 {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.links,
+.events {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.links {
+  gap: 10px;
+}
+
+.events {
+  gap: 4px;
+}
+
+.link {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+}
+
+.path,
+.meta,
+.mono {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.path {
+  color: var(--text);
+}
+
+.meta,
+.mono {
+  color: var(--text-secondary);
+}
+
+.mono time {
+  color: var(--text-muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.button {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-control);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.button:hover {
+  background: var(--surface-raised);
+}
+
+.input {
+  flex: 1 1 220px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-control);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.empty {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--state-missing-text);
+}
+
+@media (max-width: 640px) {
+  .inspector {
+    margin: 24px 16px 0;
+    padding: 16px;
+  }
+}

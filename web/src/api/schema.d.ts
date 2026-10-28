@@ -248,6 +248,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/files/{id}/links/{item}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Removes a link: the file isn't that item. Scans won't link them again, and
+         *     the file goes to review if nothing else links it.
+         */
+        delete: operations["unlink_file"];
+        options?: never;
+        head?: never;
+        /** Changes a link: which edition the file is. */
+        patch: operations["edit_link"];
+        trace?: never;
+    };
     "/api/files/{id}/stream": {
         parameters: {
             query?: never;
@@ -393,6 +414,23 @@ export interface paths {
         head?: never;
         /** Edits a series', episode's or movie's details, optionally locking them against refresh. */
         patch: operations["edit_item"];
+        trace?: never;
+    };
+    "/api/items/{id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** An item's history, newest first: its own events and those of its files. */
+        get: operations["item_events"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/items/{id}/locks": {
@@ -1418,6 +1456,13 @@ export interface components {
         };
         DryRun: {
             dry_run?: boolean;
+        };
+        EditLink: {
+            /**
+             * @description Which edition of the item the file is, such as "Director's Cut"; null or
+             *     empty for the only or usual one.
+             */
+            edition?: string | null;
         };
         Episode: components["schemas"]["EpisodeRef"] & {
             availability: components["schemas"]["Availability"];
@@ -2832,6 +2877,66 @@ export interface operations {
             };
         };
     };
+    unlink_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                item: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    edit_link: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                item: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditLink"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     stream: {
         parameters: {
             query?: never;
@@ -3132,6 +3237,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    item_events: {
+        parameters: {
+            query?: {
+                /** @description How many, newest first (default 50, max 500). */
+                limit?: number | null;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventRecord"][];
                 };
             };
         };

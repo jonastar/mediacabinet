@@ -17,7 +17,7 @@ every crate), `Cargo.lock` and `web/package.json`.
 
 `CHANGELOG.md` gets an entry in the same commit as each user-visible change,
 under the top section (the version being worked toward). Internal refactors and
-tests don't need one.
+tests don't need one. Keep entries to one line about what changed for the user.
 
 ## Releasing from main
 

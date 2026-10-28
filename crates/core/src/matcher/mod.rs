@@ -647,7 +647,8 @@ async fn link_movie(
     Ok(())
 }
 
-/// Links a file to items, with an event per link.
+/// Links a file to items, with an event per link. Links someone removed by
+/// hand are skipped unless a person makes them again (`source` is `user`).
 pub(crate) async fn link(
     pool: &SqlitePool,
     file: i64,
@@ -659,6 +660,15 @@ pub(crate) async fn link(
 ) -> Result<(), sqlx::Error> {
     let mut tx = crate::db::begin_write(pool).await?;
     for item in items {
+        if source == "user" {
+            sqlx::query("DELETE FROM link_rejection WHERE file_id = ? AND item_id = ?")
+                .bind(file)
+                .bind(item)
+                .execute(&mut *tx)
+                .await?;
+        } else if is_rejected(&mut tx, file, *item).await? {
+            continue;
+        }
         let inserted = sqlx::query(
             "INSERT OR IGNORE INTO file_link (file_id, item_id, edition, part, confidence, source, pinned)
              VALUES (?, ?, ?, ?, ?, ?, ?)",
@@ -685,6 +695,21 @@ pub(crate) async fn link(
     tx.commit().await
 }
 
+/// Someone removed this link by hand.
+async fn is_rejected(
+    conn: &mut sqlx::SqliteConnection,
+    file: i64,
+    item: i64,
+) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar(
+        "SELECT EXISTS (SELECT 1 FROM link_rejection WHERE file_id = ? AND item_id = ?)",
+    )
+    .bind(file)
+    .bind(item)
+    .fetch_one(conn)
+    .await
+}
+
 async fn queue_file(
     pool: &SqlitePool,
     file: i64,
@@ -703,6 +728,9 @@ async fn queue_file(
     .into_iter()
     .collect();
     for item in items.iter().filter(|i| !existing.contains(i)) {
+        if is_rejected(&mut tx, file, *item).await? {
+            continue;
+        }
         sqlx::query(
             "INSERT INTO match_candidate (file_id, item_id, confidence, source, reason) VALUES (?, ?, ?, 'parser', ?)",
         )

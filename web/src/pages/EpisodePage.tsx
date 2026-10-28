@@ -11,6 +11,7 @@ import { useLiveEvents } from '../lib/live'
 import { useMode } from '../lib/prefs'
 import { episodePath, itemPath, useCanonicalPath } from '../lib/router'
 import { NotFoundPage } from './NotFoundPage'
+import { Inspector } from './episode/Inspector'
 import { episodeView } from './series/episodeView'
 import styles from './SeriesPage.module.css'
 import own from './EpisodePage.module.css'
@@ -34,7 +35,16 @@ export function EpisodePage({ seriesId, id }: { seriesId: number; id: number }) 
   const episodes = useApi(`episodes:${seriesId}:`, () => api.episodes(seriesId))
   useCanonicalPath(series.data ? episodePath(seriesId, id, series.data.library_id) : null)
   useLiveEvents(
-    ['file.added', 'file.missing', 'file.restored', 'file.removed', 'link.created', 'item.edited'],
+    [
+      'file.added',
+      'file.missing',
+      'file.restored',
+      'file.removed',
+      'link.created',
+      'link.changed',
+      'link.removed',
+      'item.edited',
+    ],
     () => episodes.reload(),
   )
 
@@ -116,6 +126,10 @@ export function EpisodePage({ seriesId, id }: { seriesId: number; id: number }) 
           </div>
         </div>
       </section>
+
+      {mode === 'manage' && (
+        <Inspector itemId={e.item_id} files={e.files} onChanged={episodes.reload} />
+      )}
 
       {(previous || next) && (
         <nav aria-label="Other episodes" className={own.neighbours}>

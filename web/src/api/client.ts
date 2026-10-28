@@ -50,6 +50,9 @@ export type Version = Schemas['Version']
 export type PlayPlan = Schemas['PlayPlan']
 export type ClientCaps = Schemas['ClientCaps']
 export type PlayContext = Schemas['PlayContext']
+export type ItemView = Schemas['ItemView']
+export type OrderingNumber = Schemas['OrderingNumber']
+export type EventRecord = Schemas['EventRecord']
 export type LibraryKind = 'tv' | 'movies'
 
 export interface PlayChoice {
@@ -178,6 +181,11 @@ export const api = {
   linkFile: (fileId: number, itemIds: number[], pin: boolean) =>
     request<void>('POST', `/api/files/${fileId}/link`, { item_ids: itemIds, pin }),
   ignoreFile: (fileId: number) => request<void>('POST', `/api/files/${fileId}/ignore`),
+  /** The file isn't that item; scans won't link them again. */
+  unlinkFile: (fileId: number, itemId: number) =>
+    request<void>('DELETE', `/api/files/${fileId}/links/${itemId}`),
+  setEdition: (fileId: number, itemId: number, edition: string | null) =>
+    request<void>('PATCH', `/api/files/${fileId}/links/${itemId}`, { edition }),
   identifyFolder: (rootId: number, folderPath: string, providerId: string) =>
     request<void>('POST', '/api/review/folders/identify', {
       root_id: rootId,
@@ -193,6 +201,9 @@ export const api = {
     request<MovieSummary[]>('GET', `/api/movies${library ? `?library=${library}` : ''}`),
   movieDetail: (id: number) => request<MovieDetail>('GET', `/api/movies/${id}`),
   search: (q: string) => request<SearchResults>('GET', `/api/search?q=${encodeURIComponent(q)}`),
+  /** Everything about one item, including its number in every ordering. */
+  item: (id: number) => request<ItemView>('GET', `/api/items/${id}`),
+  itemEvents: (id: number) => request<EventRecord[]>('GET', `/api/items/${id}/events`),
   editItem: (id: number, edit: ItemEdit) => request<void>('PATCH', `/api/items/${id}`, edit),
   setLocks: (id: number, fields: string[]) =>
     request<void>('PUT', `/api/items/${id}/locks`, { fields }),

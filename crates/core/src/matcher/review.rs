@@ -518,6 +518,62 @@ pub async fn link_file(
     Ok(())
 }
 
+/// Removes a link: the file isn't that item. The matcher won't make it again; the
+/// file goes to the review queue if nothing else links it.
+pub async fn unlink(pool: &SqlitePool, file: i64, item: i64) -> Result<(), ReviewError> {
+    let mut tx = crate::db::begin_write(pool).await?;
+    let done = sqlx::query("DELETE FROM file_link WHERE file_id = ? AND item_id = ?")
+        .bind(file)
+        .bind(item)
+        .execute(&mut *tx)
+        .await?;
+    if done.rows_affected() == 0 {
+        return Err(ReviewError::NotFound);
+    }
+    sqlx::query("INSERT OR IGNORE INTO link_rejection (file_id, item_id) VALUES (?, ?)")
+        .bind(file)
+        .bind(item)
+        .execute(&mut *tx)
+        .await?;
+    events::emit(
+        &mut tx,
+        events::LINK_REMOVED,
+        json!({ "file_id": file, "item_id": item }),
+    )
+    .await?;
+    crate::wanted::sync_events(&mut tx).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// Sets which edition of the item a linked file is (`None`: the only or usual one).
+pub async fn set_edition(
+    pool: &SqlitePool,
+    file: i64,
+    item: i64,
+    edition: Option<&str>,
+) -> Result<(), ReviewError> {
+    let edition = edition.map(str::trim).filter(|e| !e.is_empty());
+    let mut tx = crate::db::begin_write(pool).await?;
+    let done = sqlx::query("UPDATE file_link SET edition = ? WHERE file_id = ? AND item_id = ?")
+        .bind(edition)
+        .bind(file)
+        .bind(item)
+        .execute(&mut *tx)
+        .await?;
+    if done.rows_affected() == 0 {
+        return Err(ReviewError::NotFound);
+    }
+    events::emit(
+        &mut tx,
+        events::LINK_CHANGED,
+        json!({ "file_id": file, "item_id": item, "edition": edition }),
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(())
+}
+
 /// Marks a file as not media to match (samples, junk). Its candidates are closed.
 pub async fn ignore_file(pool: &SqlitePool, file: i64) -> Result<(), ReviewError> {
     let mut tx = crate::db::begin_write(pool).await?;

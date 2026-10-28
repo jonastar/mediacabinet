@@ -18,6 +18,7 @@ pub mod playback;
 pub mod playlists;
 pub mod refs;
 pub mod scan;
+pub mod tasks;
 pub mod wanted;
 pub mod watch;
 pub mod webhooks;

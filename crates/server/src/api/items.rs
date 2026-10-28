@@ -10,7 +10,7 @@ use cabinet_core::catalog::{self, ViewRef};
 use cabinet_core::items::{self, ItemEdit, ItemError};
 use cabinet_core::metadata::import::ImportReport;
 use cabinet_core::metadata::refresh::{self, RefreshError};
-use cabinet_core::scan::Trigger;
+use cabinet_core::tasks::Trigger;
 use serde::Deserialize;
 use utoipa::{IntoParams, ToSchema};
 
@@ -286,7 +286,7 @@ pub async fn rescan_series(
         return Err(ApiError::NotFound);
     }
     for root in roots {
-        state.scans.request(root, Trigger::Manual);
+        state.scans.request(root, Trigger::Manual).await?;
     }
     Ok(StatusCode::ACCEPTED)
 }

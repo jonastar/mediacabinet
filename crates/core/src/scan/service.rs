@@ -1,8 +1,6 @@
-//! Runs scans: one at a time per root, with history, progress, a schedule and
-//! filesystem watching.
-//!
-//! Requests for a root that is already scanning are folded into one more scan
-//! after it, so a burst of changes never queues a burst of scans.
+//! Scans as tasks (kind `scan`, one root each), with a schedule and filesystem
+//! watching. The task runner keeps scans of a root one at a time and folds
+//! requests while one runs into one more scan after it.
 //!
 //! Only roots that have been scanned before are scanned on a schedule or watched.
 //! A new root gets its first scan when it's added; demo roots, which only exist in
@@ -10,39 +8,19 @@
 
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use notify::{EventKind, RecursiveMode, Watcher};
 use serde::Serialize;
 use serde_json::json;
-use sqlx::SqlitePool;
+use sqlx::SqliteConnection;
 use tokio::task::JoinHandle;
 use utoipa::ToSchema;
 
-use super::{ProbeRootError, Prober, ScanError, probe_root_with_progress, scan_root_with_progress};
+use super::{ProbeRootError, ScanError, probe_root_with_progress, scan_root_with_progress};
 use crate::events;
-use crate::matcher::{MatchSettings, match_root_with_progress};
-use crate::metadata::Provider;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Trigger {
-    Added,
-    Manual,
-    Scheduled,
-    Watch,
-}
-
-impl Trigger {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Trigger::Added => "added",
-            Trigger::Manual => "manual",
-            Trigger::Scheduled => "scheduled",
-            Trigger::Watch => "watch",
-        }
-    }
-}
+use crate::matcher::match_root_with_progress;
+use crate::tasks::{Ended, Finished, Handle, Kind, Running, Scope, Tasks, Trigger};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, ToSchema)]
 #[serde(rename_all = "snake_case")]
@@ -55,6 +33,26 @@ pub enum Phase {
     Probing,
     /// Identifying folders and linking files to items.
     Matching,
+}
+
+impl Phase {
+    fn as_str(self) -> &'static str {
+        match self {
+            Phase::Walking => "walking",
+            Phase::Hashing => "hashing",
+            Phase::Probing => "probing",
+            Phase::Matching => "matching",
+        }
+    }
+
+    fn of(phase: &str) -> Phase {
+        match phase {
+            "hashing" => Phase::Hashing,
+            "probing" => Phase::Probing,
+            "matching" => Phase::Matching,
+            _ => Phase::Walking,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -70,22 +68,23 @@ pub struct ScanProgress {
     pub queued_again: bool,
 }
 
-struct Running {
-    progress: ScanProgress,
-    rerun: Option<Trigger>,
+impl From<Running> for ScanProgress {
+    fn from(r: Running) -> Self {
+        ScanProgress {
+            phase: Phase::of(r.progress.phase),
+            done: r.progress.done,
+            total: r.progress.total,
+            started_at: r.started_at,
+            trigger: r.trigger.as_str().into(),
+            queued_again: r.queued,
+        }
+    }
 }
 
-struct Inner {
-    pool: SqlitePool,
-    prober: Prober,
-    provider: Provider,
-    settings: MatchSettings,
-    running: Mutex<HashMap<i64, Running>>,
-}
-
+/// Scans as tasks of kind `scan` on a root, plus their schedule and watching.
 #[derive(Clone)]
 pub struct ScanService {
-    inner: Arc<Inner>,
+    tasks: Tasks,
 }
 
 fn now() -> i64 {
@@ -93,245 +92,55 @@ fn now() -> i64 {
 }
 
 impl ScanService {
-    /// Without a metadata provider, scans still link files in folders already
-    /// identified; new folders wait until a provider is configured.
-    pub fn new(pool: SqlitePool, prober: Prober) -> ScanService {
-        ScanService::with_matching(pool, prober, Provider::None, MatchSettings::default())
-    }
-
-    pub fn with_matching(
-        pool: SqlitePool,
-        prober: Prober,
-        provider: Provider,
-        settings: MatchSettings,
-    ) -> ScanService {
-        ScanService {
-            inner: Arc::new(Inner {
-                pool,
-                prober,
-                provider,
-                settings,
-                running: Mutex::new(HashMap::new()),
-            }),
-        }
-    }
-
-    /// Marks scans left running by a previous process as failed.
-    pub async fn recover(&self) -> Result<(), sqlx::Error> {
-        sqlx::query(
-            "UPDATE scan_run SET state = 'failed', finished_at = unixepoch(),
-                 error = 'Interrupted: the server stopped during the scan.'
-             WHERE state = 'running'",
-        )
-        .execute(&self.inner.pool)
-        .await?;
-        Ok(())
+    pub fn new(tasks: Tasks) -> ScanService {
+        ScanService { tasks }
     }
 
     /// Starts a scan of `root_id`, or schedules one more after the running one.
     /// Returns true if it started now.
-    pub fn request(&self, root_id: i64, trigger: Trigger) -> bool {
-        let mut running = self.inner.running.lock().unwrap();
-        if let Some(r) = running.get_mut(&root_id) {
-            r.rerun = Some(trigger);
-            r.progress.queued_again = true;
-            return false;
+    pub async fn request(&self, root_id: i64, trigger: Trigger) -> Result<bool, sqlx::Error> {
+        self.tasks
+            .request(Kind::Scan, Scope::Root(root_id), trigger)
+            .await
+    }
+
+    /// `request`, logging instead of returning a failure to queue the scan.
+    async fn request_or_log(&self, root_id: i64, trigger: Trigger) {
+        if let Err(e) = self.request(root_id, trigger).await {
+            tracing::error!(root_id, error = %e, "can't request a scan");
         }
-        running.insert(
-            root_id,
-            Running {
-                progress: progress(Phase::Walking, trigger),
-                rerun: None,
-            },
-        );
-        drop(running);
-        let service = self.clone();
-        tokio::spawn(async move { service.run(root_id, trigger).await });
-        true
     }
 
     pub fn progress(&self, root_id: i64) -> Option<ScanProgress> {
-        self.inner
-            .running
-            .lock()
-            .unwrap()
-            .get(&root_id)
-            .map(|r| r.progress.clone())
+        self.tasks
+            .running(Kind::Scan, Scope::Root(root_id))
+            .map(ScanProgress::from)
     }
 
     pub fn all_progress(&self) -> HashMap<i64, ScanProgress> {
-        self.inner
-            .running
-            .lock()
-            .unwrap()
-            .iter()
-            .map(|(id, r)| (*id, r.progress.clone()))
+        self.tasks
+            .all_running()
+            .into_iter()
+            .filter(|(kind, ..)| *kind == Kind::Scan)
+            .map(|(_, scope, running)| {
+                let Scope::Root(root_id) = scope;
+                (root_id, running.into())
+            })
             .collect()
     }
 
     /// Waits until `root_id` has no scan running or queued.
     pub async fn wait_idle(&self, root_id: i64) {
-        while self.progress(root_id).is_some() {
-            tokio::time::sleep(Duration::from_millis(20)).await;
-        }
-    }
-
-    fn set_progress(&self, root_id: i64, update: impl FnOnce(&mut ScanProgress)) {
-        if let Some(r) = self.inner.running.lock().unwrap().get_mut(&root_id) {
-            update(&mut r.progress);
-        }
-    }
-
-    async fn run(self, root_id: i64, mut trigger: Trigger) {
-        loop {
-            if let Err(err) = self.run_once(root_id, trigger).await {
-                tracing::error!(root_id, error = %err, "scan bookkeeping failed");
-            }
-            let mut running = self.inner.running.lock().unwrap();
-            let entry = running
-                .get_mut(&root_id)
-                .expect("running scans stay registered");
-            match entry.rerun.take() {
-                Some(next) => {
-                    trigger = next;
-                    entry.progress = progress(Phase::Walking, next);
-                }
-                None => {
-                    running.remove(&root_id);
-                    return;
-                }
-            }
-        }
-    }
-
-    async fn run_once(&self, root_id: i64, trigger: Trigger) -> Result<(), sqlx::Error> {
-        let pool = &self.inner.pool;
-        let exists: Option<i64> = sqlx::query_scalar("SELECT id FROM library_root WHERE id = ?")
-            .bind(root_id)
-            .fetch_optional(pool)
-            .await?;
-        if exists.is_none() {
-            return Ok(());
-        }
-        let run_id: i64 = sqlx::query_scalar(
-            "INSERT INTO scan_run (root_id, trigger) VALUES (?, ?) RETURNING id",
-        )
-        .bind(root_id)
-        .bind(trigger.as_str())
-        .fetch_one(pool)
-        .await?;
-
-        let service = self.clone();
-        let scanned = scan_root_with_progress(pool, root_id, move |phase, done, total| {
-            service.set_progress(root_id, |p| {
-                p.phase = phase;
-                p.done = done;
-                p.total = total;
-            })
-        });
-        let (state, report, error) = match scanned.await {
-            Ok(scan) => {
-                sqlx::query("UPDATE library_root SET offline_since = NULL WHERE id = ?")
-                    .bind(root_id)
-                    .execute(pool)
-                    .await?;
-                self.set_progress(root_id, |p| {
-                    p.phase = Phase::Probing;
-                    p.done = 0;
-                    p.total = 0;
-                });
-                let probe =
-                    probe_root_with_progress(pool, root_id, &self.inner.prober, |done, total| {
-                        self.set_progress(root_id, |p| {
-                            p.done = done;
-                            p.total = total;
-                        })
-                    })
-                    .await;
-                let (mut report, mut problem) = match probe {
-                    Ok(probe) => (json!({ "scan": scan, "probe": probe }), None),
-                    // Files were still found; only stream details are missing.
-                    Err(ProbeRootError::Unavailable(e)) => (
-                        json!({ "scan": scan }),
-                        Some(format!("Files scanned, but not probed: {e}")),
-                    ),
-                    Err(e) => (json!({ "scan": scan }), Some(e.to_string())),
-                };
-                self.set_progress(root_id, |p| {
-                    p.phase = Phase::Matching;
-                    p.done = 0;
-                    p.total = 0;
-                });
-                let matched = match_root_with_progress(
-                    pool,
-                    root_id,
-                    &self.inner.provider,
-                    self.inner.settings,
-                    |done, total| {
-                        self.set_progress(root_id, |p| {
-                            p.done = done;
-                            p.total = total;
-                        })
-                    },
-                );
-                match matched.await {
-                    Ok(matched) => {
-                        if let Some(e) = &matched.provider_error {
-                            problem.get_or_insert_with(|| {
-                                format!("Files scanned; identifying new folders failed: {e}")
-                            });
-                        }
-                        report["match"] = json!(matched);
-                    }
-                    Err(e) => {
-                        problem
-                            .get_or_insert_with(|| format!("Files scanned; matching failed: {e}"));
-                    }
-                }
-                ("ok", Some(report), problem)
-            }
-            Err(e @ (ScanError::RootUnreachable { .. } | ScanError::RootEmpty { .. })) => {
-                sqlx::query("UPDATE library_root SET offline_since = coalesce(offline_since, unixepoch()) WHERE id = ?")
-                    .bind(root_id)
-                    .execute(pool)
-                    .await?;
-                ("failed", None, Some(e.to_string()))
-            }
-            Err(ScanError::RootNotFound(_)) => {
-                return Ok(());
-            }
-            Err(e) => ("failed", None, Some(e.to_string())),
-        };
-
-        let mut tx = crate::db::begin_write(pool).await?;
-        crate::wanted::sync_events(&mut tx).await?;
-        sqlx::query("UPDATE scan_run SET state = ?, finished_at = unixepoch(), report = ?, error = ? WHERE id = ?")
-            .bind(state)
-            .bind(report.map(|r| r.to_string()))
-            .bind(&error)
-            .bind(run_id)
-            .execute(&mut *tx)
-            .await?;
-        events::emit(
-            &mut tx,
-            events::SCAN_FINISHED,
-            json!({ "root_id": root_id, "scan_run_id": run_id, "state": state }),
-        )
-        .await?;
-        tx.commit().await?;
-        if let Some(error) = error {
-            tracing::warn!(root_id, error, "scan finished with a problem");
-        }
-        Ok(())
+        self.tasks.wait_idle(Kind::Scan, Scope::Root(root_id)).await
     }
 
     /// Roots that have been scanned before: the ones to rescan and watch.
     async fn known_roots(&self) -> Result<Vec<(i64, String, i64)>, sqlx::Error> {
         sqlx::query_as(
-            "SELECT r.id, r.path, max(s.started_at) FROM library_root r
-             JOIN scan_run s ON s.root_id = r.id GROUP BY r.id",
+            "SELECT r.id, r.path, max(t.requested_at) FROM library_root r
+             JOIN task t ON t.root_id = r.id AND t.kind = 'scan' GROUP BY r.id",
         )
-        .fetch_all(&self.inner.pool)
+        .fetch_all(self.tasks.pool())
         .await
     }
 
@@ -347,7 +156,7 @@ impl ScanService {
                     Ok(roots) => {
                         for (id, _, last) in roots {
                             if last < due {
-                                service.request(id, Trigger::Scheduled);
+                                service.request_or_log(id, Trigger::Scheduled).await;
                             }
                         }
                     }
@@ -438,7 +247,7 @@ impl ScanService {
                             .collect();
                         for id in ready {
                             pending.remove(&id);
-                            service.request(id, Trigger::Watch);
+                            service.request_or_log(id, Trigger::Watch).await;
                         }
                     }
                 }
@@ -447,13 +256,113 @@ impl ScanService {
     }
 }
 
-fn progress(phase: Phase, trigger: Trigger) -> ScanProgress {
-    ScanProgress {
-        phase,
-        done: 0,
-        total: 0,
-        started_at: now(),
-        trigger: trigger.as_str().into(),
-        queued_again: false,
-    }
+/// One scan of `root_id`: walk and hash, probe, then match.
+pub(crate) async fn run_task(task: &Handle, root_id: i64) -> Result<Finished, sqlx::Error> {
+    let pool = task.pool();
+    let progress = task.clone();
+    let scanned = scan_root_with_progress(pool, root_id, move |phase, done, total| {
+        progress.progress(|p| {
+            p.phase = phase.as_str();
+            p.done = done;
+            p.total = total;
+        })
+    });
+    let step = |phase: Phase| {
+        task.progress(|p| {
+            p.phase = phase.as_str();
+            p.done = 0;
+            p.total = 0;
+        })
+    };
+    let counted = |done, total| {
+        task.progress(|p| {
+            p.done = done;
+            p.total = total;
+        })
+    };
+    let services = task.services();
+    let finished = match scanned.await {
+        Ok(scan) => {
+            sqlx::query("UPDATE library_root SET offline_since = NULL WHERE id = ?")
+                .bind(root_id)
+                .execute(pool)
+                .await?;
+            step(Phase::Probing);
+            let probe = probe_root_with_progress(pool, root_id, &services.prober, counted).await;
+            let (mut report, mut problem) = match probe {
+                Ok(probe) => (json!({ "scan": scan, "probe": probe }), None),
+                // Files were still found; only stream details are missing.
+                Err(ProbeRootError::Unavailable(e)) => (
+                    json!({ "scan": scan }),
+                    Some(format!("Files scanned, but not probed: {e}")),
+                ),
+                Err(e) => (json!({ "scan": scan }), Some(e.to_string())),
+            };
+            step(Phase::Matching);
+            let matched = match_root_with_progress(
+                pool,
+                root_id,
+                &services.provider,
+                services.match_settings,
+                counted,
+            );
+            match matched.await {
+                Ok(matched) => {
+                    if let Some(e) = &matched.provider_error {
+                        problem.get_or_insert_with(|| {
+                            format!("Files scanned; identifying new folders failed: {e}")
+                        });
+                    }
+                    report["match"] = json!(matched);
+                }
+                Err(e) => {
+                    problem.get_or_insert_with(|| format!("Files scanned; matching failed: {e}"));
+                }
+            }
+            Finished {
+                state: Ended::Ok,
+                outcome: Some(report),
+                error: problem,
+            }
+        }
+        Err(e @ (ScanError::RootUnreachable { .. } | ScanError::RootEmpty { .. })) => {
+            sqlx::query("UPDATE library_root SET offline_since = coalesce(offline_since, unixepoch()) WHERE id = ?")
+                .bind(root_id)
+                .execute(pool)
+                .await?;
+            Finished {
+                state: Ended::Failed,
+                outcome: None,
+                error: Some(e.to_string()),
+            }
+        }
+        Err(ScanError::RootNotFound(_)) => Finished {
+            state: Ended::Cancelled,
+            outcome: None,
+            error: Some("The folder was removed.".into()),
+        },
+        Err(e) => Finished {
+            state: Ended::Failed,
+            outcome: None,
+            error: Some(e.to_string()),
+        },
+    };
+    Ok(finished)
+}
+
+/// Records the end of a scan, in the same transaction as its task.
+pub(crate) async fn finish_task(
+    tx: &mut SqliteConnection,
+    task_id: i64,
+    root_id: i64,
+    state: &str,
+) -> Result<(), sqlx::Error> {
+    crate::wanted::sync_events(tx).await?;
+    events::emit(
+        tx,
+        events::SCAN_FINISHED,
+        json!({ "root_id": root_id, "task_id": task_id, "state": state }),
+    )
+    .await?;
+    Ok(())
 }

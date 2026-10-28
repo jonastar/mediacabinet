@@ -10,7 +10,7 @@ use cabinet_core::catalog::{self, Episode, ViewRef};
 use cabinet_core::items;
 use cabinet_core::metadata::import::ImportReport;
 use cabinet_core::refs::{self, ItemRef, ItemView, Position, RefError};
-use cabinet_core::scan::Trigger;
+use cabinet_core::tasks::Trigger;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
@@ -286,7 +286,7 @@ pub async fn arr_webhook(
     let paths = arr::paths_in(&payload);
     let roots = arr::roots_for(&state.db, &paths).await?;
     for root in &roots {
-        state.scans.request(*root, Trigger::Watch);
+        state.scans.request(*root, Trigger::Watch).await?;
     }
     tracing::info!(event = ?payload.get("eventType"), ?roots, "*arr webhook");
     Ok((

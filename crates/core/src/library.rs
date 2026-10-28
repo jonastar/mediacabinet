@@ -152,9 +152,12 @@ pub async fn list(pool: &SqlitePool) -> Result<Vec<Library>, LibraryError> {
         }
     }
     let runs: Vec<ScanRunRow> = sqlx::query_as(
-        "SELECT r.id, r.root_id, r.trigger, r.state, r.started_at, r.finished_at, r.report, r.error
-         FROM scan_run r
-         WHERE r.id = (SELECT max(id) FROM scan_run WHERE root_id = r.root_id)",
+        "SELECT t.id, t.root_id, t.trigger, t.state, t.started_at, t.finished_at,
+                t.outcome AS report, t.error
+         FROM task t
+         WHERE t.id = (SELECT max(id) FROM task
+                       WHERE root_id = t.root_id AND kind = 'scan'
+                         AND state IN ('running', 'ok', 'failed'))",
     )
     .fetch_all(pool)
     .await?;

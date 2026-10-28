@@ -129,7 +129,23 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] UI: Player (version and track picker, direct play or transcode hint, resume)
 - [x] UI: playlists, mark watched
 
-## Phase 8 — Release
+## Phase 8 — Tasks and activity
+
+Designs: `docs/tasks.md`, `docs/activity.md`.
+
+- [x] Task runner extracted from the scan service; scans become the first task kind (`scan_run` → `task`)
+- [ ] Metadata refresh as a scheduled task
+- [ ] Task outcomes and task-scoped logs (tracing span per task)
+- [ ] Heavy lane: one task at a time, waits while transcodes run
+- [ ] Thumbnails task
+- [ ] Trickplay task
+- [ ] UI: Tasks screen and task inspector (Manage mode)
+- [ ] Activity: table, per-viewer audience filter, library additions from the event outbox
+- [ ] Play sessions and watch activity; incognito setting
+- [ ] Activity for users, logins, configuration changes and task results (admins)
+- [ ] UI: Activity screen, Home feed, inspector Activity and Events tabs
+
+## Phase 9 — Release
 
 - [ ] Keyboard navigation and accessibility pass across all screens
 - [x] Episode inspector (every link, number in each ordering, event history)

@@ -24,7 +24,8 @@ use plan::{Existing, MatchKind, Plan};
 
 pub use hash::partial_hash;
 pub use probe::{Probe, ProbeError, Prober, Stream};
-pub use service::{Phase, ScanProgress, ScanService, Trigger};
+pub use service::{Phase, ScanProgress, ScanService};
+pub(crate) use service::{finish_task, run_task};
 pub use walk::{Found, Walk, is_sidecar, is_video, stat, walk};
 
 #[derive(Debug, thiserror::Error)]

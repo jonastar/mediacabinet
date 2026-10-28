@@ -133,13 +133,16 @@ async fn main() -> anyhow::Result<()> {
             Err(_) => cabinet_core::matcher::MatchSettings::default().accept,
         },
     };
-    let scans = cabinet_core::scan::ScanService::with_matching(
+    let tasks = cabinet_core::tasks::Tasks::new(
         db.clone(),
-        prober,
-        provider.clone(),
-        match_settings,
+        cabinet_core::tasks::Services {
+            prober,
+            provider: provider.clone(),
+            match_settings,
+        },
     );
-    scans.recover().await?;
+    tasks.resume().await?;
+    let scans = cabinet_core::scan::ScanService::new(tasks);
     let interval = env_number("CABINET_SCAN_INTERVAL_MINUTES", 360)?;
     if interval > 0 {
         scans.spawn_scheduler(Duration::from_secs(interval * 60));

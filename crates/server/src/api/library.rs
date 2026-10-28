@@ -7,7 +7,7 @@ use cabinet_core::layout::{LibraryKind, Proposal, Template, TemplatePiece};
 use cabinet_core::library::{
     self, FolderListing, Library, NewRoot, PlacementExample, Root, RootChanges,
 };
-use cabinet_core::scan::Trigger;
+use cabinet_core::tasks::Trigger;
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
@@ -139,7 +139,7 @@ pub async fn add_root(
         },
     )
     .await?;
-    state.scans.request(root.id, Trigger::Added);
+    state.scans.request(root.id, Trigger::Added).await?;
     root.scanning = state.scans.progress(root.id);
     Ok((StatusCode::CREATED, Json(root)))
 }
@@ -217,7 +217,7 @@ pub async fn scan_root(
     Path(id): Path<i64>,
 ) -> Result<(StatusCode, Json<ScanStarted>), ApiError> {
     library::root(&state.db, id).await?;
-    let started = state.scans.request(id, Trigger::Manual);
+    let started = state.scans.request(id, Trigger::Manual).await?;
     Ok((StatusCode::ACCEPTED, Json(ScanStarted { started })))
 }
 

@@ -5,7 +5,8 @@ use std::path::Path;
 use std::time::Duration;
 
 use cabinet_core::library::{self, LibraryError, NewRoot, RootChanges};
-use cabinet_core::scan::{Prober, ScanService, Trigger};
+use cabinet_core::scan::{Prober, ScanService};
+use cabinet_core::tasks::{Services, Tasks, Trigger};
 use sqlx::SqlitePool;
 use tempfile::TempDir;
 
@@ -222,8 +223,18 @@ async fn placement_example_follows_the_stored_location() {
     );
 }
 
+fn scan_service(pool: &SqlitePool, prober: Prober) -> ScanService {
+    ScanService::new(Tasks::new(
+        pool.clone(),
+        Services {
+            prober,
+            ..Services::default()
+        },
+    ))
+}
+
 async fn scan_runs(pool: &SqlitePool) -> Vec<(String, String, Option<String>)> {
-    sqlx::query_as("SELECT trigger, state, error FROM scan_run ORDER BY id")
+    sqlx::query_as("SELECT trigger, state, error FROM task WHERE kind = 'scan' ORDER BY id")
         .fetch_all(pool)
         .await
         .unwrap()
@@ -245,12 +256,12 @@ async fn the_service_records_runs_and_offline_roots() {
         program: "/nonexistent/ffprobe".into(),
         ..Prober::default()
     };
-    let scans = ScanService::new(pool.clone(), prober);
+    let scans = scan_service(&pool, prober);
 
-    assert!(scans.request(root.id, Trigger::Added));
+    assert!(scans.request(root.id, Trigger::Added).await.unwrap());
     // A second request while running is folded into one more scan.
-    assert!(!scans.request(root.id, Trigger::Manual));
-    assert!(!scans.request(root.id, Trigger::Manual));
+    assert!(!scans.request(root.id, Trigger::Manual).await.unwrap());
+    assert!(!scans.request(root.id, Trigger::Manual).await.unwrap());
     scans.wait_idle(root.id).await;
 
     let runs = scan_runs(&pool).await;
@@ -265,7 +276,7 @@ async fn the_service_records_runs_and_offline_roots() {
 
     // Unmounted: the scan fails, nothing goes missing, and the root is offline.
     fs::rename(&path, format!("{path}-away")).unwrap();
-    scans.request(root.id, Trigger::Manual);
+    scans.request(root.id, Trigger::Manual).await.unwrap();
     scans.wait_idle(root.id).await;
     let offline = library::root(&pool, root.id).await.unwrap();
     assert!(offline.offline_since.is_some() && !offline.online);
@@ -273,7 +284,7 @@ async fn the_service_records_runs_and_offline_roots() {
     assert_eq!(offline.last_scan.unwrap().state, "failed");
 
     fs::rename(format!("{path}-away"), &path).unwrap();
-    scans.request(root.id, Trigger::Manual);
+    scans.request(root.id, Trigger::Manual).await.unwrap();
     scans.wait_idle(root.id).await;
     assert!(
         library::root(&pool, root.id)
@@ -285,27 +296,32 @@ async fn the_service_records_runs_and_offline_roots() {
 }
 
 #[tokio::test]
-async fn interrupted_runs_are_marked_failed() {
+async fn interrupted_runs_run_again() {
     let (dir, pool) = db().await;
     let tv = library::create(&pool, "TV", "tv").await.unwrap();
     let path = folder(dir.path(), "tv", &[]);
     let root = library::add_root(&pool, tv.id, new_root(&path))
         .await
         .unwrap();
-    sqlx::query("INSERT INTO scan_run (root_id, trigger) VALUES (?, 'manual')")
-        .bind(root.id)
-        .execute(&pool)
-        .await
-        .unwrap();
+    // One left running and one queued after it by a stopped server.
+    sqlx::query(
+        "INSERT INTO task (kind, root_id, trigger, state, started_at) VALUES ('scan', ?1, 'manual', 'running', 1);
+         INSERT INTO task (kind, root_id, trigger) VALUES ('scan', ?1, 'watch');
+         INSERT INTO task (kind, root_id, trigger) VALUES ('scan', ?1, 'scheduled');",
+    )
+    .bind(root.id)
+    .execute(&pool)
+    .await
+    .unwrap();
 
-    ScanService::new(pool.clone(), Prober::default())
-        .recover()
-        .await
-        .unwrap();
+    let tasks = Tasks::new(pool.clone(), Services::default());
+    tasks.resume().await.unwrap();
+    ScanService::new(tasks).wait_idle(root.id).await;
 
+    // The extra queued one is folded into the other.
     let runs = scan_runs(&pool).await;
-    assert_eq!(runs[0].1, "failed");
-    assert!(runs[0].2.as_deref().unwrap().contains("Interrupted"));
+    let triggers: Vec<(&str, &str)> = runs.iter().map(|r| (r.0.as_str(), r.1.as_str())).collect();
+    assert_eq!(triggers, [("manual", "ok"), ("watch", "ok")]);
 }
 
 #[tokio::test]
@@ -320,8 +336,8 @@ async fn the_watcher_rescans_after_changes() {
         program: "/nonexistent/ffprobe".into(),
         ..Prober::default()
     };
-    let scans = ScanService::new(pool.clone(), prober);
-    scans.request(root.id, Trigger::Added);
+    let scans = scan_service(&pool, prober);
+    scans.request(root.id, Trigger::Added).await.unwrap();
     scans.wait_idle(root.id).await;
 
     let watcher = scans.spawn_watcher(Duration::from_millis(200));
@@ -358,7 +374,14 @@ async fn concurrent_scans_of_several_roots_dont_lock_each_other_out() {
         cabinet_core::metadata::fake::Catalog::from_json(include_str!("data/catalog.json"))
             .unwrap();
     let provider = cabinet_core::metadata::Provider::Fake(std::sync::Arc::new(catalog));
-    let scans = ScanService::with_matching(pool.clone(), prober, provider, Default::default());
+    let scans = ScanService::new(Tasks::new(
+        pool.clone(),
+        Services {
+            prober,
+            provider,
+            match_settings: Default::default(),
+        },
+    ));
     // Each root holds a different catalog series, so imports run side by side.
     let shows = [
         "Night Harbor (2019)",
@@ -382,7 +405,7 @@ async fn concurrent_scans_of_several_roots_dont_lock_each_other_out() {
     }
 
     for id in &roots {
-        scans.request(*id, Trigger::Manual);
+        scans.request(*id, Trigger::Manual).await.unwrap();
     }
     for id in &roots {
         scans.wait_idle(*id).await;

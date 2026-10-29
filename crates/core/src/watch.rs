@@ -2,11 +2,14 @@
 //!
 //! Players report progress as they go. Past 90% of the duration an item counts
 //! as played: the play count goes up once and the resume position clears. Under
-//! 30 seconds isn't worth resuming from, so it's stored as the start.
+//! 30 seconds isn't worth resuming from, so it's stored as the start. Reports
+//! also make play sessions, which become watch activity (`activity::sessions`).
 
 use serde::Serialize;
 use sqlx::SqlitePool;
 use utoipa::ToSchema;
+
+use crate::activity;
 
 pub const PLAYED_FRACTION: f64 = 0.9;
 pub const MIN_RESUME_SECONDS: f64 = 30.0;
@@ -91,6 +94,7 @@ pub async fn report_progress(
     };
     let current = get(pool, user, item).await?;
     let finished = duration.is_some_and(|d| position >= d * PLAYED_FRACTION);
+    let mut tx = crate::db::begin_write(pool).await?;
     if finished {
         // Reports keep coming through the credits; count the play once.
         let already_counted = current.played && current.position_seconds == 0.0;
@@ -104,7 +108,7 @@ pub async fn report_progress(
         .bind(item)
         .bind(now)
         .bind(i64::from(!already_counted))
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
     } else {
         let position = if position < MIN_RESUME_SECONDS {
@@ -121,9 +125,11 @@ pub async fn report_progress(
         .bind(item)
         .bind(position)
         .bind(now)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
     }
+    activity::sessions::report(&mut tx, user, item, position, duration, finished, now).await?;
+    tx.commit().await?;
     Ok(get(pool, user, item).await?)
 }
 

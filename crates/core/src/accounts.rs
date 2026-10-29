@@ -25,13 +25,17 @@ pub enum AccountError {
     Db(#[from] sqlx::Error),
 }
 
-#[derive(Debug, Clone, Serialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, ToSchema, sqlx::FromRow)]
 pub struct User {
     pub id: i64,
     pub name: String,
     pub is_admin: bool,
     pub created_at: i64,
+    /// Hides what the user watches from other users, not from admins.
+    pub incognito: bool,
 }
+
+const USER_COLUMNS: &str = "id, name, is_admin, created_at, incognito";
 
 fn hash_token(token: &str) -> String {
     hex::encode(Sha256::digest(token.as_bytes()))
@@ -108,35 +112,21 @@ pub async fn setup(pool: &SqlitePool, name: &str, password: &str) -> Result<User
 }
 
 pub async fn user(pool: &SqlitePool, id: i64) -> Result<User, AccountError> {
-    sqlx::query_as::<_, (i64, String, bool, i64)>(
-        "SELECT id, name, is_admin, created_at FROM app_user WHERE id = ?",
-    )
+    sqlx::query_as(sqlx::AssertSqlSafe(format!(
+        "SELECT {USER_COLUMNS} FROM app_user WHERE id = ?"
+    )))
     .bind(id)
     .fetch_optional(pool)
     .await?
-    .map(|(id, name, is_admin, created_at)| User {
-        id,
-        name,
-        is_admin,
-        created_at,
-    })
     .ok_or(AccountError::NotFound)
 }
 
 pub async fn list(pool: &SqlitePool) -> Result<Vec<User>, sqlx::Error> {
-    let rows: Vec<(i64, String, bool, i64)> =
-        sqlx::query_as("SELECT id, name, is_admin, created_at FROM app_user ORDER BY id")
-            .fetch_all(pool)
-            .await?;
-    Ok(rows
-        .into_iter()
-        .map(|(id, name, is_admin, created_at)| User {
-            id,
-            name,
-            is_admin,
-            created_at,
-        })
-        .collect())
+    sqlx::query_as(sqlx::AssertSqlSafe(format!(
+        "SELECT {USER_COLUMNS} FROM app_user ORDER BY id"
+    )))
+    .fetch_all(pool)
+    .await
 }
 
 pub async fn create(
@@ -211,6 +201,17 @@ pub async fn update(
             .execute(pool)
             .await?;
     }
+    user(pool, id).await
+}
+
+/// Turns incognito on or off. Sessions keep the setting they started with, so
+/// this neither exposes nor hides what was watched before.
+pub async fn set_incognito(pool: &SqlitePool, id: i64, on: bool) -> Result<User, AccountError> {
+    sqlx::query("UPDATE app_user SET incognito = ? WHERE id = ?")
+        .bind(on)
+        .bind(id)
+        .execute(pool)
+        .await?;
     user(pool, id).await
 }
 

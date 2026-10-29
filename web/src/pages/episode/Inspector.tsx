@@ -3,6 +3,8 @@ import { api, type EventRecord, type LinkedFile, type OrderingNumber } from '../
 import { useApi } from '../../api/useApi'
 import { bytes, dayTimeLabel, resolution } from '../../lib/format'
 import { useLiveEvents } from '../../lib/live'
+import { ActivityList } from '../../components/ActivityFeed'
+import { Segmented } from '../../components/Segmented'
 import styles from './Inspector.module.css'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -146,7 +148,10 @@ export function Inspector({
 }) {
   const item = useApi(`item:${itemId}`, () => api.item(itemId))
   const events = useApi(`item-events:${itemId}`, () => api.itemEvents(itemId))
+  const activity = useApi(`item-activity:${itemId}`, () => api.activity({ item_id: itemId }))
+  const [history, setHistory] = useState<'activity' | 'events'>('activity')
   const [copied, setCopied] = useState(false)
+  useLiveEvents(['activity.added'], activity.reload)
   useLiveEvents(
     [
       'file.added',
@@ -210,10 +215,32 @@ export function Inspector({
       </div>
 
       <div className={styles.block}>
-        <h3>Events</h3>
-        {events.error && <p className={styles.error}>{events.error.message}</p>}
-        {events.data?.length === 0 && <p className={styles.empty}>Nothing yet.</p>}
-        {events.data && events.data.length > 0 && (
+        <div className={styles.historyHead}>
+          <h3>History</h3>
+          <Segmented
+            label="History"
+            variant="pills"
+            value={history}
+            onChange={setHistory}
+            options={[
+              { value: 'activity', label: 'Activity' },
+              { value: 'events', label: 'Events' },
+            ]}
+          />
+        </div>
+        {history === 'activity' && activity.error && (
+          <p className={styles.error}>{activity.error.message}</p>
+        )}
+        {history === 'activity' && activity.data && (
+          <ActivityList entries={activity.data.entries} empty="Nothing yet." />
+        )}
+        {history === 'events' && events.error && (
+          <p className={styles.error}>{events.error.message}</p>
+        )}
+        {history === 'events' && events.data?.length === 0 && (
+          <p className={styles.empty}>Nothing yet.</p>
+        )}
+        {history === 'events' && events.data && events.data.length > 0 && (
           <ol className={styles.events}>
             {events.data.map((e) => (
               <li key={e.id} className={styles.mono}>

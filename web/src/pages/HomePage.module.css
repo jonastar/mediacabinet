@@ -277,6 +277,18 @@
   font-weight: 700;
 }
 
+.feeds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 24px 48px;
+}
+
+.feedHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
 .empty {
   padding: 0 40px;
   color: var(--text-muted);

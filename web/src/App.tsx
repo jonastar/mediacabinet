@@ -1,4 +1,5 @@
 import { Shell } from './components/Shell'
+import { ActivityPage } from './pages/ActivityPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { EpisodePage } from './pages/EpisodePage'
 import { HomePage } from './pages/HomePage'
@@ -44,6 +45,9 @@ function Page({ path, admin }: { path: string; admin: boolean }) {
   }
   if (path === '/wanted') {
     return <WantedPage />
+  }
+  if (path === '/activity') {
+    return <ActivityPage />
   }
   if (path === '/calendar') {
     return <CalendarPage />

@@ -8,6 +8,7 @@ import { useMode } from '../lib/prefs'
 import { signOut, useUser } from '../lib/session'
 import { Segmented } from './Segmented'
 import {
+  ActivityIcon,
   CalendarIcon,
   FolderIcon,
   HomeIcon,
@@ -29,6 +30,7 @@ interface NavItem {
 const WATCH_NAV: NavItem[] = [
   { to: '/', label: 'Home', icon: <HomeIcon /> },
   { to: '/calendar', label: 'Calendar', icon: <CalendarIcon /> },
+  { to: '/activity', label: 'Activity', icon: <ActivityIcon /> },
 ]
 
 const MANAGE_NAV: NavItem[] = [

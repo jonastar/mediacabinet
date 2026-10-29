@@ -11,6 +11,7 @@ use utoipa_axum::routes;
 use crate::AppState;
 
 mod accounts;
+mod activity;
 mod auth;
 mod catalog;
 mod error;
@@ -41,6 +42,8 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(accounts::update_me))
         .routes(routes!(accounts::list_users, accounts::create_user))
         .routes(routes!(accounts::update_user, accounts::delete_user))
+        .routes(routes!(activity::list))
+        .routes(routes!(activity::clear_my_watch))
         .routes(routes!(catalog::home))
         .routes(routes!(catalog::list_series))
         .routes(routes!(catalog::series_detail))

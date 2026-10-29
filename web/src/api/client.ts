@@ -53,6 +53,8 @@ export type PlayContext = Schemas['PlayContext']
 export type ItemView = Schemas['ItemView']
 export type OrderingNumber = Schemas['OrderingNumber']
 export type EventRecord = Schemas['EventRecord']
+export type ActivityEntry = Schemas['ActivityEntry']
+export type ActivityPage = Schemas['ActivityPage']
 export type LibraryKind = 'tv' | 'movies'
 
 export interface PlayChoice {
@@ -68,6 +70,25 @@ export interface WebhookInput {
   event_types?: string[]
   enabled?: boolean
   from_start?: boolean
+}
+
+export interface ActivityQuery {
+  kinds?: string
+  library_id?: number
+  item_id?: number
+  user_id?: number
+  before?: string
+  limit?: number
+}
+
+function query(q: object) {
+  const params = new URLSearchParams()
+  for (const [k, v] of Object.entries(q)) {
+    if (v !== undefined) {
+      params.set(k, String(v))
+    }
+  }
+  return params.toString()
 }
 
 export interface WantedQuery {
@@ -213,15 +234,7 @@ export const api = {
   rematchSeries: (seriesId: number, providerId: string) =>
     request<ImportReport>('POST', `/api/series/${seriesId}/rematch`, { provider_id: providerId }),
   rescanSeries: (seriesId: number) => request<void>('POST', `/api/series/${seriesId}/rescan`),
-  wanted: (q: WantedQuery = {}) => {
-    const params = new URLSearchParams()
-    for (const [k, v] of Object.entries(q)) {
-      if (v !== undefined) {
-        params.set(k, String(v))
-      }
-    }
-    return request<WantedPage>('GET', `/api/wanted?${params}`)
-  },
+  wanted: (q: WantedQuery = {}) => request<WantedPage>('GET', `/api/wanted?${query(q)}`),
   calendar: (from: number, to: number) =>
     request<CalendarEntry[]>('GET', `/api/calendar?from=${from}&to=${to}`),
   qualityProfiles: () => request<QualityProfile[]>('GET', '/api/quality-profiles'),
@@ -252,8 +265,12 @@ export const api = {
   login: (name: string, password: string) =>
     request<User>('POST', '/api/auth/login', { name, password }),
   logout: () => request<void>('POST', '/api/auth/logout'),
-  updateMe: (changes: { name?: string; password?: string; current_password?: string }) =>
-    request<User>('PATCH', '/api/me', changes),
+  updateMe: (changes: {
+    name?: string
+    password?: string
+    current_password?: string
+    incognito?: boolean
+  }) => request<User>('PATCH', '/api/me', changes),
   users: () => request<User[]>('GET', '/api/users'),
   createUser: (name: string, password: string, isAdmin: boolean) =>
     request<User>('POST', '/api/users', { name, password, is_admin: isAdmin }),
@@ -281,6 +298,10 @@ export const api = {
   /** An episode or movie; for a series, all its episodes or just `episodes`. */
   setPlayed: (itemId: number, played: boolean, episodes?: number[]) =>
     request<{ changed: number }>('PUT', `/api/items/${itemId}/played`, { played, episodes }),
+
+  /** What happened, newest first, as far as the signed-in user may see. */
+  activity: (q: ActivityQuery = {}) => request<ActivityPage>('GET', `/api/activity?${query(q)}`),
+  clearMyWatchActivity: () => request<{ removed: number }>('DELETE', '/api/activity/mine/watch'),
 
   playlists: (seriesId?: number) =>
     request<Playlist[]>('GET', `/api/playlists${seriesId ? `?series_id=${seriesId}` : ''}`),

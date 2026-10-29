@@ -19,6 +19,8 @@ import {
 } from '../lib/format'
 import { useMode } from '../lib/prefs'
 import { Link } from '../components/Link'
+import { ActivityList } from '../components/ActivityFeed'
+import { useUser } from '../lib/session'
 import styles from './HomePage.module.css'
 
 const RAIL_LIMIT = 12
@@ -68,6 +70,7 @@ export function HomePage() {
         {mode === 'manage' && <NeedsAttention home={data} />}
         <KeepWatching items={data.keep_watching} home={data} />
         <ComingUp home={data} />
+        <Feed />
         {data.movies.length > 0 && (
           <section aria-labelledby="home-movies" className={styles.section}>
             <div className={styles.sectionHead}>
@@ -282,6 +285,48 @@ function KeepWatching({ items, home }: { items: ContinueItem[]; home: Home }) {
         })}
       </div>
     </section>
+  )
+}
+
+const FEED_LENGTH = 5
+
+/** Recent additions, and what other people watched. Hidden while there's neither. */
+function Feed() {
+  const me = useUser()
+  const added = useApi('home-added', () =>
+    api.activity({ kinds: 'items_added', limit: FEED_LENGTH }),
+  )
+  const watching = useApi('home-watching', () =>
+    api.activity({ kinds: 'watched,stopped_watching', limit: 20 }),
+  )
+  useLiveEvents(['activity.added'], () => Promise.all([added.reload(), watching.reload()]), 1000)
+  const additions = added.data?.entries ?? []
+  const friends = (watching.data?.entries ?? [])
+    .filter((e) => e.actor?.id !== me.id)
+    .slice(0, FEED_LENGTH)
+  if (additions.length === 0 && friends.length === 0) {
+    return null
+  }
+  return (
+    <div className={`${styles.feeds} ${styles.padded}`}>
+      {additions.length > 0 && (
+        <section aria-labelledby="home-added" className={styles.section}>
+          <div className={styles.feedHead}>
+            <h2 id="home-added">Recently added</h2>
+            <Link to="/activity" className={styles.seeAll}>
+              Activity
+            </Link>
+          </div>
+          <ActivityList entries={additions} empty="" />
+        </section>
+      )}
+      {friends.length > 0 && (
+        <section aria-labelledby="home-friends" className={styles.section}>
+          <h2 id="home-friends">Friends are watching</h2>
+          <ActivityList entries={friends} empty="" />
+        </section>
+      )}
+    </div>
   )
 }
 

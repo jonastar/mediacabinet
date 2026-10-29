@@ -13,6 +13,7 @@ let source: EventSource | null = null
 
 /** Every event type the server emits (crates/core/src/events.rs). */
 const EVENT_TYPES = [
+  'activity.added',
   'file.added',
   'file.changed',
   'file.ignored',

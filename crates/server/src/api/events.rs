@@ -15,6 +15,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
 use super::ApiError;
+use super::activity::config_changed;
+use super::auth::ActingUser;
 use super::error::ErrorBody;
 use crate::AppState;
 
@@ -177,12 +179,22 @@ pub async fn list_webhooks(State(state): State<AppState>) -> Result<Json<Vec<Web
 )]
 pub async fn create_webhook(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Json(body): Json<WebhookInput>,
 ) -> Result<(StatusCode, Json<NewWebhook>), ApiError> {
-    Ok((
-        StatusCode::CREATED,
-        Json(webhooks::create(&state.db, body).await?),
-    ))
+    let created = webhooks::create(&state.db, body).await?;
+    let hook = &created.webhook;
+    config_changed(
+        &state,
+        actor,
+        "webhook",
+        "created",
+        hook.id,
+        Some(&hook.name),
+        &[],
+    )
+    .await;
+    Ok((StatusCode::CREATED, Json(created)))
 }
 
 #[utoipa::path(
@@ -195,10 +207,29 @@ pub async fn create_webhook(
 )]
 pub async fn update_webhook(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Path(id): Path<i64>,
     Json(body): Json<WebhookInput>,
 ) -> Result<Json<Webhook>, ApiError> {
-    Ok(Json(webhooks::update(&state.db, id, body).await?))
+    let given = [
+        ("name", body.name.is_some()),
+        ("url", body.url.is_some()),
+        ("event_types", body.event_types.is_some()),
+        ("enabled", body.enabled.is_some()),
+    ];
+    let fields: Vec<&str> = given.iter().filter(|f| f.1).map(|f| f.0).collect();
+    let hook = webhooks::update(&state.db, id, body).await?;
+    config_changed(
+        &state,
+        actor,
+        "webhook",
+        "changed",
+        id,
+        Some(&hook.name),
+        &fields,
+    )
+    .await;
+    Ok(Json(hook))
 }
 
 #[utoipa::path(
@@ -210,9 +241,25 @@ pub async fn update_webhook(
 )]
 pub async fn delete_webhook(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Path(id): Path<i64>,
 ) -> Result<StatusCode, ApiError> {
+    let name = webhooks::list(&state.db)
+        .await?
+        .into_iter()
+        .find(|w| w.id == id)
+        .map(|w| w.name);
     webhooks::delete(&state.db, id).await?;
+    config_changed(
+        &state,
+        actor,
+        "webhook",
+        "removed",
+        id,
+        name.as_deref(),
+        &[],
+    )
+    .await;
     Ok(StatusCode::NO_CONTENT)
 }
 

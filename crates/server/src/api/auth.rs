@@ -5,7 +5,7 @@
 //! login endpoints and the OpenAPI document. API keys act as an admin.
 //!
 //! Changes need an admin, apart from a user's own things: their account, watch
-//! state, views and playlists. A few reads need an admin too: keys, webhooks,
+//! state, views, playlists and watch activity. A few reads need an admin too: keys, webhooks,
 //! users, the review queue, an item's event history and browsing the server's
 //! folders.
 
@@ -43,6 +43,9 @@ const ADMIN_READS: &[&str] = &[
 /// Changes any signed-in user may make.
 fn is_own_change(path: &str) -> bool {
     if path == "/api/me" || path.starts_with("/api/playlists") || path.starts_with("/api/play/") {
+        return true;
+    }
+    if path == "/api/activity/mine/watch" {
         return true;
     }
     if path.starts_with("/api/series/") && path.ends_with("/view") {
@@ -185,6 +188,24 @@ impl FromRequestParts<AppState> for Actor {
     }
 }
 
+/// Who to credit with a change in the activity log: the signed-in user, or no
+/// one for an API key.
+pub struct ActingUser(pub Option<i64>);
+
+impl FromRequestParts<AppState> for ActingUser {
+    type Rejection = ApiError;
+
+    async fn from_request_parts(
+        parts: &mut Parts,
+        _state: &AppState,
+    ) -> Result<Self, Self::Rejection> {
+        match caller(parts)? {
+            Caller::User(user) => Ok(ActingUser(Some(user.id))),
+            Caller::Key => Ok(ActingUser(None)),
+        }
+    }
+}
+
 /// A signed-in user; API keys don't count.
 pub struct SignedIn(pub User);
 
@@ -253,5 +274,8 @@ mod tests {
         assert!(!needs_admin(&Method::POST, "/api/playlists"));
         assert!(!needs_admin(&Method::PATCH, "/api/me"));
         assert!(needs_admin(&Method::PATCH, "/api/users/2"));
+        assert!(!needs_admin(&Method::GET, "/api/activity"));
+        assert!(!needs_admin(&Method::DELETE, "/api/activity/mine/watch"));
+        assert!(needs_admin(&Method::DELETE, "/api/activity/3"));
     }
 }

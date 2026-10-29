@@ -3,7 +3,7 @@ import { api } from '../api/client'
 import { signedIn, useUser } from '../lib/session'
 import styles from './Settings.module.css'
 
-/** Your own name and password. */
+/** Your own name, password and privacy. */
 export function AccountPage() {
   const user = useUser()
   const [name, setName] = useState(user.name)
@@ -19,6 +19,31 @@ export function AccountPage() {
       setMessage({ ok: true, text: done })
       setCurrent('')
       setPassword('')
+    } catch (err) {
+      setMessage({ ok: false, text: (err as Error).message })
+    }
+  }
+
+  const setIncognito = async (on: boolean) => {
+    setMessage(null)
+    try {
+      signedIn(await api.updateMe({ incognito: on }))
+    } catch (err) {
+      setMessage({ ok: false, text: (err as Error).message })
+    }
+  }
+
+  const clearWatchActivity = async () => {
+    if (!window.confirm('Clear what you watched from the activity log? Resume points stay.')) {
+      return
+    }
+    setMessage(null)
+    try {
+      const { removed } = await api.clearMyWatchActivity()
+      setMessage({
+        ok: true,
+        text: removed === 1 ? 'Cleared 1 entry.' : `Cleared ${removed} entries.`,
+      })
     } catch (err) {
       setMessage({ ok: false, text: (err as Error).message })
     }
@@ -102,6 +127,26 @@ export function AccountPage() {
             </button>
           </div>
         </form>
+        <section className={styles.panel} aria-labelledby="privacy">
+          <h2 id="privacy">Privacy</h2>
+          <label className={styles.check}>
+            <input
+              type="checkbox"
+              checked={user.incognito}
+              onChange={(e) => setIncognito(e.target.checked)}
+            />
+            Incognito
+          </label>
+          <p className={styles.muted}>
+            Hides what you watch from other users from now on. Admins still see it. What you watched
+            before keeps the setting it had then.
+          </p>
+          <div className={styles.row}>
+            <button type="button" className={styles.button} onClick={clearWatchActivity}>
+              Clear my watch activity
+            </button>
+          </div>
+        </section>
       </div>
     </div>
   )

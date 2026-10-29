@@ -74,3 +74,15 @@
   color: var(--text);
   text-decoration: none;
 }
+
+.more {
+  align-self: center;
+  min-height: var(--touch-target);
+  padding: 0 20px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-control);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+}

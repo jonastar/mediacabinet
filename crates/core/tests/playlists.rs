@@ -10,7 +10,7 @@ const ADMIN: Actor = Actor {
     admin: true,
 };
 const KID: Actor = Actor {
-    user: 2,
+    user: 3,
     admin: false,
 };
 
@@ -22,7 +22,7 @@ async fn demo() -> (TempDir, SqlitePool, i64) {
     cabinet_core::demo::seed(&pool, &dir.path().join("media"), catalog::now())
         .await
         .unwrap();
-    sqlx::query("INSERT INTO app_user (id, name) VALUES (2, 'kid')")
+    sqlx::query("INSERT INTO app_user (id, name) VALUES (3, 'kid')")
         .execute(&pool)
         .await
         .unwrap();

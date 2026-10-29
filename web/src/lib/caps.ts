@@ -3,15 +3,17 @@ import type { ClientCaps } from '../api/client'
 /** Codec names as the server knows them, with a MIME type to test each. */
 const VIDEO: [string, string][] = [
   ['h264', 'video/mp4; codecs="avc1.640028"'],
-  ['hevc', 'video/mp4; codecs="hvc1.1.6.L150.B0"'],
+  // Main 10: most HEVC files are 10-bit, and browsers that only decode 8-bit
+  // would otherwise be sent a copy they can't play.
+  ['hevc', 'video/mp4; codecs="hvc1.2.4.L153.B0"'],
   ['av1', 'video/mp4; codecs="av01.0.08M.08"'],
-  ['vp9', 'video/webm; codecs="vp09.00.10.08"'],
+  ['vp9', 'video/mp4; codecs="vp09.00.10.08"'],
 ]
 
 const AUDIO: [string, string][] = [
   ['aac', 'audio/mp4; codecs="mp4a.40.2"'],
   ['mp3', 'audio/mpeg'],
-  ['opus', 'audio/webm; codecs="opus"'],
+  ['opus', 'audio/mp4; codecs="opus"'],
   ['flac', 'audio/mp4; codecs="flac"'],
   ['ac3', 'audio/mp4; codecs="ac-3"'],
   ['eac3', 'audio/mp4; codecs="ec-3"'],
@@ -24,9 +26,14 @@ const CONTAINERS: [string, string][] = [
 ]
 
 function supported(type: string, video: HTMLVideoElement): boolean {
-  // Media Source decides what HLS can carry; a plain <video> decides direct play.
-  const mse = window.MediaSource?.isTypeSupported?.(type) ?? false
-  return mse || video.canPlayType(type) === 'probably'
+  // Where Media Source exists, HLS (fMP4) goes through it, so it has the final
+  // say; a codec only a plain <video> plays would break when copied into HLS.
+  const source =
+    window.MediaSource ?? (window as { ManagedMediaSource?: typeof MediaSource }).ManagedMediaSource
+  if (source) {
+    return source.isTypeSupported(type)
+  }
+  return video.canPlayType(type) === 'probably'
 }
 
 let cached: ClientCaps | null = null

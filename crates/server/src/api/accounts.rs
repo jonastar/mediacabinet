@@ -5,12 +5,15 @@ use axum::extract::{Path, State};
 use axum::http::header::SET_COOKIE;
 use axum::http::{HeaderMap, HeaderValue, StatusCode};
 use axum::response::{IntoResponse, Response};
-use cabinet_core::accounts::{self, User};
+use cabinet_core::accounts::{self, AccountError, User};
+use cabinet_core::activity::{self, NewEntry};
+use cabinet_core::catalog::now;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use utoipa::ToSchema;
 
 use super::ApiError;
-use super::auth::{self, SESSION_COOKIE, SignedIn};
+use super::auth::{self, ActingUser, SESSION_COOKIE, SignedIn};
 use super::error::ErrorBody;
 use crate::AppState;
 
@@ -97,8 +100,22 @@ pub async fn login(
     headers: HeaderMap,
     Json(body): Json<Credentials>,
 ) -> Result<Response, ApiError> {
-    let (user, token) = accounts::login(&state.db, &body.name, &body.password).await?;
-    Ok(signed_in(&headers, user, &token))
+    match accounts::login(&state.db, &body.name, &body.password).await {
+        Ok((user, token)) => {
+            let mut entry = NewEntry::admins(activity::LOGIN, now(), Some(user.id), json!({}));
+            entry.subject = Some(user.id);
+            activity::record_or_warn(&state.db, entry).await;
+            Ok(signed_in(&headers, user, &token))
+        }
+        Err(AccountError::BadLogin) => {
+            let name: String = body.name.trim().chars().take(64).collect();
+            let entry =
+                NewEntry::admins(activity::LOGIN_FAILED, now(), None, json!({ "name": name }));
+            activity::record_or_warn(&state.db, entry).await;
+            Err(AccountError::BadLogin.into())
+        }
+        Err(e) => Err(e.into()),
+    }
 }
 
 /// Ends this session.
@@ -120,6 +137,8 @@ pub struct MeUpdate {
     /// A new password; needs `current_password`.
     password: Option<String>,
     current_password: Option<String>,
+    /// Hide what you watch from other users (not from admins), from now on.
+    incognito: Option<bool>,
 }
 
 /// Changes your own name or password. A new password signs out your other
@@ -137,6 +156,9 @@ pub async fn update_me(
     headers: HeaderMap,
     Json(body): Json<MeUpdate>,
 ) -> Result<Response, ApiError> {
+    if let Some(on) = body.incognito {
+        accounts::set_incognito(&state.db, me.id, on).await?;
+    }
     let Some(password) = body.password else {
         let user = accounts::update(&state.db, me.id, body.name.as_deref(), None, None).await?;
         return Ok(Json(user).into_response());
@@ -184,9 +206,18 @@ pub struct NewUser {
 )]
 pub async fn create_user(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Json(body): Json<NewUser>,
 ) -> Result<(StatusCode, Json<User>), ApiError> {
     let user = accounts::create(&state.db, &body.name, &body.password, body.is_admin).await?;
+    let mut entry = NewEntry::admins(
+        activity::USER_CREATED,
+        now(),
+        actor,
+        json!({ "name": user.name, "is_admin": user.is_admin }),
+    );
+    entry.subject = Some(user.id);
+    activity::record_or_warn(&state.db, entry).await;
     Ok((StatusCode::CREATED, Json(user)))
 }
 
@@ -209,19 +240,36 @@ pub struct UserUpdate {
 )]
 pub async fn update_user(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Path(id): Path<i64>,
     Json(body): Json<UserUpdate>,
 ) -> Result<Json<User>, ApiError> {
-    Ok(Json(
-        accounts::update(
-            &state.db,
-            id,
-            body.name.as_deref(),
-            body.password.as_deref(),
-            body.is_admin,
-        )
-        .await?,
-    ))
+    let before = accounts::user(&state.db, id).await?;
+    let user = accounts::update(
+        &state.db,
+        id,
+        body.name.as_deref(),
+        body.password.as_deref(),
+        body.is_admin,
+    )
+    .await?;
+    let changed = [
+        ("name", user.name != before.name),
+        ("password", body.password.is_some()),
+        ("is_admin", user.is_admin != before.is_admin),
+    ];
+    let fields: Vec<&str> = changed.iter().filter(|c| c.1).map(|c| c.0).collect();
+    if !fields.is_empty() {
+        let mut entry = NewEntry::admins(
+            activity::USER_CHANGED,
+            now(),
+            actor,
+            json!({ "name": user.name, "is_admin": user.is_admin, "fields": fields }),
+        );
+        entry.subject = Some(user.id);
+        activity::record_or_warn(&state.db, entry).await;
+    }
+    Ok(Json(user))
 }
 
 /// Removes an account and its watch state. The last admin can't be removed.
@@ -234,8 +282,18 @@ pub async fn update_user(
 )]
 pub async fn delete_user(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Path(id): Path<i64>,
 ) -> Result<StatusCode, ApiError> {
+    let user = accounts::user(&state.db, id).await?;
     accounts::delete(&state.db, id).await?;
+    // Not about them: what's about a removed user goes with them.
+    let entry = NewEntry::admins(
+        activity::USER_REMOVED,
+        now(),
+        actor,
+        json!({ "name": user.name }),
+    );
+    activity::record_or_warn(&state.db, entry).await;
     Ok(StatusCode::NO_CONTENT)
 }

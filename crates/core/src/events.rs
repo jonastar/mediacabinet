@@ -4,6 +4,8 @@
 use serde_json::Value;
 use sqlx::SqliteConnection;
 
+/// An activity entry was written, or grew (more episodes added).
+pub const ACTIVITY_ADDED: &str = "activity.added";
 pub const FILE_ADDED: &str = "file.added";
 pub const FILE_CHANGED: &str = "file.changed";
 pub const FILE_IGNORED: &str = "file.ignored";

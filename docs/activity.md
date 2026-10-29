@@ -2,7 +2,7 @@
 
 Oct 28, 2026 · Jonas
 
-A readable history of what happened: library additions, what people watched, user and configuration changes, tasks, and later comments, ratings and reviews. Each entry has an audience; viewers only see what they're allowed to. Status: design, not built.
+A readable history of what happened: library additions, what people watched, user and configuration changes, tasks, and later comments, ratings and reviews. Each entry has an audience; viewers only see what they're allowed to. Status: built (`crates/core/src/activity/`, migration 0011).
 
 ## Activity and events
 
@@ -46,7 +46,7 @@ Every entry has an audience, set when it's written:
 | --- | --- | --- |
 | Items added (series, season's episodes, movie) | everyone | Grouped per series or movie per scan or import |
 | Watched / stopped watching | everyone, or subject when incognito | From play sessions |
-| User created, removed, made admin | admins | |
+| User created, removed, changed (renamed, password reset, made admin) | admins | |
 | Login, failed login | admins | Whether to store IP addresses is open |
 | Configuration changed | admins | Which fields changed; never the values of secrets (API keys, the TMDB key, webhook secrets, passwords) |
 | Task failed or finished | admins | Links to the task inspector (`tasks.md`) |
@@ -73,7 +73,16 @@ The item inspector shows both, as two tabs: **Activity** (readable, filtered by 
 - An Activity screen; a short feed on Home ("Recently added", "Friends are watching").
 - Live updates through the existing event stream.
 
+## As built
+
+- **Additions** count an episode or movie when it gets its first file link ever (the first `link.created` for it), so upgrades and second versions aren't news. Additions to a series or movie within 30 minutes of its latest entry grow that entry; `new_series` says none of the series' episodes was linked before. The consumer's cursor is in `event_consumer`; on first run it reads the whole outbox, so existing libraries get their history.
+- **Sessions** end after 10 minutes without a report, or at the played threshold (90%); reports through the credits belong to the finished session. Entries need 5 minutes or reaching the end. Quiet sessions are ended by a background worker every minute.
+- **Task results**: failures, tasks that finished with a problem, and manual runs. Routine scheduled and watch scans that went fine aren't logged.
+- **Configuration**: libraries, roots, API keys and webhooks, with the names of the fields that changed. User changes cover renames, password resets and the admin flag (`user_changed`).
+- **Retention**: watching and logins 90 days, everything else a year; pruned hourly.
+- **Live updates**: writing or growing an entry emits `activity.added` with the entry's id.
+- Changes made with an API key have no actor. Watch mode's Activity screen shows additions and watching only, also for admins.
+
 ## Open
 
-- Session timeout, minimum session length and retention values.
-- Storing IP addresses for logins.
+- Storing IP addresses for logins (not stored for now).

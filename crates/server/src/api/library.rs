@@ -12,6 +12,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
 use super::ApiError;
+use super::activity::config_changed;
+use super::auth::ActingUser;
 use super::error::ErrorBody;
 use crate::AppState;
 
@@ -50,9 +52,12 @@ pub struct CreateLibrary {
 )]
 pub async fn create_library(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Json(body): Json<CreateLibrary>,
 ) -> Result<(StatusCode, Json<Library>), ApiError> {
     let created = library::create(&state.db, &body.name, &body.kind).await?;
+    let name = Some(created.name.as_str());
+    config_changed(&state, actor, "library", "created", created.id, name, &[]).await;
     Ok((StatusCode::CREATED, Json(created)))
 }
 
@@ -71,10 +76,14 @@ pub struct RenameLibrary {
 )]
 pub async fn rename_library(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Path(id): Path<i64>,
     Json(body): Json<RenameLibrary>,
 ) -> Result<Json<Library>, ApiError> {
-    Ok(Json(library::rename(&state.db, id, &body.name).await?))
+    let renamed = library::rename(&state.db, id, &body.name).await?;
+    let name = Some(renamed.name.as_str());
+    config_changed(&state, actor, "library", "changed", id, name, &["name"]).await;
+    Ok(Json(renamed))
 }
 
 /// Deletes an empty library. Its folders must be removed first.
@@ -87,9 +96,12 @@ pub async fn rename_library(
 )]
 pub async fn delete_library(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Path(id): Path<i64>,
 ) -> Result<StatusCode, ApiError> {
+    let name = library::get(&state.db, id).await?.name;
     library::delete(&state.db, id).await?;
+    config_changed(&state, actor, "library", "removed", id, Some(&name), &[]).await;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -125,6 +137,7 @@ fn adaptive() -> String {
 )]
 pub async fn add_root(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Path(id): Path<i64>,
     Json(body): Json<AddRoot>,
 ) -> Result<(StatusCode, Json<Root>), ApiError> {
@@ -139,6 +152,16 @@ pub async fn add_root(
         },
     )
     .await?;
+    config_changed(
+        &state,
+        actor,
+        "root",
+        "created",
+        root.id,
+        Some(&root.path),
+        &[],
+    )
+    .await;
     state.scans.request(root.id, Trigger::Added).await?;
     root.scanning = state.scans.progress(root.id);
     Ok((StatusCode::CREATED, Json(root)))
@@ -162,9 +185,16 @@ pub struct UpdateRoot {
 )]
 pub async fn update_root(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Path(id): Path<i64>,
     Json(body): Json<UpdateRoot>,
 ) -> Result<Json<Root>, ApiError> {
+    let given = [
+        ("write_policy", body.write_policy.is_some()),
+        ("layout_template", body.layout_template.is_some()),
+        ("is_import_target", body.is_import_target.is_some()),
+    ];
+    let fields: Vec<&str> = given.iter().filter(|f| f.1).map(|f| f.0).collect();
     let mut root = library::update_root(
         &state.db,
         id,
@@ -175,6 +205,16 @@ pub async fn update_root(
         },
     )
     .await?;
+    config_changed(
+        &state,
+        actor,
+        "root",
+        "changed",
+        id,
+        Some(&root.path),
+        &fields,
+    )
+    .await;
     root.scanning = state.scans.progress(root.id);
     Ok(Json(root))
 }
@@ -189,12 +229,15 @@ pub async fn update_root(
 )]
 pub async fn remove_root(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Path(id): Path<i64>,
 ) -> Result<StatusCode, ApiError> {
     if state.scans.progress(id).is_some() {
         return Err(ApiError::Conflict("Wait for the scan to finish.".into()));
     }
+    let path = library::root(&state.db, id).await?.path;
     library::remove_root(&state.db, id).await?;
+    config_changed(&state, actor, "root", "removed", id, Some(&path), &[]).await;
     Ok(StatusCode::NO_CONTENT)
 }
 

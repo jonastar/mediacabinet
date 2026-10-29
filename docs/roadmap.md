@@ -140,10 +140,10 @@ Designs: `docs/tasks.md`, `docs/activity.md`.
 - [ ] Thumbnails task
 - [ ] Trickplay task
 - [ ] UI: Tasks screen and task inspector (Manage mode)
-- [ ] Activity: table, per-viewer audience filter, library additions from the event outbox
-- [ ] Play sessions and watch activity; incognito setting
-- [ ] Activity for users, logins, configuration changes and task results (admins)
-- [ ] UI: Activity screen, Home feed, inspector Activity and Events tabs
+- [x] Activity: table, per-viewer audience filter, library additions from the event outbox
+- [x] Play sessions and watch activity; incognito setting
+- [x] Activity for users, logins, configuration changes and task results (admins)
+- [x] UI: Activity screen, Home feed, inspector Activity and Events tabs
 
 ## Phase 9 — Release
 

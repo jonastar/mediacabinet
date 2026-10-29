@@ -404,6 +404,10 @@ impl Tasks {
         .execute(&mut *tx)
         .await?;
         finish(&mut tx, key, id, &finished).await?;
+        let trigger = self.inner.slots.lock().unwrap()[&key].running.trigger;
+        if let Some(entry) = activity(key, id, trigger, &finished) {
+            crate::activity::record(&mut tx, &entry).await?;
+        }
         tx.commit().await?;
         if let Some(error) = &finished.error {
             tracing::warn!(
@@ -415,6 +419,38 @@ impl Tasks {
         }
         Ok(())
     }
+}
+
+/// The activity entry for a task's end, for admins: failures, problems, and
+/// tasks someone asked for. Routine runs that went fine aren't news.
+fn activity(
+    (kind, scope): Key,
+    id: i64,
+    trigger: Trigger,
+    finished: &Finished,
+) -> Option<crate::activity::NewEntry> {
+    let failed = finished.state == Ended::Failed;
+    if !failed && finished.error.is_none() && trigger != Trigger::Manual {
+        return None;
+    }
+    let Scope::Root(root_id) = scope;
+    Some(crate::activity::NewEntry::admins(
+        if failed {
+            crate::activity::TASK_FAILED
+        } else {
+            crate::activity::TASK_FINISHED
+        },
+        now(),
+        None,
+        serde_json::json!({
+            "task_id": id,
+            "task_kind": kind.as_str(),
+            "trigger": trigger.as_str(),
+            "state": finished.state.as_str(),
+            "error": finished.error,
+            "root_id": root_id,
+        }),
+    ))
 }
 
 /// Each kind's bookkeeping in the transaction that records the end of a task.

@@ -147,3 +147,11 @@
     padding: 16px;
   }
 }
+
+.historyHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  align-items: center;
+  justify-content: space-between;
+}

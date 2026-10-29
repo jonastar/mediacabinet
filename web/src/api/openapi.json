@@ -9,6 +9,132 @@
     "version": "1.0.0-dev"
   },
   "paths": {
+    "/api/activity": {
+      "get": {
+        "tags": [
+          "activity"
+        ],
+        "summary": "What happened, newest first: only the entries the caller may see. Admins see\neverything; others see what's for everyone and what's about themselves.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "kinds",
+            "in": "query",
+            "description": "Comma-separated kinds; default all.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "library_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "item_id",
+            "in": "query",
+            "description": "Entries about this item, its episodes, or (for episodes) additions that include it.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "user_id",
+            "in": "query",
+            "description": "Entries where this user acted or is the subject.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          },
+          {
+            "name": "before",
+            "in": "query",
+            "description": "The `next` cursor of the previous page.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Default 50, max 200.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivityPage"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/activity/mine/watch": {
+      "delete": {
+        "tags": [
+          "activity"
+        ],
+        "summary": "Clears what you watched from the activity log. Resume points and played\nmarks stay.",
+        "operationId": "clear_my_watch",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Cleared"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/api-keys": {
       "get": {
         "tags": [
@@ -3959,6 +4085,94 @@
           }
         }
       },
+      "ActivityEntry": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "at",
+          "audience",
+          "payload"
+        ],
+        "properties": {
+          "actor": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "audience": {
+            "$ref": "#/components/schemas/Audience"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "item": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ItemRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kind": {
+            "type": "string"
+          },
+          "library_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "payload": {
+            "type": "object",
+            "description": "Per kind. `items_added`: `items` (episode or movie IDs) and `new_series`.\nWatching: `position_start`, `position_end`, `duration_seconds`.\n`config_changed`: `target`, `action`, `id`, `name`, `fields`.\nTasks: `task_id`, `task_kind`, `trigger`, `error`, scope IDs."
+          },
+          "subject": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/UserRef"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      },
+      "ActivityPage": {
+        "type": "object",
+        "required": [
+          "entries"
+        ],
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ActivityEntry"
+            }
+          },
+          "next": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Pass as `before` for older entries; none when there are no more."
+          }
+        }
+      },
       "AddItem": {
         "type": "object",
         "required": [
@@ -4096,6 +4310,15 @@
             "format": "int64"
           }
         }
+      },
+      "Audience": {
+        "type": "string",
+        "description": "Who may see an entry.",
+        "enum": [
+          "everyone",
+          "admins",
+          "subject"
+        ]
       },
       "AudioTrack": {
         "type": "object",
@@ -4332,6 +4555,19 @@
               "null"
             ],
             "description": "`stream:<index>` or `sidecar:<id>`; none for no subtitles."
+          }
+        }
+      },
+      "Cleared": {
+        "type": "object",
+        "required": [
+          "removed"
+        ],
+        "properties": {
+          "removed": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
           }
         }
       },
@@ -5324,6 +5560,57 @@
           }
         }
       },
+      "ItemRef": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "title",
+          "library_id"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`series`, `episode` or `movie`."
+          },
+          "library_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "number": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EpisodeNumber",
+                "description": "Episodes: the number in the default ordering, or else the first one."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "series_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Episodes: their series."
+          },
+          "series_title": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "ItemView": {
         "type": "object",
         "required": [
@@ -5673,6 +5960,13 @@
               "string",
               "null"
             ]
+          },
+          "incognito": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Hide what you watch from other users (not from admins), from now on."
           },
           "name": {
             "type": [
@@ -7484,7 +7778,8 @@
           "id",
           "name",
           "is_admin",
-          "created_at"
+          "created_at",
+          "incognito"
         ],
         "properties": {
           "created_at": {
@@ -7495,8 +7790,28 @@
             "type": "integer",
             "format": "int64"
           },
+          "incognito": {
+            "type": "boolean",
+            "description": "Hides what the user watches from other users, not from admins."
+          },
           "is_admin": {
             "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "UserRef": {
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
           },
           "name": {
             "type": "string"

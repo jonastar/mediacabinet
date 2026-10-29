@@ -1,6 +1,7 @@
 //! Media Cabinet core: library model, scanning, matching and derived views.
 
 pub mod accounts;
+pub mod activity;
 pub mod apikeys;
 pub mod arr;
 pub mod catalog;

@@ -15,7 +15,8 @@ use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
 use super::ApiError;
-use super::auth::ApiKeyAuth;
+use super::activity::config_changed;
+use super::auth::{ActingUser, ApiKeyAuth};
 use super::error::ErrorBody;
 use crate::AppState;
 
@@ -207,12 +208,22 @@ pub struct CreateKey {
 #[utoipa::path(post, path = "/api-keys", tag = "integration", request_body = CreateKey, responses((status = 201, body = NewApiKey)))]
 pub async fn create_key(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Json(body): Json<CreateKey>,
 ) -> Result<(StatusCode, Json<NewApiKey>), ApiError> {
-    Ok((
-        StatusCode::CREATED,
-        Json(apikeys::create(&state.db, &body.name).await?),
-    ))
+    let created = apikeys::create(&state.db, &body.name).await?;
+    let key = &created.key;
+    config_changed(
+        &state,
+        actor,
+        "api_key",
+        "created",
+        key.id,
+        Some(&key.name),
+        &[],
+    )
+    .await;
+    Ok((StatusCode::CREATED, Json(created)))
 }
 
 #[utoipa::path(
@@ -224,9 +235,25 @@ pub async fn create_key(
 )]
 pub async fn revoke_key(
     State(state): State<AppState>,
+    ActingUser(actor): ActingUser,
     Path(id): Path<i64>,
 ) -> Result<StatusCode, ApiError> {
+    let name = apikeys::list(&state.db)
+        .await?
+        .into_iter()
+        .find(|k| k.id == id)
+        .map(|k| k.name);
     if apikeys::revoke(&state.db, id).await? {
+        config_changed(
+            &state,
+            actor,
+            "api_key",
+            "removed",
+            id,
+            name.as_deref(),
+            &[],
+        )
+        .await;
         Ok(StatusCode::NO_CONTENT)
     } else {
         Err(ApiError::NotFound)

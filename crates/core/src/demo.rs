@@ -57,8 +57,50 @@ pub async fn seed(pool: &SqlitePool, media_dir: &Path, now: i64) -> Result<(), D
     // Start the wanted snapshot from the seeded state, as a real library would be
     // after its first scans.
     crate::wanted::sync_events(&mut tx).await?;
+    activity(&mut tx, now).await?;
     tx.commit().await?;
     Ok(())
+}
+
+/// Activity as the seeded state would have made it: the latest episodes of each
+/// show added, what the demo user watched, and a second user, sam, who watched
+/// some of the same.
+async fn activity(conn: &mut SqliteConnection, now: i64) -> Result<(), sqlx::Error> {
+    let sam: i64 =
+        sqlx::query_scalar("INSERT INTO app_user (name, is_admin) VALUES ('sam', 0) RETURNING id")
+            .fetch_one(&mut *conn)
+            .await?;
+    sqlx::query(
+        "INSERT INTO activity (kind, at, library_id, item_id, audience, payload)
+         SELECT 'items_added', ?1 - (series_id % 9) * 86400 - (series_id % 5) * 3600, library_id,
+                series_id, 'everyone', json_object('items', json_group_array(id), 'new_series', json('false'))
+         FROM (SELECT e.id, e.parent_id AS series_id, e.library_id,
+                      row_number() OVER (PARTITION BY e.parent_id ORDER BY e.airs_at DESC) AS latest
+               FROM item e WHERE e.kind = 'episode'
+               AND EXISTS (SELECT 1 FROM file_link l WHERE l.item_id = e.id))
+         WHERE latest <= 3
+         GROUP BY series_id",
+    )
+    .bind(now)
+    .execute(&mut *conn)
+    .await?;
+    sqlx::query(
+        "INSERT INTO activity (kind, at, actor_user_id, subject_user_id, library_id, item_id,
+                               audience, payload)
+         SELECT CASE WHEN st.played THEN 'watched' ELSE 'stopped_watching' END,
+                st.last_played_at - (u.id = ?1) * 5 * 3600, u.id, u.id, i.library_id, i.id, 'everyone',
+                json_object('position_start', 0.0,
+                            'position_end', CASE WHEN st.played THEN i.runtime_seconds
+                                                 ELSE st.position_seconds END,
+                            'duration_seconds', i.runtime_seconds)
+         FROM user_item_state st JOIN item i ON i.id = st.item_id
+         JOIN app_user u ON u.id = 1 OR (u.id = ?1 AND st.played AND st.item_id % 3 = 0)
+         WHERE st.user_id = 1 AND st.last_played_at IS NOT NULL",
+    )
+    .bind(sam)
+    .execute(conn)
+    .await
+    .map(|_| ())
 }
 
 struct Seeder<'a> {

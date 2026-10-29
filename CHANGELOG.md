@@ -12,6 +12,8 @@ Details belong in the commit, docs or API reference.
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
+- Activity log: library additions, what people watched (with an incognito setting), and for admins sign-ins, account and settings changes and task results; on an Activity screen, Home and the inspector.
+- Migration 0011 adds the activity log, play sessions and the incognito setting; `activity.added` events announce new entries.
 - Scans interrupted by a restart run again on startup instead of being marked failed.
 - Migration 0010 moves scan history into the new task table; `scan.finished` events carry `task_id` instead of `scan_run_id`.
 - Migration 0009 rebuilds the item, file and link tables (backed up first); the wanted list's library filter now uses each item's own library.

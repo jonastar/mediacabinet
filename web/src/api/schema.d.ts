@@ -4,6 +4,46 @@
  */
 
 export interface paths {
+    "/api/activity": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What happened, newest first: only the entries the caller may see. Admins see
+         *     everything; others see what's for everyone and what's about themselves.
+         */
+        get: operations["list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/activity/mine/watch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Clears what you watched from the activity log. Resume points and played
+         *     marks stay.
+         */
+        delete: operations["clear_my_watch"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/api-keys": {
         parameters: {
             query?: never;
@@ -1284,6 +1324,31 @@ export interface components {
             /** @description Pin the resulting link so rescans never change it. */
             pin?: boolean;
         };
+        ActivityEntry: {
+            actor?: components["schemas"]["UserRef"] | null;
+            /** Format: int64 */
+            at: number;
+            audience: components["schemas"]["Audience"];
+            /** Format: int64 */
+            id: number;
+            item?: components["schemas"]["ItemRef"] | null;
+            kind: string;
+            /** Format: int64 */
+            library_id?: number | null;
+            /**
+             * @description Per kind. `items_added`: `items` (episode or movie IDs) and `new_series`.
+             *     Watching: `position_start`, `position_end`, `duration_seconds`.
+             *     `config_changed`: `target`, `action`, `id`, `name`, `fields`.
+             *     Tasks: `task_id`, `task_kind`, `trigger`, `error`, scope IDs.
+             */
+            payload: Record<string, never>;
+            subject?: components["schemas"]["UserRef"] | null;
+        };
+        ActivityPage: {
+            entries: components["schemas"]["ActivityEntry"][];
+            /** @description Pass as `before` for older entries; none when there are no more. */
+            next?: string | null;
+        };
         AddItem: {
             /**
              * Format: int64
@@ -1335,6 +1400,11 @@ export interface components {
             /** Format: int64 */
             wanted: number;
         };
+        /**
+         * @description Who may see an entry.
+         * @enum {string}
+         */
+        Audience: "everyone" | "admins" | "subject";
         AudioTrack: {
             /** Format: int64 */
             channels?: number | null;
@@ -1411,6 +1481,10 @@ export interface components {
             max_height?: number | null;
             /** @description `stream:<index>` or `sidecar:<id>`; none for no subtitles. */
             subtitle?: string | null;
+        };
+        Cleared: {
+            /** Format: int64 */
+            removed: number;
         };
         /**
          * @description What the client says it can play. Codec names are ffprobe's (`h264`, `hevc`,
@@ -1700,6 +1774,22 @@ export interface components {
             /** Format: int64 */
             year?: number | null;
         };
+        ItemRef: {
+            /** Format: int64 */
+            id: number;
+            /** @description `series`, `episode` or `movie`. */
+            kind: string;
+            /** Format: int64 */
+            library_id: number;
+            number?: components["schemas"]["EpisodeNumber"] | null;
+            /**
+             * Format: int64
+             * @description Episodes: their series.
+             */
+            series_id?: number | null;
+            series_title?: string | null;
+            title: string;
+        };
         ItemView: {
             /** Format: int64 */
             airs_at?: number | null;
@@ -1799,6 +1889,8 @@ export interface components {
         };
         MeUpdate: {
             current_password?: string | null;
+            /** @description Hide what you watch from other users (not from admins), from now on. */
+            incognito?: boolean | null;
             name?: string | null;
             /** @description A new password; needs `current_password`. */
             password?: string | null;
@@ -2329,7 +2421,14 @@ export interface components {
             created_at: number;
             /** Format: int64 */
             id: number;
+            /** @description Hides what the user watches from other users, not from admins. */
+            incognito: boolean;
             is_admin: boolean;
+            name: string;
+        };
+        UserRef: {
+            /** Format: int64 */
+            id: number;
             name: string;
         };
         UserUpdate: {
@@ -2465,6 +2564,64 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    list: {
+        parameters: {
+            query?: {
+                /** @description Comma-separated kinds; default all. */
+                kinds?: string | null;
+                library_id?: number | null;
+                /** @description Entries about this item, its episodes, or (for episodes) additions that include it. */
+                item_id?: number | null;
+                /** @description Entries where this user acted or is the subject. */
+                user_id?: number | null;
+                /** @description The `next` cursor of the previous page. */
+                before?: string | null;
+                /** @description Default 50, max 200. */
+                limit?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActivityPage"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    clear_my_watch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Cleared"];
+                };
+            };
+        };
+    };
     list_keys: {
         parameters: {
             query?: never;

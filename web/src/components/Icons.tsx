@@ -48,6 +48,12 @@ export const CalendarIcon = () => (
   </svg>
 )
 
+export const ActivityIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" {...line}>
+    <path d="M2.5 10h3.5l2-5 4 10 2-5h3.5" />
+  </svg>
+)
+
 export const WantedIcon = () => (
   <svg width="18" height="18" viewBox="0 0 20 20" {...line}>
     <circle cx="10" cy="10" r="7" />

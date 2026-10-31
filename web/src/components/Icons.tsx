@@ -6,21 +6,6 @@ const line = {
   'aria-hidden': true,
 } as const
 
-export const LogoIcon = () => (
-  <svg
-    width="26"
-    height="26"
-    viewBox="0 0 26 26"
-    fill="none"
-    stroke="var(--accent)"
-    strokeWidth="2"
-    aria-hidden="true"
-  >
-    <rect x="4" y="3" width="18" height="20" rx="2.5" />
-    <path d="M4 10h18M4 16.5h18M11 6.5h4M11 13h4M11 19.5h4" />
-  </svg>
-)
-
 export const HomeIcon = () => (
   <svg width="18" height="18" viewBox="0 0 20 20" {...line}>
     <path d="M3 9.5L10 3.5l7 6V17h-5v-4.5H8V17H3z" />

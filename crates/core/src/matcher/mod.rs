@@ -31,7 +31,7 @@ use crate::layout::{self, LibraryKind, Template};
 use crate::metadata::import::{import_movie, import_series};
 use crate::metadata::{MetadataError, Provider, SearchResult};
 use crate::parse::{Parsed, parse};
-use episodes::{EpisodeInfo, OrderingIndex, SeriesIndex, resolve};
+use episodes::{EpisodeInfo, FileToResolve, OrderingIndex, SeriesIndex, resolve, resolve_parts};
 use score::{nfo_ids, similarity};
 
 #[derive(Debug, Clone, Copy)]
@@ -611,14 +611,38 @@ async fn link_episodes(
     report: &mut MatchReport,
 ) -> Result<(), sqlx::Error> {
     let index = load_index(pool, series).await?;
-    for (file, parsed, season) in folder.files {
-        match resolve(&index, &parsed, season, file.duration_seconds) {
+    let to_resolve: Vec<FileToResolve> = folder
+        .files
+        .iter()
+        .map(|(file, parsed, season)| FileToResolve {
+            parsed,
+            folder_season: *season,
+            duration: file.duration_seconds,
+        })
+        .collect();
+    let mut parts = resolve_parts(&index, &to_resolve);
+    drop(to_resolve);
+    for (i, (file, parsed, season)) in folder.files.into_iter().enumerate() {
+        let resolution = match parts.remove(&i) {
+            Some(r) => Some(r),
+            None => resolve(&index, &parsed, season, file.duration_seconds),
+        };
+        match resolution {
             Some(r) if r.confidence >= settings.accept => {
-                link(pool, file.id, &r.items, r.confidence, "parser", None, None).await?;
+                link(
+                    pool,
+                    file.id,
+                    &r.items,
+                    r.confidence,
+                    "parser",
+                    None,
+                    r.part,
+                )
+                .await?;
                 report.linked += 1;
             }
             Some(r) => {
-                queue_file(pool, file.id, &r.items, r.confidence, &r.reason).await?;
+                queue_file(pool, file.id, &r.items, r.part, r.confidence, &r.reason).await?;
                 report.files_queued += 1;
             }
             None => report.unmatched += 1,
@@ -715,10 +739,13 @@ async fn is_rejected(
     .await
 }
 
+/// Queues file → item candidates for review. Pending ones from an earlier scan
+/// are brought up to date.
 async fn queue_file(
     pool: &SqlitePool,
     file: i64,
     items: &[i64],
+    part: Option<i64>,
     confidence: f64,
     reason: &str,
 ) -> Result<(), sqlx::Error> {
@@ -732,16 +759,31 @@ async fn queue_file(
     .await?
     .into_iter()
     .collect();
-    for item in items.iter().filter(|i| !existing.contains(i)) {
+    for item in items {
+        if existing.contains(item) {
+            sqlx::query(
+                "UPDATE match_candidate SET part = ?3, confidence = ?4, reason = ?5
+                 WHERE file_id = ?1 AND item_id = ?2 AND state = 'pending' AND source = 'parser'",
+            )
+            .bind(file)
+            .bind(item)
+            .bind(part)
+            .bind(confidence)
+            .bind(reason)
+            .execute(&mut *tx)
+            .await?;
+            continue;
+        }
         if is_rejected(&mut tx, file, *item).await? {
             continue;
         }
         sqlx::query(
-            "INSERT INTO match_candidate (library_id, file_id, item_id, confidence, source, reason)
-             SELECT library_id, ?1, ?2, ?3, 'parser', ?4 FROM media_file WHERE id = ?1",
+            "INSERT INTO match_candidate (library_id, file_id, item_id, part, confidence, source, reason)
+             SELECT library_id, ?1, ?2, ?3, ?4, 'parser', ?5 FROM media_file WHERE id = ?1",
         )
         .bind(file)
         .bind(item)
+        .bind(part)
         .bind(confidence)
         .bind(reason)
         .execute(&mut *tx)

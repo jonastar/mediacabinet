@@ -45,7 +45,7 @@
   align-self: flex-start;
   padding: 4px 10px;
   border-radius: 6px;
-  background: rgba(242, 181, 68, 0.18);
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
   color: var(--accent-soft-text);
   font-size: 12px;
   font-weight: 700;

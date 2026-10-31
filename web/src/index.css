@@ -11,9 +11,11 @@
   --text-secondary: #b5bac3;
   --text-muted: #9aa0aa;
 
-  --accent: #f2b544;
-  --accent-ink: #1a1406;
-  --accent-soft-text: #f5d08a;
+  /* The brand's play teal. */
+  --accent: #2bb5a6;
+  --accent-hover: #5fd0c3;
+  --accent-ink: #04201d;
+  --accent-soft-text: #8fdcd2;
 
   --state-available: #4cc38a;
   --state-available-text: #6fd6a3;
@@ -21,8 +23,15 @@
   --state-missing-text: #f59c84;
   --state-upcoming: #6ea8fe;
   --state-upcoming-text: #8dbbff;
+  --state-attention: #f2b544;
+  --state-attention-text: #f5d08a;
   --state-neutral: #b5bac3;
   --state-neutral-bg: #22262e;
+
+  /* Brand colours from docs/brand. */
+  --brand-cabinet: #0f7a71;
+  --brand-play: #2bb5a6;
+  --brand-cream: #f2eee6;
 
   /* Layout template levels. */
   --template-grouping: #9cc3ff;
@@ -69,7 +78,7 @@ a {
 }
 
 a:hover {
-  color: #ffd27a;
+  color: var(--accent-hover);
 }
 
 :focus-visible {

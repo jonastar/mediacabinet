@@ -195,8 +195,8 @@
 .why {
   padding: 12px 14px;
   border-radius: var(--radius-control);
-  background: rgba(242, 181, 68, 0.1);
-  color: var(--accent-soft-text);
+  background: color-mix(in srgb, var(--state-attention) 10%, transparent);
+  color: var(--state-attention-text);
   font-size: 14px;
   line-height: 1.5;
 }

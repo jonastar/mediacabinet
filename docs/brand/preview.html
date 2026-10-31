@@ -1,0 +1,18 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Media Cabinet — brand assets</title>
+<style>
+:root{--bg:#121214;--fg:#F2EEE6;--muted:#A8A49C;--tile:#1A1A1E}
+@media (prefers-color-scheme: light){:root{--bg:#F2EEE6;--fg:#141416;--muted:#5A5650;--tile:#E6E1D6}}
+body{margin:0;padding:40px;background:var(--bg);color:var(--fg);font-family:system-ui,sans-serif}
+h1{margin:0 0 8px} h2{margin:40px 0 16px} p{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:20px}
+figure{margin:0} .tile{background:#121214;border-radius:14px;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
+.tile img{width:60%;height:60%} figcaption{margin-top:8px;font-size:14px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lock{display:flex;flex-wrap:wrap;gap:20px} .lock div{flex:1 1 360px;border-radius:14px;padding:32px;display:flex;align-items:center;justify-content:center}
+.lock img{max-width:100%;height:60px} button{font:inherit;font-size:13px;min-height:32px;padding:0 12px;border-radius:8px;border:1px solid var(--muted);background:transparent;color:var(--fg);cursor:pointer}
+</style></head><body>
+<h1>Media Cabinet — brand assets</h1><p>Open the files in this folder for use; this page is just a preview.</p>
+<h2>Lockups</h2><div class="lock"><div style="background:#121214"><img src="lockup/media-cabinet-lockup-on-dark.svg" alt="Lockup on dark"></div><div style="background:#F2EEE6"><img src="lockup/media-cabinet-lockup-on-light.svg" alt="Lockup on light"></div></div>
+<h2>Marks</h2><div class="grid"><figure><div class="tile"><img src="mark/media-cabinet-mark.svg" alt="Mark"></div><figcaption>Mark</figcaption></figure><figure><div class="tile"><img src="mark/media-cabinet-mark-mono-dark.svg" alt="Mono dark"></div><figcaption>Mono dark</figcaption></figure><figure><div class="tile"><img src="mark/media-cabinet-mark-mono-light.svg" alt="Mono light"></div><figcaption>Mono light</figcaption></figure><figure><div class="tile"><img src="icons/favicon.svg" alt="Favicon"></div><figcaption>Favicon</figcaption></figure></div>
+<h2>Motion</h2><div class="grid"><figure><div class="tile"><img data-src="motion/launch-build-in.svg" src="motion/launch-build-in.svg" alt="launch-build-in"></div><figcaption>launch-build-in <button type="button" onclick="replay(this)">Replay</button></figcaption></figure><figure><div class="tile"><img data-src="motion/loading-light-leak.svg" src="motion/loading-light-leak.svg" alt="loading-light-leak"></div><figcaption>loading-light-leak <button type="button" onclick="replay(this)">Replay</button></figcaption></figure><figure><div class="tile"><img data-src="motion/loading-light-leak-split.svg" src="motion/loading-light-leak-split.svg" alt="loading-light-leak-split"></div><figcaption>loading-light-leak-split <button type="button" onclick="replay(this)">Replay</button></figcaption></figure><figure><div class="tile"><img data-src="motion/playback-press-open.svg" src="motion/playback-press-open.svg" alt="playback-press-open"></div><figcaption>playback-press-open <button type="button" onclick="replay(this)">Replay</button></figcaption></figure><figure><div class="tile"><img data-src="motion/playback-slide-apart.svg" src="motion/playback-slide-apart.svg" alt="playback-slide-apart"></div><figcaption>playback-slide-apart <button type="button" onclick="replay(this)">Replay</button></figcaption></figure></div>
+<script>function replay(btn){const img=btn.closest('figure').querySelector('img');img.src=img.dataset.src+'?t='+Date.now();}</script>
+</body></html>

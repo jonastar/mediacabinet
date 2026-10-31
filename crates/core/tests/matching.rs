@@ -274,6 +274,70 @@ async fn movie_library() {
 }
 
 #[tokio::test]
+async fn episodes_split_over_files() {
+    let lib = Lib::new().await;
+    let tv = lib.base.join("tv");
+    write(
+        &tv,
+        "Night Harbor (2019)/tvshow.nfo",
+        r#"<tvshow><uniqueid type="tmdb" default="true">99010</uniqueid></tvshow>"#,
+    );
+    for f in [
+        // Numbered as two episodes where the series has one; S01E07 is past the season.
+        "Night Harbor - S01E06 - Fog (1) WEBDL-1080p.mkv",
+        "Night Harbor - S01E07 - Fog (2) WEBDL-1080p.mkv",
+        // Two parts under one number.
+        "Night Harbor - S01E03 - Lighthouse Part 1.mkv",
+        "Night Harbor - S01E03 - Lighthouse Part 2.mkv",
+    ] {
+        video(&tv, &format!("Night Harbor (2019)/Season 01/{f}"));
+    }
+    let root = lib
+        .root("TV", "tv", "tv", "{series}/Season {season:00}/{filename}")
+        .await;
+
+    let report = lib.scan_and_match(root).await;
+    assert_eq!((report.linked, report.files_queued), (4, 0));
+    let parts: Vec<(String, String, Option<i64>)> = sqlx::query_as(
+        "SELECT f.relative_path, i.title, l.part FROM file_link l
+         JOIN media_file f ON f.id = l.file_id JOIN item i ON i.id = l.item_id
+         ORDER BY f.relative_path",
+    )
+    .fetch_all(&lib.pool)
+    .await
+    .unwrap();
+    let parts: Vec<(&str, &str, Option<i64>)> = parts
+        .iter()
+        .map(|(p, t, n)| (p.rsplit('/').next().unwrap(), t.as_str(), *n))
+        .collect();
+    assert_eq!(
+        parts,
+        [
+            (
+                "Night Harbor - S01E03 - Lighthouse Part 1.mkv",
+                "Lighthouse",
+                Some(1)
+            ),
+            (
+                "Night Harbor - S01E03 - Lighthouse Part 2.mkv",
+                "Lighthouse",
+                Some(2)
+            ),
+            (
+                "Night Harbor - S01E06 - Fog (1) WEBDL-1080p.mkv",
+                "Fog",
+                Some(1)
+            ),
+            (
+                "Night Harbor - S01E07 - Fog (2) WEBDL-1080p.mkv",
+                "Fog",
+                Some(2)
+            ),
+        ]
+    );
+}
+
+#[tokio::test]
 async fn uncertain_matches_go_to_review() {
     let lib = Lib::new().await;
     let tv = lib.base.join("tv");

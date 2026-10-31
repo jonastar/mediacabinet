@@ -1,6 +1,6 @@
 # Media Cabinet
 
-Self-hosted media library manager and streaming server. Rust backend (`crates/`), React + TypeScript web UI (`web/`). The stack and its reasons are in `docs/decisions.md`; progress toward v1 is tracked in `docs/roadmap.md` (tick items when they land); designs for larger features get their own `docs/{topic}.md` (e.g. `tasks.md`, `activity.md`); the product spec and designs are in `media-cabinet-handoff/`. User-visible changes get a brief, one-line `CHANGELOG.md` entry in the same commit; versions and releases follow `docs/releasing.md`.
+Self-hosted media library manager and streaming server. Rust backend (`crates/`), React + TypeScript web UI (`web/`). The stack and its reasons are in `docs/decisions.md`; progress toward v1 is tracked in `docs/roadmap.md` (tick items when they land); designs for larger features get their own `docs/{topic}.md` (e.g. `tasks.md`, `activity.md`); real-world matching cases go in `docs/matching-quirks.md` when the matcher learns to handle one; the product spec and designs are in `media-cabinet-handoff/`; the logo, icons, colours and motion are in `docs/brand/` (see its README). User-visible changes get a brief, one-line `CHANGELOG.md` entry in the same commit; versions and releases follow `docs/releasing.md`.
 
 ## Commands
 

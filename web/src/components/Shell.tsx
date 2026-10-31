@@ -3,6 +3,7 @@ import { api, type Library } from '../api/client'
 import { useApi } from '../api/useApi'
 import { useLiveEvents } from '../lib/live'
 import { usePath } from '../lib/router'
+import { Brand } from './Brand'
 import { Link } from './Link'
 import { useMode } from '../lib/prefs'
 import { signOut, useUser } from '../lib/session'
@@ -12,7 +13,6 @@ import {
   CalendarIcon,
   FolderIcon,
   HomeIcon,
-  LogoIcon,
   MoviesIcon,
   ReviewIcon,
   SettingsIcon,
@@ -77,8 +77,7 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className={styles.shell}>
       <nav aria-label="Main" className={styles.sidebar}>
         <Link to="/" className={styles.brand}>
-          <LogoIcon />
-          Media Cabinet
+          <Brand />
         </Link>
         {WATCH_NAV.map((item) => (
           <NavLink key={item.to} item={item} path={path} />

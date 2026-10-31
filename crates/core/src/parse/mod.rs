@@ -114,6 +114,8 @@ static BARE_NUMBER: LazyLock<Regex> = LazyLock::new(|| re(r"\s(\d{2,4})(?:v\d)?\
 static YEAR: LazyLock<Regex> = LazyLock::new(|| re(r"\(?\b((?:19|20)\d{2})\b\)?"));
 static PART: LazyLock<Regex> =
     LazyLock::new(|| re(r"(?i)\b(?:cd|disc|disk|dvd|part|pt)[ ]?(\d{1,2})\b"));
+/// "The Last Day (1)": a numbered half of a two-part episode.
+static EPISODE_PART: LazyLock<Regex> = LazyLock::new(|| re(r"^\((\d)\)"));
 
 /// Parses a file name (no folders).
 pub fn parse(filename: &str) -> Parsed {
@@ -219,6 +221,9 @@ pub fn parse(filename: &str) -> Parsed {
         let name = clean(&tail[..cut]);
         if !name.is_empty() && !SAMPLE_WORD.is_match(&name) {
             p.episode_title = Some(name);
+            if let Some(caps) = EPISODE_PART.captures(&tail[cut..]) {
+                p.part.get_or_insert(caps[1].parse().unwrap_or(1));
+            }
         }
     }
     p

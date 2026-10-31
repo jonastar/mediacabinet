@@ -72,6 +72,13 @@ export const airShortDay = (seconds: number, timeKnown: boolean) =>
 export const airWeekday = (seconds: number, timeKnown: boolean) =>
   weekdayFormat.format(airDay(seconds, timeKnown))
 
+/** The pieces of a day tile: `Sun` and `1`, or `Today` for today. */
+export function airDayTile(seconds: number, timeKnown: boolean, now = new Date()) {
+  const d = airDay(seconds, timeKnown)
+  const today = d.toDateString() === now.toDateString()
+  return { label: today ? 'Today' : weekdayFormat.format(d), day: d.getDate(), today }
+}
+
 export const shortDay = (seconds: number) => dayFormat.format(date(seconds))
 export const dayTimeLabel = (seconds: number) => dayTimeFormat.format(date(seconds))
 export const weekday = (seconds: number) => weekdayFormat.format(date(seconds))

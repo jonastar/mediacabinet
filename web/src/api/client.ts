@@ -54,6 +54,7 @@ export type ItemView = Schemas['ItemView']
 export type OrderingNumber = Schemas['OrderingNumber']
 export type EventRecord = Schemas['EventRecord']
 export type ActivityEntry = Schemas['ActivityEntry']
+export type ItemRef = Schemas['ItemRef']
 export type ActivityPage = Schemas['ActivityPage']
 export type LibraryKind = 'tv' | 'movies'
 

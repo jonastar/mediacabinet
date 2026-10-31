@@ -21,7 +21,8 @@ import { checkSession, useSession } from './lib/session'
 import { AuthPage } from './pages/AuthPage'
 import { AccountPage } from './pages/AccountPage'
 import { PlayerPage } from './pages/PlayerPage'
-import { Failed, Loading } from './components/Status'
+import { Failed } from './components/Status'
+import { BootScreen } from './components/Brand'
 
 /** Pages only admins can use. */
 const MANAGE_PATHS = ['/wanted', '/review', '/libraries', '/settings']
@@ -119,7 +120,7 @@ export default function App() {
   const path = usePath()
   const session = useSession()
   if (session.state === 'checking') {
-    return <Loading />
+    return <BootScreen />
   }
   if (session.state === 'unreachable') {
     return <Failed error={session.error} onRetry={checkSession} />

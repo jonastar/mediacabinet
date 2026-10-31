@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { api } from '../api/client'
-import { LogoIcon } from '../components/Icons'
+import { Brand } from '../components/Brand'
 import { signedIn } from '../lib/session'
 import styles from './AuthPage.module.css'
 
@@ -60,8 +60,7 @@ export function AuthPage({ setup }: { setup: boolean }) {
     <main className={styles.page}>
       <form className={styles.card} onSubmit={submit}>
         <span className={styles.brand}>
-          <LogoIcon />
-          Media Cabinet
+          <Brand />
         </span>
         <h1>{setup ? 'Create your account' : 'Sign in'}</h1>
         {setup && (

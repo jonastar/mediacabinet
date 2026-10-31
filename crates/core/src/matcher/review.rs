@@ -191,6 +191,7 @@ struct FileCandidateRow {
 struct CandidateRow {
     file_id: Option<i64>,
     item_id: Option<i64>,
+    part: Option<i64>,
     root_id: Option<i64>,
     folder_path: Option<String>,
     provider_value: Option<String>,
@@ -414,7 +415,7 @@ pub async fn accept(
     settings: MatchSettings,
 ) -> Result<(), ReviewError> {
     let row: Option<CandidateRow> = sqlx::query_as(
-        "SELECT file_id, item_id, root_id, folder_path, provider_value, state FROM match_candidate WHERE id = ?",
+        "SELECT file_id, item_id, part, root_id, folder_path, provider_value, state FROM match_candidate WHERE id = ?",
     )
     .bind(candidate)
     .fetch_optional(pool)
@@ -422,6 +423,7 @@ pub async fn accept(
     let Some(CandidateRow {
         file_id: file,
         item_id: item,
+        part,
         root_id: root,
         folder_path: folder,
         provider_value: value,
@@ -438,6 +440,16 @@ pub async fn accept(
     match (file, item, root, folder, value) {
         (Some(file), Some(item), ..) => {
             link_file(pool, file, &[item], pin).await?;
+            // The matcher knows better than the name whether an episode file is a part.
+            sqlx::query(
+                "UPDATE file_link SET part = ? WHERE file_id = ? AND item_id = ?
+                   AND (SELECT kind FROM item WHERE id = item_id) = 'episode'",
+            )
+            .bind(part)
+            .bind(file)
+            .bind(item)
+            .execute(pool)
+            .await?;
             decide(pool, candidate).await?;
         }
         (_, _, Some(root), Some(folder), Some(value)) => {

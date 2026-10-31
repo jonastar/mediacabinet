@@ -242,6 +242,16 @@ fn editions_parts_and_versions() {
         "\"Part 2\" in a title isn't a file part"
     );
     assert_eq!(parse("Movie Name (2010) - pt1.mkv").part, Some(1));
+    let half = parse("Brass Lantern - S08E10 - The Last Day (2) WEBDL-1080p Proper.mkv");
+    assert_eq!(
+        (half.episode_title.as_deref(), half.part),
+        (Some("The Last Day"), Some(2))
+    );
+    assert_eq!(
+        parse("Brass Lantern - S01E01 - Pilot (2019).mkv").part,
+        None,
+        "a year isn't a part"
+    );
     assert_eq!(parse("[Grp] Show - 15v2 [1080p].mkv").version, Some(2));
 }
 

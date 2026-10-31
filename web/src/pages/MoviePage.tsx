@@ -5,6 +5,7 @@ import { EditDetails } from '../components/EditDetails'
 import { PlayIcon } from '../components/Icons'
 import { LibraryBack } from '../components/LibraryBack'
 import { itemPath, useCanonicalPath } from '../lib/router'
+import { DetailsToggle } from '../components/DetailsToggle'
 import { Link } from '../components/Link'
 import { Failed, Loading } from '../components/Status'
 import { heroBackground } from '../lib/artwork'
@@ -77,6 +78,7 @@ export function MoviePage({ id }: { id: number }) {
             fallback={{ to: '/movies', label: 'Movies' }}
             className={styles.back}
           />
+          <DetailsToggle />
         </div>
         <div className={styles.heroBody}>
           {manage && <span className={styles.managing}>Managing · changes apply for everyone</span>}

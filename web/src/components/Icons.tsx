@@ -108,6 +108,12 @@ export const SettingsIcon = () => (
   </svg>
 )
 
+export const SignOutIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" {...line}>
+    <path d="M8 3.5H5a1.5 1.5 0 0 0-1.5 1.5v10A1.5 1.5 0 0 0 5 16.5h3M12.5 6.5L16 10l-3.5 3.5M16 10H8" />
+  </svg>
+)
+
 // ── Player ──────────────────────────────────────────────────────────────────
 
 const player = { width: 24, height: 24, viewBox: '0 0 24 24', 'aria-hidden': true } as const

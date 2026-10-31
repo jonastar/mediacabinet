@@ -309,38 +309,6 @@
   max-width: 720px;
 }
 
-.attention {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-.attentionCard {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px 20px;
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  text-decoration: none;
-}
-
-.attentionValue {
-  font-size: 30px;
-  font-weight: 800;
-}
-
-.attentionLabel {
-  font-weight: 700;
-}
-
-.attentionNote {
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
 .empty {
   margin: 0;
   color: var(--text-muted);

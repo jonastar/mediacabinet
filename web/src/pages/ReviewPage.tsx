@@ -5,16 +5,19 @@ import { Failed, Loading } from '../components/Status'
 import { Detail } from './review/Detail'
 import { entries, type Entry } from './review/entries'
 import { GroupDetail } from './review/GroupDetail'
+import { Ignored } from './review/Ignored'
 import { useLiveEvents } from '../lib/live'
 import styles from './review/Review.module.css'
 
 function EntryButton({
   entry,
   current,
+  expanded,
   onSelect,
 }: {
   entry: Entry
   current: Entry
+  expanded?: boolean
   onSelect: (key: string) => void
 }) {
   return (
@@ -22,6 +25,7 @@ function EntryButton({
       type="button"
       className={`${styles.entry} ${entry.kind === 'group' ? styles.entryGroup : ''}`}
       aria-current={entry.key === current.key}
+      aria-expanded={expanded}
       onClick={() => onSelect(entry.key)}
     >
       <span className={entry.kind === 'group' ? styles.groupName : styles.entryName}>
@@ -37,8 +41,10 @@ function EntryButton({
 
 export function ReviewPage() {
   const queue = useApi('review', api.review)
+  const ignored = useApi('review-ignored', api.ignoredFolders)
   useLiveEvents(['match.needs_review', 'scan.finished'], queue.reload, 1000)
   const [selected, setSelected] = useState<string | null>(null)
+  const [collapsed, setCollapsed] = useState<string | null>(null)
 
   if (queue.error) {
     return <Failed error={queue.error} onRetry={queue.reload} />
@@ -54,6 +60,16 @@ export function ReviewPage() {
   const done = () => {
     setSelected(group?.startsWith('group:') ? group : null)
     queue.reload()
+    ignored.reload()
+  }
+  // Clicking the selected series again folds its files away, and back.
+  const select = (key: string) => {
+    if (key === current?.key && current.kind === 'group') {
+      setCollapsed(collapsed === key ? null : key)
+    } else {
+      setCollapsed(null)
+    }
+    setSelected(key)
   }
 
   return (
@@ -77,14 +93,21 @@ export function ReviewPage() {
                 .filter((e) => !('group' in e && e.group))
                 .map((e) => (
                   <li key={e.key}>
-                    <EntryButton entry={e} current={current} onSelect={setSelected} />
-                    {e.kind === 'group' && group === e.key && (
+                    <EntryButton
+                      entry={e}
+                      current={current}
+                      expanded={
+                        e.kind === 'group' ? group === e.key && collapsed !== e.key : undefined
+                      }
+                      onSelect={select}
+                    />
+                    {e.kind === 'group' && group === e.key && collapsed !== e.key && (
                       <ul aria-label={`${e.label} files`} className={styles.children}>
                         {list
                           .filter((c) => 'group' in c && c.group === e.key)
                           .map((c) => (
                             <li key={c.key}>
-                              <EntryButton entry={c} current={current} onSelect={setSelected} />
+                              <EntryButton entry={c} current={current} onSelect={select} />
                             </li>
                           ))}
                       </ul>
@@ -98,13 +121,22 @@ export function ReviewPage() {
                 key={current.key}
                 title={current.label}
                 files={current.files}
-                onSelect={(id) => setSelected(`file:${id}`)}
+                onSelect={(id) => select(`file:${id}`)}
                 onDone={done}
               />
             ) : (
               <Detail key={current.key} entry={current} onDone={done} />
             )}
           </div>
+        )}
+        {ignored.data && ignored.data.length > 0 && (
+          <Ignored
+            folders={ignored.data}
+            onDone={() => {
+              queue.reload()
+              ignored.reload()
+            }}
+          />
         )}
       </div>
     </div>

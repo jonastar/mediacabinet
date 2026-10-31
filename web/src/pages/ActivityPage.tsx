@@ -5,7 +5,7 @@ import { ActivityList } from '../components/ActivityFeed'
 import { Segmented } from '../components/Segmented'
 import { Failed, Loading } from '../components/Status'
 import { useLiveEvents } from '../lib/live'
-import { useMode } from '../lib/prefs'
+import { useUser } from '../lib/session'
 import styles from './Page.module.css'
 
 type Filter = 'all' | 'added' | 'watching' | 'admin'
@@ -26,14 +26,14 @@ const KINDS: Record<Filter, string | undefined> = {
   ].join(','),
 }
 
-/** What happened: additions, what people watched, and in Manage mode, admin entries. */
+/** What happened: additions, what people watched, and for admins, admin entries. */
 export function ActivityPage() {
-  const [mode] = useMode()
+  const user = useUser()
   const [filter, setFilter] = useState<Filter>('all')
   const [older, setOlder] = useState<{ entries: ActivityEntry[]; next: string | null } | null>(null)
   const [error, setError] = useState<string | null>(null)
-  // Watch mode is about the library and watching, even for admins.
-  const watchOnly = mode !== 'manage' && (filter === 'all' || filter === 'admin')
+  // All is about the library and watching, even for admins; they have Admin for the rest.
+  const watchOnly = filter === 'all' || (filter === 'admin' && !user.is_admin)
   const kinds = watchOnly ? `${KINDS.added},${KINDS.watching}` : KINDS[filter]
   const page = useApi(`activity:${kinds ?? 'all'}`, () => api.activity({ kinds }))
   useLiveEvents(['activity.added'], page.reload)
@@ -60,7 +60,7 @@ export function ActivityPage() {
     { value: 'added', label: 'Added' },
     { value: 'watching', label: 'Watching' },
   ]
-  if (mode === 'manage') {
+  if (user.is_admin) {
     options.push({ value: 'admin', label: 'Admin' })
   }
   const seen = new Set(page.data?.entries.map((e) => e.id))
@@ -74,8 +74,8 @@ export function ActivityPage() {
       <div className={styles.section}>
         <h1 className={styles.title}>Activity</h1>
         <p className={styles.muted}>
-          {mode === 'manage'
-            ? 'Everything, including sign-ins, settings and tasks.'
+          {filter === 'admin'
+            ? 'Sign-ins, settings and tasks.'
             : 'New in the library, and what people are watching.'}
         </p>
       </div>

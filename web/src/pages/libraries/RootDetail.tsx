@@ -51,7 +51,7 @@ function Folder({
       `Remove ${root.path} from the library? Its files stay on disk; Media Cabinet forgets them.`,
     )
     if (ok && (await act(() => api.removeRoot(root.id)))) {
-      navigate(`/libraries/${library.id}`)
+      navigate(`/manage/libraries/${library.id}`)
     }
   }
 
@@ -191,7 +191,7 @@ export function RootDetail({ libraryId, id }: { libraryId: number; id: number })
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
-        <Link to={`/libraries/${library.id}`} className={styles.back}>
+        <Link to={`/manage/libraries/${library.id}`} className={styles.back}>
           <BackIcon />
           {library.name}
         </Link>

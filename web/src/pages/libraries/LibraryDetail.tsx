@@ -60,7 +60,7 @@ function Settings({ library, onChanged }: { library: Library; onChanged: () => v
       return
     }
     if (await act(() => api.deleteLibrary(library.id))) {
-      navigate('/libraries')
+      navigate('/manage/libraries')
     }
   }
 
@@ -117,7 +117,7 @@ export function LibraryDetail({ id }: { id: number }) {
   const libraries = useLibraries()
   const adding = useQueryParam('add') === '1'
   const setAdding = (on: boolean) =>
-    navigate(on ? `/libraries/${id}?add=1` : `/libraries/${id}`, { replace: true })
+    navigate(on ? `/manage/libraries/${id}?add=1` : `/manage/libraries/${id}`, { replace: true })
 
   if (libraries.error) {
     return <Failed error={libraries.error} onRetry={libraries.reload} />
@@ -137,7 +137,7 @@ export function LibraryDetail({ id }: { id: number }) {
   return (
     <div className={styles.page}>
       <div className={styles.inner}>
-        <Link to="/libraries" className={styles.back}>
+        <Link to="/manage/libraries" className={styles.back}>
           <BackIcon />
           Libraries & roots
         </Link>

@@ -3,19 +3,14 @@ import { ActivityPage } from './pages/ActivityPage'
 import { CalendarPage } from './pages/CalendarPage'
 import { EpisodePage } from './pages/EpisodePage'
 import { HomePage } from './pages/HomePage'
-import { LibrariesPage } from './pages/LibrariesPage'
-import { LibraryDetail } from './pages/libraries/LibraryDetail'
-import { RootDetail } from './pages/libraries/RootDetail'
 import { LibraryItemPage, LibraryPage } from './pages/LibraryPage'
 import { MoviePage } from './pages/MoviePage'
+import { ManagePage } from './pages/manage/ManagePage'
 import { MoviesPage } from './pages/MoviesPage'
 import { SearchPage } from './pages/SearchPage'
-import { SettingsPage } from './pages/SettingsPage'
-import { ReviewPage } from './pages/ReviewPage'
 import { NotFoundPage } from './pages/NotFoundPage'
 import { SeriesPage } from './pages/SeriesPage'
 import { ShowsPage } from './pages/ShowsPage'
-import { WantedPage } from './pages/WantedPage'
 import { match, usePath } from './lib/router'
 import { checkSession, useSession } from './lib/session'
 import { AuthPage } from './pages/AuthPage'
@@ -24,12 +19,10 @@ import { PlayerPage } from './pages/PlayerPage'
 import { Failed } from './components/Status'
 import { BootScreen } from './components/Brand'
 
-/** Pages only admins can use. */
-const MANAGE_PATHS = ['/wanted', '/review', '/libraries', '/settings']
-
 function Page({ path, admin }: { path: string; admin: boolean }) {
-  if (!admin && MANAGE_PATHS.some((p) => path === p || path.startsWith(`${p}/`))) {
-    return <NotFoundPage />
+  if (path === '/manage' || path.startsWith('/manage/')) {
+    // Only admins can manage; to anyone else these pages don't exist.
+    return admin ? <ManagePage path={path} /> : <NotFoundPage />
   }
   if (path === '/account') {
     return <AccountPage />
@@ -44,40 +37,14 @@ function Page({ path, admin }: { path: string; admin: boolean }) {
   if (movie && /^\d+$/.test(movie.id)) {
     return <MoviePage key={movie.id} id={Number(movie.id)} />
   }
-  if (path === '/wanted') {
-    return <WantedPage />
-  }
   if (path === '/activity') {
     return <ActivityPage />
   }
   if (path === '/calendar') {
     return <CalendarPage />
   }
-  if (path === '/settings') {
-    return <SettingsPage />
-  }
   if (path === '/search') {
     return <SearchPage />
-  }
-  if (path === '/review') {
-    return <ReviewPage />
-  }
-  if (path === '/libraries') {
-    return <LibrariesPage />
-  }
-  const managedLibrary = match('/libraries/:id', path)
-  if (managedLibrary && /^\d+$/.test(managedLibrary.id)) {
-    return <LibraryDetail key={managedLibrary.id} id={Number(managedLibrary.id)} />
-  }
-  const managedRoot = match('/libraries/:library/roots/:id', path)
-  if (managedRoot && /^\d+$/.test(managedRoot.library) && /^\d+$/.test(managedRoot.id)) {
-    return (
-      <RootDetail
-        key={managedRoot.id}
-        libraryId={Number(managedRoot.library)}
-        id={Number(managedRoot.id)}
-      />
-    )
   }
   const library = match('/library/:id', path)
   if (library && /^\d+$/.test(library.id)) {

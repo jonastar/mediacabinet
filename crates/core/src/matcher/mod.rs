@@ -11,8 +11,8 @@
 //!    directly with edition and part. Below the threshold, queue file → item
 //!    candidates with the reason.
 //!
-//! Samples, trailers and other extras are marked ignored. Existing links are
-//! never touched.
+//! Samples, trailers and other extras, and files in ignored folders, are marked
+//! ignored. Existing links are never touched.
 
 pub mod episodes;
 pub mod review;
@@ -54,7 +54,7 @@ pub struct MatchReport {
     pub folders_queued: usize,
     pub linked: usize,
     pub files_queued: usize,
-    /// Samples, trailers and other extras, marked ignored.
+    /// Samples, trailers and other extras, and files in ignored folders, marked ignored.
     pub ignored: usize,
     /// Files with nothing to go on: no numbers the series' orderings know.
     pub unmatched: usize,
@@ -135,6 +135,12 @@ pub async fn match_root_with_progress(
     .fetch_all(pool)
     .await?;
 
+    let ignored_folders: Vec<String> =
+        sqlx::query_scalar("SELECT folder_path FROM ignored_folder WHERE root_id = ?")
+            .bind(root_id)
+            .fetch_all(pool)
+            .await?;
+
     let mut folders: HashMap<String, Folder> = HashMap::new();
     for file in files {
         let name = file
@@ -143,7 +149,10 @@ pub async fn match_root_with_progress(
             .next()
             .unwrap_or(&file.relative_path);
         let parsed = parse(name);
-        if parsed.extra.is_some() {
+        let in_ignored_folder = ignored_folders
+            .iter()
+            .any(|f| file.relative_path == *f || file.relative_path.starts_with(&format!("{f}/")));
+        if parsed.extra.is_some() || in_ignored_folder {
             sqlx::query("UPDATE media_file SET status = 'ignored' WHERE id = ?")
                 .bind(file.id)
                 .execute(pool)

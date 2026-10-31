@@ -21,7 +21,7 @@ export function LibrariesPage() {
     return <Loading />
   }
   const all = libraries.data
-  const created = (l: Library) => navigate(`/libraries/${l.id}?add=1`)
+  const created = (l: Library) => navigate(`/manage/libraries/${l.id}?add=1`)
 
   return (
     <div className={styles.page}>
@@ -55,7 +55,7 @@ export function LibrariesPage() {
               library.roots.length > 0 && !library.roots.some((r) => r.is_import_target)
             return (
               <li key={library.id} className={styles.libraryCard}>
-                <Link to={`/libraries/${library.id}`} className={styles.libraryHead}>
+                <Link to={`/manage/libraries/${library.id}`} className={styles.libraryHead}>
                   <span className={styles.identity}>
                     <span className={styles.libraryName}>{library.name}</span>
                     <span className={styles.muted}>{librarySummary(library)}</span>
@@ -74,7 +74,7 @@ export function LibrariesPage() {
                 ) : (
                   <p className={`${styles.muted} ${styles.empty}`}>
                     No folders yet.{' '}
-                    <Link to={`/libraries/${library.id}?add=1`} className={styles.link}>
+                    <Link to={`/manage/libraries/${library.id}?add=1`} className={styles.link}>
                       Add a folder
                     </Link>
                   </p>

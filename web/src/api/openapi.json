@@ -2879,6 +2879,101 @@
         }
       }
     },
+    "/api/review/folders/ignore": {
+      "post": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Excludes a folder from matching: its files, and any that appear in it later, are ignored.",
+        "operationId": "ignore_folder",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IgnoreFolder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review/ignored": {
+      "get": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Folders excluded from matching, most recently ignored first.",
+        "operationId": "ignored_folders",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/IgnoredFolder"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/review/ignored/{id}": {
+      "delete": {
+        "tags": [
+          "review"
+        ],
+        "summary": "Stops ignoring a folder: its files come back and are matched.",
+        "operationId": "unignore_folder",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/roots/{id}": {
       "delete": {
         "tags": [
@@ -3221,6 +3316,74 @@
             }
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/series/{id}/fix-folder-ids": {
+      "post": {
+        "tags": [
+          "items"
+        ],
+        "summary": "Renames a series' folder on a root so the provider IDs in its name, such as\n`[tmdb-1399]`, are the series' own. Read-only roots need `force`.",
+        "operationId": "fix_folder_ids",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FixFolderIds"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderRename"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
             "content": {
               "application/json": {
                 "schema": {
@@ -5157,6 +5320,22 @@
           }
         }
       },
+      "FixFolderIds": {
+        "type": "object",
+        "required": [
+          "root_id"
+        ],
+        "properties": {
+          "force": {
+            "type": "boolean",
+            "description": "Rename it even on a read-only root."
+          },
+          "root_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "FolderListing": {
         "type": "object",
         "required": [
@@ -5207,6 +5386,26 @@
             }
           }
         ]
+      },
+      "FolderRename": {
+        "type": "object",
+        "required": [
+          "root_id",
+          "from",
+          "to"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "root_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
       },
       "FolderReview": {
         "type": "object",
@@ -5388,6 +5587,58 @@
           "root_id": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "IgnoreFolder": {
+        "type": "object",
+        "required": [
+          "root_id",
+          "folder_path"
+        ],
+        "properties": {
+          "folder_path": {
+            "type": "string"
+          },
+          "root_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "IgnoredFolder": {
+        "type": "object",
+        "required": [
+          "id",
+          "root_id",
+          "root_path",
+          "folder_path",
+          "ignored_at",
+          "files"
+        ],
+        "properties": {
+          "files": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Files in it, all ignored."
+          },
+          "folder_path": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "ignored_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "root_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "root_path": {
+            "type": "string"
           }
         }
       },
@@ -5898,6 +6149,13 @@
           "file_count"
         ],
         "properties": {
+          "corrected_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The path with the provider IDs in the folder's name corrected, when they\ndisagree with the series' own (a wrong `[tmdb-…]` tag, say)."
+          },
           "file_count": {
             "type": "integer",
             "format": "int64"

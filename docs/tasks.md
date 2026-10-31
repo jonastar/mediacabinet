@@ -59,7 +59,7 @@ Two lanes, no general worker pool:
 ## API and UI
 
 - `GET /tasks` (filter by state, kind, scope), `GET /tasks/{id}` with outcome and log, `POST /tasks` to request, `POST /tasks/{id}/cancel`. All admin-only.
-- A Tasks screen in Manage mode: running and queued with progress, history below. The task inspector shows parameters, outcome, failures and log.
+- A Tasks tab in the Manage menu: running and queued with progress, history below. The task inspector shows parameters, outcome, failures and log.
 - Library, series and item pages show tasks scoped to them and offer the relevant requests ("Generate thumbnails", "Rescan").
 - Finished and failed tasks appear in the activity log for admins (see `activity.md`).
 

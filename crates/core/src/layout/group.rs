@@ -103,6 +103,26 @@ pub fn group(template: &Template, relative_path: &str) -> Option<Group> {
     })
 }
 
+/// A folder name with its inline provider IDs set to `ids` (provider, value),
+/// keeping each tag's style. None when every tag already agrees, or names a
+/// provider `ids` doesn't have.
+pub fn corrected_ids(name: &str, ids: &[(String, String)]) -> Option<String> {
+    let mut changed = false;
+    let fixed = INLINE_ID.replace_all(name, |caps: &regex::Captures| {
+        let whole = &caps[0];
+        let provider = caps[1].to_lowercase();
+        match ids.iter().find(|(p, _)| *p == provider) {
+            Some((_, value)) if !value.eq_ignore_ascii_case(&caps[2]) => {
+                changed = true;
+                let at = caps.get(2).unwrap().start() - caps.get(0).unwrap().start();
+                format!("{}{value}{}", &whole[..at], &whole[at + caps[2].len()..])
+            }
+            _ => whole.to_string(),
+        }
+    });
+    changed.then(|| fixed.into_owned())
+}
+
 pub(crate) fn is_season_folder(name: &str) -> bool {
     SEASON_FOLDER.is_match(name) || name.eq_ignore_ascii_case("specials")
 }
@@ -160,6 +180,29 @@ mod tests {
             (g.hints.title.as_str(), g.hints.year, g.hints.season),
             ("Show", Some(2001), Some(0))
         );
+    }
+
+    #[test]
+    fn corrects_inline_ids_in_their_own_style() {
+        let ids = [
+            ("tmdb".to_string(), "456".to_string()),
+            ("imdb".to_string(), "tt0944947".to_string()),
+        ];
+        assert_eq!(
+            corrected_ids("Show (2001) [tmdb-123123]", &ids).as_deref(),
+            Some("Show (2001) [tmdb-456]")
+        );
+        assert_eq!(
+            corrected_ids("Show {tmdbid-123} {imdb-tt1}", &ids).as_deref(),
+            Some("Show {tmdbid-456} {imdb-tt0944947}")
+        );
+        assert_eq!(corrected_ids("Show [tmdb-456]", &ids), None);
+        assert_eq!(
+            corrected_ids("Show {tvdb-9}", &ids),
+            None,
+            "no tvdb ID to compare"
+        );
+        assert_eq!(corrected_ids("Show", &ids), None);
     }
 
     #[test]

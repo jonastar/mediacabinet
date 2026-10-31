@@ -223,6 +223,15 @@ export function Detail({
   const accept = () =>
     picked !== null && act(() => api.acceptCandidate(picked, entry.kind !== 'folder'))
 
+  // The folder to ignore as a whole: the entry's, or the file's item folder (a
+  // loose movie file is its own).
+  const ignorable =
+    entry.kind === 'folder'
+      ? { root: entry.folder.root_id, path: entry.folder.folder_path }
+      : entry.file.item_folder && entry.file.item_folder !== entry.file.relative_path
+        ? { root: entry.file.root_id, path: entry.file.item_folder }
+        : null
+
   return (
     <section aria-labelledby="review-detail" className={styles.detail}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -275,6 +284,17 @@ export function Detail({
             onClick={() => act(() => api.ignoreFile(entry.file.file_id))}
           >
             Ignore this file
+          </button>
+        )}
+        {ignorable && (
+          <button
+            type="button"
+            className={styles.button}
+            title={`Ignore every file in ${ignorable.path}, now and later. Undo below the queue.`}
+            disabled={busy}
+            onClick={() => act(() => api.ignoreFolder(ignorable.root, ignorable.path))}
+          >
+            {entry.kind === 'folder' ? 'Ignore this folder' : 'Ignore its folder'}
           </button>
         )}
       </div>

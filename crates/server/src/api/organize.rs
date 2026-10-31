@@ -5,7 +5,9 @@ use std::path::PathBuf;
 use axum::Json;
 use axum::extract::{Path, State};
 use cabinet_core::matcher::{episodes, load_index};
-use cabinet_core::organize::{self, ImportResult, MovePlan, OrganizeError, TransferMode};
+use cabinet_core::organize::{
+    self, FolderRename, ImportResult, MovePlan, OrganizeError, TransferMode,
+};
 use cabinet_core::parse::parse;
 use cabinet_core::refs::{self, ItemRef, Position};
 use serde::Deserialize;
@@ -167,5 +169,38 @@ pub async fn move_series(
 ) -> Result<Json<MovePlan>, ApiError> {
     Ok(Json(
         organize::move_series(&state.db, id, body.root_id, body.dry_run).await?,
+    ))
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct FixFolderIds {
+    root_id: i64,
+    /// Rename it even on a read-only root.
+    #[serde(default)]
+    force: bool,
+}
+
+/// Renames a series' folder on a root so the provider IDs in its name, such as
+/// `[tmdb-1399]`, are the series' own. Read-only roots need `force`.
+#[utoipa::path(
+    post,
+    path = "/series/{id}/fix-folder-ids",
+    tag = "items",
+    params(("id" = i64, Path)),
+    request_body = FixFolderIds,
+    responses(
+        (status = 200, body = FolderRename),
+        (status = 400, body = ErrorBody),
+        (status = 404, body = ErrorBody),
+        (status = 409, body = ErrorBody)
+    )
+)]
+pub async fn fix_folder_ids(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+    Json(body): Json<FixFolderIds>,
+) -> Result<Json<FolderRename>, ApiError> {
+    Ok(Json(
+        organize::fix_folder_ids(&state.db, id, body.root_id, body.force).await?,
     ))
 }

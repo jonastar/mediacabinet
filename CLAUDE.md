@@ -22,7 +22,7 @@ Self-hosted media library manager and streaming server. Rust backend (`crates/`)
 
 - Plain React: routing in `web/src/lib/router.ts` (+ `components/Link.tsx`), data via `api/useApi.ts`, typed calls in `api/client.ts`. Add libraries only when needed.
 - Styles are CSS Modules using the design tokens in `index.css`; reference designs are in `media-cabinet-handoff/design/screens/Hybrid*.dc.html`.
-- State wording per Watch/Manage mode lives in `lib/wording.ts`; controls for features not built yet are shown disabled with a title. Only admins get Manage mode (`useMode`).
+- State wording per Watch/Manage mode lives in `lib/wording.ts`; controls for features not built yet are shown disabled with a title. Only admins get Manage mode (`useMode`, switched by the Details toggle on media pages) and the Manage menu (`pages/manage/`, a tab per section under `/manage`).
 - Try the UI with demo data: `CABINET_DATA_DIR=./data-demo cargo run -p media-cabinet -- seed-demo`, then run the server and `pnpm dev`. The first visit asks for an account; it takes over the demo's admin and its watch history.
 
 ## Code style

@@ -394,6 +394,32 @@
   color: var(--text-muted);
 }
 
+.ignored {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ignoredList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ignoredRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
 @media (max-width: 640px) {
   .page {
     padding: 24px 16px 48px;

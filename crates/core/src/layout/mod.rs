@@ -6,7 +6,7 @@ mod place;
 mod propose;
 mod template;
 
-pub use group::{Group, Hints, group};
+pub use group::{Group, Hints, corrected_ids, group};
 pub use place::{Incoming, Placement, WritePolicy, place};
 pub use propose::{Proposal, propose};
 pub use template::{

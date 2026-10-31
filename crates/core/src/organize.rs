@@ -8,6 +8,7 @@
 //!   copied, the copy's size checked, then the original removed.
 //! - File rows are updated in place, so links and watch history follow the file.
 //! - Read-only roots are never written; imports go to the import target instead.
+//!   The one exception is fixing a folder's IDs when a person confirms it (`force`).
 
 use std::collections::HashMap;
 use std::io;
@@ -876,6 +877,135 @@ pub async fn move_series(
         plan.applied = true;
     }
     Ok(plan)
+}
+
+/// A series folder (relative to its root) with the provider IDs in its name set
+/// to `ids`; None when they already agree.
+pub fn corrected_folder(path: &str, ids: &[(String, String)]) -> Option<String> {
+    let (parent, name) = match path.rsplit_once('/') {
+        Some((parent, name)) => (Some(parent), name),
+        None => (None, path),
+    };
+    let name = layout::corrected_ids(name, ids)?;
+    Some(match parent {
+        Some(parent) => format!("{parent}/{name}"),
+        None => name,
+    })
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct FolderRename {
+    pub root_id: i64,
+    pub from: String,
+    pub to: String,
+}
+
+/// Renames a series' folder on a root so the provider IDs in its name are the
+/// series' own, e.g. after a wrong `[tmdb-…]` tag led to a wrong match. The
+/// folder moves as a whole; file rows follow it. Read-only roots are written
+/// only with `force`.
+pub async fn fix_folder_ids(
+    pool: &SqlitePool,
+    series: i64,
+    root_id: i64,
+    force: bool,
+) -> Result<FolderRename, OrganizeError> {
+    let from: String = sqlx::query_scalar(
+        "SELECT path FROM series_location WHERE series_item_id = ? AND root_id = ?",
+    )
+    .bind(series)
+    .bind(root_id)
+    .fetch_optional(pool)
+    .await?
+    .ok_or(OrganizeError::NotFound)?;
+    let r = root(pool, root_id).await?;
+    if r.policy() == WritePolicy::ReadOnly && !force {
+        return invalid(format!(
+            "{} is read-only; confirm to rename the folder anyway.",
+            r.path
+        ));
+    }
+    let ids: Vec<(String, String)> =
+        sqlx::query_as("SELECT provider, value FROM external_id WHERE item_id = ?")
+            .bind(series)
+            .fetch_all(pool)
+            .await?;
+    let Some(to) = corrected_folder(&from, &ids) else {
+        return invalid("The folder's name already has the series' IDs.");
+    };
+    let (old, new) = (Path::new(&r.path).join(&from), Path::new(&r.path).join(&to));
+    if !old.is_dir() {
+        return Err(OrganizeError::Conflict(format!(
+            "{} isn't there.",
+            old.display()
+        )));
+    }
+    if new.exists() {
+        return Err(OrganizeError::Conflict(format!(
+            "{} already exists.",
+            new.display()
+        )));
+    }
+    tokio::task::spawn_blocking(move || std::fs::rename(old, new))
+        .await
+        .map_err(|e| io::Error::other(e.to_string()))??;
+
+    // Everything stored below the old folder on this root follows it.
+    let (old_prefix, new_prefix) = (format!("{from}/"), format!("{to}/"));
+    let mut tx = crate::db::begin_write(pool).await?;
+    let moved: Vec<(i64, String)> = sqlx::query_as(
+        "UPDATE media_file SET relative_path = ?3 || substr(relative_path, length(?2) + 1)
+         WHERE root_id = ?1 AND substr(relative_path, 1, length(?2)) = ?2
+         RETURNING id, relative_path",
+    )
+    .bind(root_id)
+    .bind(&old_prefix)
+    .bind(&new_prefix)
+    .fetch_all(&mut *tx)
+    .await?;
+    sqlx::query(
+        "UPDATE sidecar SET relative_path = ?3 || substr(relative_path, length(?2) + 1)
+         WHERE root_id = ?1 AND location = 'root' AND substr(relative_path, 1, length(?2)) = ?2",
+    )
+    .bind(root_id)
+    .bind(&old_prefix)
+    .bind(&new_prefix)
+    .execute(&mut *tx)
+    .await?;
+    for table in ["series_location", "ignored_folder", "match_candidate"] {
+        let column = if table == "series_location" {
+            "path"
+        } else {
+            "folder_path"
+        };
+        sqlx::query(sqlx::AssertSqlSafe(format!(
+            "UPDATE {table} SET {column} = CASE WHEN {column} = ?2 THEN ?3
+                 ELSE ?3 || substr({column}, length(?2) + 1) END
+             WHERE root_id = ?1 AND ({column} = ?2 OR substr({column}, 1, length(?2) + 1) = ?2 || '/')"
+        )))
+        .bind(root_id)
+        .bind(&from)
+        .bind(&to)
+        .execute(&mut *tx)
+        .await?;
+    }
+    for (file_id, path) in &moved {
+        let before = format!("{from}{}", &path[to.len()..]);
+        events::emit(
+            &mut tx,
+            events::FILE_MOVED,
+            json!({ "file_id": file_id, "root_id": root_id, "path": path, "from": before }),
+        )
+        .await?;
+    }
+    events::emit(
+        &mut tx,
+        events::SERIES_MOVED,
+        json!({ "series_id": series, "root_id": root_id, "path": to, "from": from }),
+    )
+    .await?;
+    tx.commit().await?;
+    Ok(FolderRename { root_id, from, to })
 }
 
 /// Moves files on disk and updates their rows in place. Within a root, `from`

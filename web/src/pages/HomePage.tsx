@@ -85,7 +85,6 @@ export function HomePage() {
   return (
     <div className={styles.page}>
       <Header />
-      {mode === 'manage' && <NeedsAttention home={data} />}
       {(data.keep_watching.length > 0 || data.coming_up.length > 0) && (
         <div className={styles.columns}>
           <UpNext home={data} />
@@ -166,53 +165,6 @@ function Header() {
         />
       </form>
     </header>
-  )
-}
-
-function NeedsAttention({ home }: { home: Home }) {
-  const a = home.attention
-  const cards = [
-    {
-      to: '/review',
-      value: a.review,
-      color: 'var(--state-attention)',
-      label: 'Matches to review',
-      note: 'Below the confidence threshold',
-    },
-    {
-      to: '/libraries',
-      value: a.missing_files,
-      color: 'var(--state-missing)',
-      label: 'Files missing',
-      note: a.offline_roots.length
-        ? `${a.offline_roots.join(', ')} offline · nothing removed`
-        : 'Not found on the last scan',
-    },
-    {
-      to: '/wanted',
-      value: a.wanted,
-      label: 'Wanted',
-      note: a.in_progress
-        ? `${a.in_progress} in progress via ${a.status_sources.join(', ')}`
-        : 'Monitored and not in the library',
-    },
-    { to: '/tv', value: a.gaps, label: 'Gaps', note: `In ${a.gap_series} series` },
-  ]
-  return (
-    <section aria-labelledby="home-attention" className={styles.section}>
-      <h2 id="home-attention">Needs attention</h2>
-      <div className={styles.attention}>
-        {cards.map((c) => (
-          <Link key={c.label} to={c.to} className={styles.attentionCard}>
-            <span className={styles.attentionValue} style={{ color: c.color }}>
-              {c.value}
-            </span>
-            <span className={styles.attentionLabel}>{c.label}</span>
-            <span className={styles.attentionNote}>{c.note}</span>
-          </Link>
-        ))}
-      </div>
-    </section>
   )
 }
 

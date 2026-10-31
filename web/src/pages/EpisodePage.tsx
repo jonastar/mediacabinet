@@ -2,6 +2,7 @@ import { api, artworkUrl, type Episode } from '../api/client'
 import { useApi } from '../api/useApi'
 import { Badge } from '../components/Badge'
 import { BackIcon, PlayIcon } from '../components/Icons'
+import { DetailsToggle } from '../components/DetailsToggle'
 import { Link } from '../components/Link'
 import { Progress } from '../components/Progress'
 import { Failed, Loading } from '../components/Status'
@@ -89,6 +90,7 @@ export function EpisodePage({ seriesId, id }: { seriesId: number; id: number }) 
             <BackIcon />
             {show.title}
           </Link>
+          <DetailsToggle />
         </div>
         <div className={styles.heroBody}>
           <span className={own.eyebrow}>

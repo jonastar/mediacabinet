@@ -666,3 +666,118 @@ pub async fn identify_as(
     crate::wanted::sync_after_change(pool).await;
     Ok(item)
 }
+
+#[derive(Debug, Clone, Serialize, ToSchema, sqlx::FromRow)]
+pub struct IgnoredFolder {
+    pub id: i64,
+    pub root_id: i64,
+    pub root_path: String,
+    pub folder_path: String,
+    pub ignored_at: i64,
+    /// Files in it, all ignored.
+    pub files: i64,
+}
+
+pub async fn ignored_folders(pool: &SqlitePool) -> Result<Vec<IgnoredFolder>, ReviewError> {
+    Ok(sqlx::query_as(
+        "SELECT g.id, g.root_id, r.path AS root_path, g.folder_path, g.ignored_at,
+                (SELECT count(*) FROM media_file f WHERE f.root_id = g.root_id AND f.status = 'ignored'
+                   AND (f.relative_path = g.folder_path OR f.relative_path LIKE g.folder_path || '/%')) AS files
+         FROM ignored_folder g JOIN library_root r ON r.id = g.root_id
+         ORDER BY g.ignored_at DESC, g.id DESC",
+    )
+    .fetch_all(pool)
+    .await?)
+}
+
+/// Excludes a folder from matching: its files are ignored, and so are files that
+/// appear in it later. Its undecided candidates and theirs are dropped, so the
+/// matcher proposes afresh if the folder is brought back.
+pub async fn ignore_folder(pool: &SqlitePool, root: i64, folder: &str) -> Result<(), ReviewError> {
+    let folder = folder.trim_matches('/');
+    if folder.is_empty() {
+        return Err(ReviewError::Invalid(
+            "choose a folder inside the root".into(),
+        ));
+    }
+    let mut tx = crate::db::begin_write(pool).await?;
+    let exists: bool =
+        sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM library_root WHERE id = ?)")
+            .bind(root)
+            .fetch_one(&mut *tx)
+            .await?;
+    if !exists {
+        return Err(ReviewError::NotFound);
+    }
+    sqlx::query("INSERT OR IGNORE INTO ignored_folder (root_id, folder_path) VALUES (?, ?)")
+        .bind(root)
+        .bind(folder)
+        .execute(&mut *tx)
+        .await?;
+    let files: Vec<i64> = sqlx::query_scalar(
+        "UPDATE media_file SET status = 'ignored'
+         WHERE root_id = ?1 AND status = 'present'
+           AND (relative_path = ?2 OR relative_path LIKE ?2 || '/%')
+         RETURNING id",
+    )
+    .bind(root)
+    .bind(folder)
+    .fetch_all(&mut *tx)
+    .await?;
+    sqlx::query(
+        "DELETE FROM match_candidate
+         WHERE state = 'pending' AND (
+             (root_id = ?1 AND (folder_path = ?2 OR folder_path LIKE ?2 || '/%'))
+             OR file_id IN (SELECT id FROM media_file WHERE root_id = ?1
+                            AND (relative_path = ?2 OR relative_path LIKE ?2 || '/%')))",
+    )
+    .bind(root)
+    .bind(folder)
+    .execute(&mut *tx)
+    .await?;
+    for file in files {
+        events::emit(&mut tx, events::FILE_IGNORED, json!({ "file_id": file })).await?;
+    }
+    crate::wanted::sync_events(&mut tx).await?;
+    tx.commit().await?;
+    Ok(())
+}
+
+/// Stops ignoring a folder: its ignored files are present again and matched.
+/// Samples and other extras among them are ignored again by the matcher.
+pub async fn unignore_folder(
+    pool: &SqlitePool,
+    id: i64,
+    provider: &Provider,
+    settings: MatchSettings,
+) -> Result<(), ReviewError> {
+    let mut tx = crate::db::begin_write(pool).await?;
+    let (root, folder): (i64, String) =
+        sqlx::query_as("DELETE FROM ignored_folder WHERE id = ? RETURNING root_id, folder_path")
+            .bind(id)
+            .fetch_optional(&mut *tx)
+            .await?
+            .ok_or(ReviewError::NotFound)?;
+    let files: Vec<i64> = sqlx::query_scalar(
+        "UPDATE media_file SET status = 'present'
+         WHERE root_id = ?1 AND status = 'ignored'
+           AND (relative_path = ?2 OR relative_path LIKE ?2 || '/%')
+           AND NOT EXISTS (SELECT 1 FROM ignored_folder g WHERE g.root_id = ?1
+                           AND relative_path LIKE g.folder_path || '/%')
+         RETURNING id",
+    )
+    .bind(root)
+    .bind(&folder)
+    .fetch_all(&mut *tx)
+    .await?;
+    for file in files {
+        events::emit(&mut tx, events::FILE_RESTORED, json!({ "file_id": file })).await?;
+    }
+    crate::wanted::sync_events(&mut tx).await?;
+    tx.commit().await?;
+    match_root(pool, root, provider, settings)
+        .await
+        .map_err(|e| ReviewError::Invalid(e.to_string()))?;
+    crate::wanted::sync_after_change(pool).await;
+    Ok(())
+}

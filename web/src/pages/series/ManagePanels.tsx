@@ -225,6 +225,34 @@ export function ManagePanels({
                 .filter(Boolean)
                 .join(' · ')}
             </span>
+            {l.corrected_path && (
+              <>
+                <span className={styles.warning}>
+                  The IDs in the folder name aren&apos;t this series&apos;. Rename it to{' '}
+                  <span className={styles.mono}>{l.corrected_path.split('/').pop()}</span>?
+                </span>
+                <button
+                  type="button"
+                  className={styles.button}
+                  disabled={!l.online}
+                  title={l.online ? undefined : 'The root is offline'}
+                  onClick={() => {
+                    const readOnly = l.write_policy === 'read_only'
+                    if (
+                      readOnly &&
+                      !window.confirm(
+                        `${l.root_path} is read-only: Media Cabinet doesn't write to it, and other apps using it may not expect the change.\n\nRename ${l.path} to ${l.corrected_path} anyway?`,
+                      )
+                    ) {
+                      return
+                    }
+                    act(() => api.fixFolderIds(series.id, l.root_id, readOnly))
+                  }}
+                >
+                  {l.write_policy === 'read_only' ? 'Rename anyway…' : 'Rename folder'}
+                </button>
+              </>
+            )}
           </div>
         ))}
         <LocationActions series={series} onDone={onChanged} />

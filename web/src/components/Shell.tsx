@@ -5,19 +5,15 @@ import { useLiveEvents } from '../lib/live'
 import { usePath } from '../lib/router'
 import { Brand } from './Brand'
 import { Link } from './Link'
-import { useMode } from '../lib/prefs'
 import { signOut, useUser } from '../lib/session'
-import { Segmented } from './Segmented'
 import {
   ActivityIcon,
   CalendarIcon,
-  FolderIcon,
   HomeIcon,
   MoviesIcon,
-  ReviewIcon,
   SettingsIcon,
+  SignOutIcon,
   TvIcon,
-  WantedIcon,
 } from './Icons'
 import styles from './Shell.module.css'
 
@@ -33,13 +29,7 @@ const WATCH_NAV: NavItem[] = [
   { to: '/activity', label: 'Activity', icon: <ActivityIcon /> },
 ]
 
-const MANAGE_NAV: NavItem[] = [
-  { to: '/wanted', label: 'Wanted', icon: <WantedIcon /> },
-  { to: '/review', label: 'Review queue', icon: <ReviewIcon /> },
-  { to: '/libraries', label: 'Libraries & roots', icon: <FolderIcon /> },
-]
-
-const SETTINGS: NavItem = { to: '/settings', label: 'Settings', icon: <SettingsIcon /> }
+const MANAGE: NavItem = { to: '/manage', label: 'Manage', icon: <SettingsIcon /> }
 
 function libraryItem(library: Library): NavItem {
   return {
@@ -68,7 +58,6 @@ function NavLink({ item, path }: { item: NavItem; path: string }) {
 
 export function Shell({ children }: { children: ReactNode }) {
   const path = usePath()
-  const [mode, setMode] = useMode()
   const user = useUser()
   const libraries = useApi('libraries', api.libraries)
   useLiveEvents(['library.added', 'library.removed'], libraries.reload)
@@ -91,48 +80,33 @@ export function Shell({ children }: { children: ReactNode }) {
             ))}
           </>
         )}
-        {mode === 'manage' && (
-          <>
-            <div className={styles.divider} />
-            <span className={styles.section}>Manage</span>
-            {MANAGE_NAV.map((item) => (
-              <NavLink key={item.to} item={item} path={path} />
-            ))}
-          </>
-        )}
         <div className={styles.bottom}>
-          {mode === 'manage' && <NavLink item={SETTINGS} path={path} />}
+          {user.is_admin && <NavLink item={MANAGE} path={path} />}
         </div>
         <div className={styles.user}>
-          <span className={styles.who}>
+          <Link
+            to="/account"
+            className={styles.who}
+            title="Account"
+            aria-current={isCurrent('/account', path) ? 'page' : undefined}
+          >
             <span className={styles.avatar} aria-hidden="true">
               {user.name.slice(0, 1).toUpperCase()}
             </span>
-            <span className={styles.name}>
-              {user.name}
-              {user.is_admin && <span className={styles.role}> · admin</span>}
+            <span className={styles.identity}>
+              <span className={styles.name}>{user.name}</span>
+              <span className={styles.role}>{user.is_admin ? 'Admin' : 'Account'}</span>
             </span>
-          </span>
-          <span className={styles.accountLinks}>
-            <Link to="/account" className={styles.accountLink}>
-              Account
-            </Link>
-            <button type="button" className={styles.accountLink} onClick={() => signOut()}>
-              Sign out
-            </button>
-          </span>
-          {user.is_admin && (
-            <Segmented
-              label="Mode"
-              variant="track"
-              value={mode}
-              onChange={setMode}
-              options={[
-                { value: 'watch', label: 'Watch' },
-                { value: 'manage', label: 'Manage' },
-              ]}
-            />
-          )}
+          </Link>
+          <button
+            type="button"
+            className={styles.signOut}
+            title="Sign out"
+            aria-label="Sign out"
+            onClick={() => signOut()}
+          >
+            <SignOutIcon />
+          </button>
         </div>
       </nav>
       <main className={styles.main}>{children}</main>

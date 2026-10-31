@@ -11,7 +11,7 @@ export function RootRow({ root, libraryId }: { root: Root; libraryId: number }) 
   return (
     <li>
       <Link
-        to={`/libraries/${libraryId}/roots/${root.id}`}
+        to={`/manage/libraries/${libraryId}/roots/${root.id}`}
         className={`${styles.rootRow} ${root.online ? '' : styles.offline}`}
       >
         <span className={styles.identity}>

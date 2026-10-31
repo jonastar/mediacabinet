@@ -12,7 +12,7 @@ interface Props<T extends string> {
   options: Option<T>[]
   value: T | null | undefined
   onChange: (value: T) => void
-  variant: 'track' | 'pills' | 'box'
+  variant: 'pills' | 'box'
 }
 
 /** A row of `aria-pressed` buttons; the selected one is filled. */

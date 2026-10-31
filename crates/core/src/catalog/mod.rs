@@ -157,6 +157,9 @@ pub struct Location {
     /// Whether the root folder is reachable right now.
     pub online: bool,
     pub file_count: i64,
+    /// The path with the provider IDs in the folder's name corrected, when they
+    /// disagree with the series' own (a wrong `[tmdb-…]` tag, say).
+    pub corrected_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -821,12 +824,17 @@ pub async fn series_detail(
     .bind(series_id)
     .fetch_all(&mut *conn)
     .await?;
+    let ids: Vec<(String, String)> = external_ids
+        .iter()
+        .map(|(provider, value, _)| (provider.clone(), value.clone()))
+        .collect();
     let mut locations = Vec::new();
     for (root_id, root_path, path, is_primary, write_policy, file_count) in location_rows {
         let online = tokio::fs::metadata(&root_path)
             .await
             .is_ok_and(|m| m.is_dir());
         locations.push(Location {
+            corrected_path: crate::organize::corrected_folder(&path, &ids),
             root_id,
             root_path,
             path,

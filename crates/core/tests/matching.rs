@@ -476,3 +476,44 @@ async fn unlinked_files_stay_unlinked() {
         .unwrap();
     assert_eq!(rejections, 0);
 }
+
+#[tokio::test]
+async fn ignored_folders_stay_ignored_until_undone() {
+    let lib = Lib::new().await;
+    let tv = lib.base.join("tv");
+    video(&tv, "Night Harbor/Season 01/Night Harbor - S01E01.mkv");
+    let root = lib
+        .root("TV", "tv", "tv", "{series}/Season {season:00}/{filename}")
+        .await;
+    lib.scan_and_match(root).await;
+    assert_eq!(review::queue(&lib.pool).await.unwrap().folders.len(), 1);
+
+    review::ignore_folder(&lib.pool, root, "Night Harbor/")
+        .await
+        .unwrap();
+    let queue = review::queue(&lib.pool).await.unwrap();
+    assert!(queue.folders.is_empty() && queue.files.is_empty() && queue.unmatched.is_empty());
+
+    // Files that appear in it later are ignored too.
+    video(&tv, "Night Harbor/Season 01/Night Harbor - S01E02.mkv");
+    let report = lib.scan_and_match(root).await;
+    assert_eq!((report.ignored, report.folders_queued), (1, 0));
+    let ignored = review::ignored_folders(&lib.pool).await.unwrap();
+    assert_eq!(ignored.len(), 1);
+    assert_eq!(
+        (ignored[0].folder_path.as_str(), ignored[0].files),
+        ("Night Harbor", 2)
+    );
+
+    review::unignore_folder(
+        &lib.pool,
+        ignored[0].id,
+        &provider(),
+        MatchSettings::default(),
+    )
+    .await
+    .unwrap();
+    assert!(review::ignored_folders(&lib.pool).await.unwrap().is_empty());
+    let queue = review::queue(&lib.pool).await.unwrap();
+    assert_eq!((queue.folders.len(), queue.folders[0].files), (1, 2));
+}

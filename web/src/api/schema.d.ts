@@ -964,6 +964,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/review/folders/ignore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Excludes a folder from matching: its files, and any that appear in it later, are ignored. */
+        post: operations["ignore_folder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/review/ignored": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Folders excluded from matching, most recently ignored first. */
+        get: operations["ignored_folders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/review/ignored/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Stops ignoring a folder: its files come back and are matched. */
+        delete: operations["unignore_folder"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/roots/{id}": {
         parameters: {
             query?: never;
@@ -1068,6 +1119,26 @@ export interface paths {
         get: operations["series_episodes"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/series/{id}/fix-folder-ids": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renames a series' folder on a root so the provider IDs in its name, such as
+         *     `[tmdb-1399]`, are the series' own. Read-only roots need `force`.
+         */
+        post: operations["fix_folder_ids"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1665,6 +1736,12 @@ export interface components {
             root_id: number;
             root_path: string;
         };
+        FixFolderIds: {
+            /** @description Rename it even on a read-only root. */
+            force?: boolean;
+            /** Format: int64 */
+            root_id: number;
+        };
         FolderListing: {
             /** @description Subfolder names, hidden ones left out. */
             folders: string[];
@@ -1675,6 +1752,12 @@ export interface components {
             /** @description The folder, resolved. */
             path: string;
             pieces: components["schemas"]["TemplatePiece"][];
+        };
+        FolderRename: {
+            from: string;
+            /** Format: int64 */
+            root_id: number;
+            to: string;
         };
         FolderReview: {
             candidates: components["schemas"]["Candidate"][];
@@ -1721,6 +1804,26 @@ export interface components {
             provider_id: string;
             /** Format: int64 */
             root_id: number;
+        };
+        IgnoreFolder: {
+            folder_path: string;
+            /** Format: int64 */
+            root_id: number;
+        };
+        IgnoredFolder: {
+            /**
+             * Format: int64
+             * @description Files in it, all ignored.
+             */
+            files: number;
+            folder_path: string;
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            ignored_at: number;
+            /** Format: int64 */
+            root_id: number;
+            root_path: string;
         };
         ImportReport: {
             /** @description True when the series or movie was new. */
@@ -1867,6 +1970,11 @@ export interface components {
             width?: number | null;
         };
         Location: {
+            /**
+             * @description The path with the provider IDs in the folder's name corrected, when they
+             *     disagree with the series' own (a wrong `[tmdb-…]` tag, say).
+             */
+            corrected_path?: string | null;
             /** Format: int64 */
             file_count: number;
             is_primary: boolean;
@@ -4630,6 +4738,89 @@ export interface operations {
             };
         };
     };
+    ignore_folder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IgnoreFolder"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    ignored_folders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IgnoredFolder"][];
+                };
+            };
+        };
+    };
+    unignore_folder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     remove_root: {
         parameters: {
             query?: never;
@@ -4877,6 +5068,55 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    fix_folder_ids: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FixFolderIds"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderRename"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

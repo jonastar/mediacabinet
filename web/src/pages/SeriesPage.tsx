@@ -18,6 +18,7 @@ import { Failed, Loading } from '../components/Status'
 import { airDayLabel, episodeLabel, seriesTone } from '../lib/format'
 import { useLiveEvents } from '../lib/live'
 import { useEpisodeLayout, useMode } from '../lib/prefs'
+import { DetailsToggle } from '../components/DetailsToggle'
 import { Link } from '../components/Link'
 import { Episodes } from './series/Episodes'
 import { ManagePanels } from './series/ManagePanels'
@@ -195,6 +196,7 @@ export function SeriesPage({ id }: { id: number }) {
             fallback={{ to: '/tv', label: 'TV Shows' }}
             className={styles.back}
           />
+          <DetailsToggle />
         </div>
         <div className={styles.heroBody}>
           {manage && <span className={styles.managing}>Managing · changes apply for everyone</span>}

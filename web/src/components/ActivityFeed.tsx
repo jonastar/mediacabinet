@@ -129,7 +129,7 @@ function describe(entry: ActivityEntry, me: number): ReactNode {
       const error = p.error ? `: ${String(p.error)}` : ''
       return (
         <>
-          <Link to="/libraries">
+          <Link to="/manage/libraries">
             {String(p.task_kind)} task {String(p.task_id)}
           </Link>{' '}
           {verb}

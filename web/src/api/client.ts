@@ -25,6 +25,7 @@ export type ScanProgress = Schemas['ScanProgress']
 export type ReviewQueue = Schemas['ReviewQueue']
 export type FolderReview = Schemas['FolderReview']
 export type FileReview = Schemas['FileReview']
+export type IgnoredFolder = Schemas['IgnoredFolder']
 export type Candidate = Schemas['Candidate']
 export type SearchResult = Schemas['SearchResult']
 export type PathPiece = Schemas['PathPiece']
@@ -41,6 +42,7 @@ export type NewApiKey = Schemas['NewApiKey']
 export type Webhook = Schemas['Webhook']
 export type NewWebhook = Schemas['NewWebhook']
 export type MovePlan = Schemas['MovePlan']
+export type FolderRename = Schemas['FolderRename']
 export type User = Schemas['User']
 export type AuthStatus = Schemas['AuthStatus']
 export type ItemWatch = Schemas['ItemWatch']
@@ -214,6 +216,14 @@ export const api = {
       folder_path: folderPath,
       provider_id: providerId,
     }),
+  /** Ignores the folder's files, and any that appear in it later. */
+  ignoreFolder: (rootId: number, folderPath: string) =>
+    request<void>('POST', '/api/review/folders/ignore', {
+      root_id: rootId,
+      folder_path: folderPath,
+    }),
+  ignoredFolders: () => request<IgnoredFolder[]>('GET', '/api/review/ignored'),
+  unignoreFolder: (id: number) => request<void>('DELETE', `/api/review/ignored/${id}`),
   searchMetadata: (kind: LibraryKind, query: string, year?: number | null) =>
     request<SearchResult[]>(
       'GET',
@@ -257,6 +267,11 @@ export const api = {
     request<MovePlan>('POST', `/api/items/${itemId}/organize`, { dry_run: dryRun }),
   moveSeries: (seriesId: number, rootId: number, dryRun: boolean) =>
     request<MovePlan>('POST', `/api/series/${seriesId}/move`, { root_id: rootId, dry_run: dryRun }),
+  fixFolderIds: (seriesId: number, rootId: number, force: boolean) =>
+    request<FolderRename>('POST', `/api/series/${seriesId}/fix-folder-ids`, {
+      root_id: rootId,
+      force,
+    }),
   placementExample: (libraryId: number) =>
     request<PlacementExample | null>('GET', `/api/libraries/${libraryId}/placement-example`),
 

@@ -12,6 +12,10 @@ Details belong in the commit, docs or API reference.
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
+- A series folder whose name has a wrong provider ID (such as `[tmdb-…]`) can be renamed to the series' own from its Location panel; read-only roots ask for confirmation first.
+- The review queue can ignore a whole folder (its files now and later), with a list of ignored folders to bring back; clicking an open series again folds it.
+- Migration 0013 adds ignored folders.
+- A Manage menu for admins, with tabs for an overview, Wanted, the review queue, libraries and settings, replaces the Watch / Manage switch; media pages get a Details toggle instead.
 - Redesigned Home: a greeting header, Up next beside This week, and Recently added as posters.
 - Episodes split over two files ("The Last Day (1)" and "(2)", or "Part 1" and "Part 2") link to the one episode as parts, and an episode number past the end of a season is no longer read as an earlier absolute number.
 - Migration 0012 adds the part to review candidates.

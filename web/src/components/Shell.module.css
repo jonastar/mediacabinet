@@ -66,7 +66,7 @@
   color: var(--text-muted);
 }
 
-/* Pinned to the bottom: settings, then the user menu. */
+/* Pinned to the bottom: Manage, then the user menu. */
 .bottom {
   margin-top: auto;
   padding-top: 16px;
@@ -74,67 +74,88 @@
   flex-direction: column;
 }
 
-/* The user menu: who you are and the app-wide mode. */
+/* The user menu: who you are (linking to your account) and signing out, on one
+   row under a divider. The avatar is centred on the same axis as the nav icons. */
 .user {
-  padding: 16px 12px 0;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  align-items: center;
+  gap: 4px;
 }
 
 .who {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 14px;
-  font-weight: 600;
+  min-height: var(--touch-target);
+  padding: 6px 8px 6px 7px;
+  border-radius: var(--radius-control);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.who:hover,
+.who[aria-current='page'] {
+  background: var(--surface-raised);
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  flex: none;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: var(--surface-raised);
   display: grid;
   place-items: center;
+  font-size: 13px;
   font-weight: 800;
   color: var(--accent);
 }
 
-.name {
+.who:hover .avatar,
+.who[aria-current='page'] .avatar {
+  background: var(--bg-sidebar);
+}
+
+.identity {
   min-width: 0;
-  overflow-wrap: anywhere;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .role {
-  color: var(--text-muted);
+  font-size: 12px;
   font-weight: 500;
+  color: var(--text-muted);
 }
 
-.accountLinks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin: -4px 0 0 34px;
-}
-
-.accountLink {
-  min-height: 32px;
-  padding: 0 8px;
+.signOut {
+  flex: none;
+  width: var(--touch-target);
+  height: var(--touch-target);
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--radius-control);
   background: none;
   color: var(--text-muted);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
 }
 
-.accountLink:hover {
+.signOut:hover {
   background: var(--surface-raised);
   color: var(--text);
 }
@@ -167,15 +188,4 @@
   .bottom {
     margin-top: 8px;
   }
-}
-
-/* The mode switch fits the sidebar's width on one line. */
-.user [role='group'] {
-  flex-wrap: nowrap;
-}
-
-.user [role='group'] button {
-  flex: 1;
-  justify-content: center;
-  padding: 0 12px;
 }

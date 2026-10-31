@@ -17,25 +17,6 @@
   cursor: pointer;
 }
 
-/* Inside a dark track, e.g. the mode switch over a hero. */
-.track {
-  padding: 4px;
-  border-radius: var(--radius-pill);
-  background: rgba(15, 17, 21, 0.6);
-}
-
-.track .option {
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text);
-}
-
-.track .option[aria-pressed='true'] {
-  background: var(--text);
-  color: var(--bg);
-  font-weight: 700;
-}
-
 /* Separate pills; the selected one is filled with the accent. */
 .pills {
   gap: 6px;

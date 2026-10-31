@@ -33,11 +33,11 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Read API for the UI: series list, series detail with episodes per ordering, home rails
 - [x] Simple availability and next up in the read API (replaced by Phase 5's derived views)
 - [x] Routing and data fetching conventions; API types generated from OpenAPI
-- [x] App shell: sidebar, Media Cabinet branding, app-wide Watch / Manage mode for admins (remembered)
+- [x] App shell: sidebar, Media Cabinet branding, a Manage menu for admins with a tab per section, and a remembered Details toggle on media pages
 - [x] Shared components: segmented controls, state badges, cards, rails, posters, progress bars
 - [x] Series page: hero (Watch and Manage), ordering switch, list and grid (remembered), wording per mode
 - [x] Series page, Manage: counts per state, technical lines, monitor checkboxes, gaps
-- [x] Home: hero, keep watching, coming this week, TV shows; Manage adds needs attention
+- [x] Home: hero, keep watching, coming this week, TV shows; needs attention is the Manage overview
 - [x] Responsive layout down to phone width; focus states
 
 ## Phase 3 — Library management
@@ -71,7 +71,7 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Movies: editions, multi-part files, versions (4K and 1080p of one film)
 - [x] Extras and junk: samples, trailers, featurettes ignored or linked as extras
 - [x] Pinned links and user decisions survive every rescan
-- [x] Review queue actions: accept, accept and pin, reject, pick another candidate, ignore file
+- [x] Review queue actions: accept, accept and pin, reject, pick another candidate, ignore file or folder
 - [x] Decide: match confidence thresholds global, per root or per source
 - [x] UI: Review queue (path segments by template token, fact tiles, candidates with confidence)
 - [x] UI: Series Manage panels for metadata and orderings (edit details, lock fields, change match)
@@ -107,6 +107,7 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Placement: resolve `series_location` once; adaptive and managed policies; read-only roots never written
 - [x] Managed roots: rename and move existing files to the template
 - [x] Move a series between roots or folders (explicit action)
+- [x] Fix a wrong provider ID in a series folder's name (read-only roots only when confirmed)
 - [x] API keys for external tools
 - [x] Decide: write `.nfo` or embedded tags back out (default or opt-in): not in v1; opt-in later
 - [x] UI: Series Manage panel for location (move series)
@@ -139,7 +140,7 @@ Designs: `docs/tasks.md`, `docs/activity.md`.
 - [ ] Heavy lane: one task at a time, waits while transcodes run
 - [ ] Thumbnails task
 - [ ] Trickplay task
-- [ ] UI: Tasks screen and task inspector (Manage mode)
+- [ ] UI: Tasks tab in Manage and task inspector
 - [x] Activity: table, per-viewer audience filter, library additions from the event outbox
 - [x] Play sessions and watch activity; incognito setting
 - [x] Activity for users, logins, configuration changes and task results (admins)

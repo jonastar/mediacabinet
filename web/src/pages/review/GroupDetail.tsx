@@ -31,6 +31,7 @@ export function GroupDetail({
       ),
   )
   const [progress, setProgress] = useState<number | null>(null)
+  const [ignoring, setIgnoring] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const withCandidate = files.filter((f) => f.candidates.length > 0)
   const chosen = withCandidate.filter((f) => ticked.has(f.file_id))
@@ -60,6 +61,37 @@ export function GroupDetail({
     } finally {
       setProgress(null)
       onDone()
+    }
+  }
+
+  // Usually one, but a series can have folders in more than one root.
+  const folders = [
+    ...new Map(
+      files
+        .filter((f) => f.item_folder)
+        .map((f) => [`${f.root_id}:${f.item_folder}`, { root: f.root_id, path: f.item_folder! }]),
+    ).values(),
+  ]
+  const ignoreFolders = async () => {
+    const which = folders.map((f) => f.path).join(', ')
+    if (
+      !window.confirm(
+        `Ignore ${which}? Every file in it is left out of the library, including ones already matched, until you stop ignoring it.`,
+      )
+    ) {
+      return
+    }
+    setError(null)
+    setIgnoring(true)
+    try {
+      for (const f of folders) {
+        await api.ignoreFolder(f.root, f.path)
+      }
+      onDone()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setIgnoring(false)
     }
   }
 
@@ -142,13 +174,23 @@ export function GroupDetail({
         <button
           type="button"
           className={`${styles.button} ${styles.primary}`}
-          disabled={chosen.length === 0 || progress !== null}
+          disabled={chosen.length === 0 || progress !== null || ignoring}
           onClick={acceptAll}
         >
           {progress !== null
             ? `Accepting ${progress + 1} of ${chosen.length}…`
             : `Accept and pin ${chosen.length} ${chosen.length === 1 ? 'file' : 'files'}`}
         </button>
+        {folders.length > 0 && (
+          <button
+            type="button"
+            className={styles.button}
+            disabled={progress !== null || ignoring}
+            onClick={ignoreFolders}
+          >
+            Ignore the series folder
+          </button>
+        )}
       </div>
     </section>
   )

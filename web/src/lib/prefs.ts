@@ -44,7 +44,8 @@ export type Layout = 'list' | 'grid'
 
 /**
  * Watch is for viewing; Manage shows system states and technical detail.
- * App-wide, and only admins can manage.
+ * Admins switch it with the Details toggle on media pages; it's remembered
+ * and applies everywhere media is shown, and only admins can manage.
  */
 export function useMode() {
   const [mode, setMode] = usePref<Mode>('mc.mode', ['watch', 'manage'], 'watch')

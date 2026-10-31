@@ -3,7 +3,7 @@
 use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
-use cabinet_core::matcher::review::{self, ReviewError, ReviewQueue};
+use cabinet_core::matcher::review::{self, IgnoredFolder, ReviewError, ReviewQueue};
 use cabinet_core::metadata::{MetadataError, SearchResult};
 use serde::Deserialize;
 use utoipa::{IntoParams, ToSchema};
@@ -203,6 +203,57 @@ pub async fn identify_folder(
         state.match_settings,
     )
     .await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct IgnoreFolder {
+    root_id: i64,
+    folder_path: String,
+}
+
+/// Excludes a folder from matching: its files, and any that appear in it later, are ignored.
+#[utoipa::path(
+    post,
+    path = "/review/folders/ignore",
+    tag = "review",
+    request_body = IgnoreFolder,
+    responses((status = 204), (status = 400, body = ErrorBody), (status = 404, body = ErrorBody))
+)]
+pub async fn ignore_folder(
+    State(state): State<AppState>,
+    Json(body): Json<IgnoreFolder>,
+) -> Result<StatusCode, ApiError> {
+    review::ignore_folder(&state.db, body.root_id, &body.folder_path).await?;
+    Ok(StatusCode::NO_CONTENT)
+}
+
+/// Folders excluded from matching, most recently ignored first.
+#[utoipa::path(
+    get,
+    path = "/review/ignored",
+    tag = "review",
+    responses((status = 200, body = Vec<IgnoredFolder>))
+)]
+pub async fn ignored_folders(
+    State(state): State<AppState>,
+) -> Result<Json<Vec<IgnoredFolder>>, ApiError> {
+    Ok(Json(review::ignored_folders(&state.db).await?))
+}
+
+/// Stops ignoring a folder: its files come back and are matched.
+#[utoipa::path(
+    delete,
+    path = "/review/ignored/{id}",
+    tag = "review",
+    params(("id" = i64, Path)),
+    responses((status = 204), (status = 404, body = ErrorBody))
+)]
+pub async fn unignore_folder(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+) -> Result<StatusCode, ApiError> {
+    review::unignore_folder(&state.db, id, &state.provider, state.match_settings).await?;
     Ok(StatusCode::NO_CONTENT)
 }
 

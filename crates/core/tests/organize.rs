@@ -385,3 +385,87 @@ async fn moving_a_series_to_another_root() {
             .is_err()
     );
 }
+
+#[tokio::test]
+async fn fixes_a_wrong_id_in_a_series_folder_name() {
+    let lib = Lib::new().await;
+    let source = lib.download("Night.Harbor.S01E01.mkv");
+    let pilot = lib.episode(1, 1).await;
+    let r = lib
+        .import(&source, &[pilot], TransferMode::Hardlink, false)
+        .await;
+    // The folder had a wrong tag all along.
+    fs::rename(
+        lib.path("adaptive/Night Harbor"),
+        lib.path("adaptive/Night Harbor [tmdb-123123]"),
+    )
+    .unwrap();
+    sqlx::query(
+        "UPDATE media_file SET relative_path = replace(relative_path, 'Night Harbor/', 'Night Harbor [tmdb-123123]/');
+         UPDATE series_location SET path = 'Night Harbor [tmdb-123123]';",
+    )
+    .execute(&lib.pool)
+    .await
+    .unwrap();
+    let value: String =
+        sqlx::query_scalar("SELECT value FROM external_id WHERE item_id = ? AND provider = 'tmdb'")
+            .bind(lib.series)
+            .fetch_one(&lib.pool)
+            .await
+            .unwrap();
+
+    let done = organize::fix_folder_ids(&lib.pool, lib.series, lib.adaptive, false)
+        .await
+        .unwrap();
+    let fixed = format!("Night Harbor [tmdb-{value}]");
+    assert_eq!(done.to, fixed);
+    let path: String = sqlx::query_scalar("SELECT relative_path FROM media_file WHERE id = ?")
+        .bind(r.file_id)
+        .fetch_one(&lib.pool)
+        .await
+        .unwrap();
+    assert_eq!(path, format!("{fixed}/Season 01/Night.Harbor.S01E01.mkv"));
+    assert!(lib.path(&format!("adaptive/{path}")).is_file());
+    let location: String =
+        sqlx::query_scalar("SELECT path FROM series_location WHERE series_item_id = ?")
+            .bind(lib.series)
+            .fetch_one(&lib.pool)
+            .await
+            .unwrap();
+    assert_eq!(location, fixed);
+    assert!(
+        organize::fix_folder_ids(&lib.pool, lib.series, lib.adaptive, false)
+            .await
+            .is_err(),
+        "nothing left to fix"
+    );
+}
+
+#[tokio::test]
+async fn read_only_folders_are_renamed_only_when_forced() {
+    let lib = Lib::new().await;
+    let wrong = "Night Harbor {tmdb-1}".to_string();
+    fs::create_dir_all(lib.path(&format!("readonly/{wrong}"))).unwrap();
+    sqlx::query(
+        "INSERT INTO series_location (series_item_id, root_id, library_id, path, is_primary)
+         SELECT ?, id, library_id, ?, 1 FROM library_root WHERE id = ?",
+    )
+    .bind(lib.series)
+    .bind(&wrong)
+    .bind(lib.read_only)
+    .execute(&lib.pool)
+    .await
+    .unwrap();
+
+    assert!(
+        organize::fix_folder_ids(&lib.pool, lib.series, lib.read_only, false)
+            .await
+            .is_err()
+    );
+    assert!(lib.path(&format!("readonly/{wrong}")).is_dir());
+    let done = organize::fix_folder_ids(&lib.pool, lib.series, lib.read_only, true)
+        .await
+        .unwrap();
+    assert!(lib.path(&format!("readonly/{}", done.to)).is_dir());
+    assert!(!lib.path(&format!("readonly/{wrong}")).exists());
+}

@@ -18,6 +18,7 @@ use futures::StreamExt;
 use serde::Serialize;
 use serde_json::json;
 use sqlx::SqlitePool;
+use utoipa::ToSchema;
 
 use crate::events;
 use plan::{Existing, MatchKind, Plan};
@@ -433,6 +434,86 @@ async fn save_probe(pool: &SqlitePool, file_id: i64, probe: &Probe) -> Result<()
     .execute(&mut *tx)
     .await?;
     tx.commit().await
+}
+
+/// What the last probe found in a file, as stored, with the sidecars next to it.
+#[derive(Debug, Clone, Serialize, ToSchema, sqlx::FromRow)]
+pub struct StoredProbe {
+    pub file_id: i64,
+    /// ffprobe's format name, e.g. `matroska,webm`.
+    pub container: Option<String>,
+    pub duration_seconds: Option<f64>,
+    /// Null until probed; reset when the content changes.
+    pub probed_at: Option<i64>,
+    pub probe_error: Option<String>,
+    /// In the file's own order.
+    #[sqlx(skip)]
+    pub streams: Vec<StoredStream>,
+    #[sqlx(skip)]
+    pub sidecars: Vec<StoredSidecar>,
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema, sqlx::FromRow)]
+pub struct StoredStream {
+    pub index: i64,
+    /// `video`, `audio` or `subtitle`.
+    pub kind: String,
+    pub codec: Option<String>,
+    pub language: Option<String>,
+    pub channels: Option<i64>,
+    pub width: Option<i64>,
+    pub height: Option<i64>,
+    pub hdr_format: Option<String>,
+    /// Bits per second.
+    pub bitrate: Option<i64>,
+    pub is_default: bool,
+    pub is_forced: bool,
+}
+
+#[derive(Debug, Clone, Serialize, ToSchema, sqlx::FromRow)]
+pub struct StoredSidecar {
+    pub id: i64,
+    /// `subtitle`, `nfo` or `artwork`.
+    pub kind: String,
+    /// `root` (next to the video) or `cache`.
+    pub location: String,
+    pub relative_path: String,
+    pub language: Option<String>,
+    pub is_forced: bool,
+    pub is_hearing_impaired: bool,
+}
+
+/// The file's stored probe, or none if there's no such file.
+pub async fn stored_probe(
+    pool: &SqlitePool,
+    file_id: i64,
+) -> Result<Option<StoredProbe>, sqlx::Error> {
+    let probe: Option<StoredProbe> = sqlx::query_as(
+        "SELECT id AS file_id, container, duration_seconds, probed_at, probe_error
+         FROM media_file WHERE id = ?",
+    )
+    .bind(file_id)
+    .fetch_optional(pool)
+    .await?;
+    let Some(mut probe) = probe else {
+        return Ok(None);
+    };
+    probe.streams = sqlx::query_as(
+        "SELECT stream_index AS \"index\", kind, codec, language, channels, width, height,
+                hdr_format, bitrate, is_default, is_forced
+         FROM media_stream WHERE file_id = ? ORDER BY stream_index",
+    )
+    .bind(file_id)
+    .fetch_all(pool)
+    .await?;
+    probe.sidecars = sqlx::query_as(
+        "SELECT id, kind, location, relative_path, language, is_forced, is_hearing_impaired
+         FROM sidecar WHERE file_id = ? ORDER BY kind, relative_path",
+    )
+    .bind(file_id)
+    .fetch_all(pool)
+    .await?;
+    Ok(Some(probe))
 }
 
 #[derive(sqlx::FromRow)]

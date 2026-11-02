@@ -65,6 +65,11 @@ pub struct EpisodeData {
     /// Aired order. Season 0 holds specials.
     pub season: i64,
     pub number: i64,
+    /// Guest stars and crew; the series' regulars are on the series.
+    #[serde(default)]
+    pub credits: Credits,
+    #[serde(default)]
+    pub rating: Option<RatingData>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -109,6 +114,19 @@ pub struct SeriesData {
     pub orderings: Vec<OrderingData>,
     pub poster: Option<String>,
     pub backdrop: Option<String>,
+    #[serde(default)]
+    pub tagline: Option<String>,
+    #[serde(default)]
+    pub content_rating: Option<String>,
+    /// Regular cast, and creators as crew.
+    #[serde(default)]
+    pub credits: Credits,
+    #[serde(default)]
+    pub networks: Vec<CompanyData>,
+    #[serde(default)]
+    pub studios: Vec<CompanyData>,
+    #[serde(default)]
+    pub rating: Option<RatingData>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -125,4 +143,83 @@ pub struct MovieData {
     pub external_ids: Vec<(String, String)>,
     pub poster: Option<String>,
     pub backdrop: Option<String>,
+    #[serde(default)]
+    pub tagline: Option<String>,
+    #[serde(default)]
+    pub content_rating: Option<String>,
+    #[serde(default)]
+    pub credits: Credits,
+    #[serde(default)]
+    pub studios: Vec<CompanyData>,
+    #[serde(default)]
+    pub rating: Option<RatingData>,
+}
+
+/// Someone as a provider knows them.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PersonRef {
+    pub id: String,
+    pub name: String,
+    /// The provider's image path.
+    #[serde(default)]
+    pub photo: Option<String>,
+    /// Acting, Directing, Writing...
+    #[serde(default)]
+    pub known_for: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CreditData {
+    pub person: PersonRef,
+    /// The character for cast and guests, the job for crew.
+    #[serde(default)]
+    pub role: Option<String>,
+    /// Crew only.
+    #[serde(default)]
+    pub department: Option<String>,
+    /// A series' cast: how many episodes they're in.
+    #[serde(default)]
+    pub episodes: Option<i64>,
+}
+
+/// In billing order.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Credits {
+    #[serde(default)]
+    pub cast: Vec<CreditData>,
+    #[serde(default)]
+    pub guests: Vec<CreditData>,
+    #[serde(default)]
+    pub crew: Vec<CreditData>,
+}
+
+/// A network or studio.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CompanyData {
+    #[serde(default)]
+    pub id: Option<String>,
+    pub name: String,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct RatingData {
+    pub value: f64,
+    /// What a perfect score is: 10 or 100.
+    pub scale: f64,
+    #[serde(default)]
+    pub votes: Option<i64>,
+}
+
+/// What a provider knows about a person beyond their credits.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PersonData {
+    pub id: String,
+    pub name: String,
+    pub photo: Option<String>,
+    pub known_for: Option<String>,
+    pub biography: Option<String>,
+    /// `YYYY-MM-DD`.
+    pub birthday: Option<String>,
+    pub deathday: Option<String>,
+    pub birthplace: Option<String>,
 }

@@ -135,6 +135,7 @@ Real API, seeded data. Seeing and testing the design early.
 Designs: `docs/tasks.md`, `docs/activity.md`.
 
 - [x] Task runner extracted from the scan service; scans become the first task kind (`scan_run` → `task`)
+- [x] Metadata refresh of a whole library on request, as a task (`metadata_refresh`, library scope)
 - [ ] Metadata refresh as a scheduled task
 - [ ] Task outcomes and task-scoped logs (tracing span per task)
 - [ ] Heavy lane: one task at a time, waits while transcodes run
@@ -150,6 +151,7 @@ Designs: `docs/tasks.md`, `docs/activity.md`.
 
 - [ ] Keyboard navigation and accessibility pass across all screens
 - [x] Episode inspector (every link, number in each ordering, event history)
+- [x] Stream inspector: a file's probed streams and sidecars (`GET /files/{id}/probe`)
 - [ ] Published Docker image and release binaries
 - [ ] Smaller image (static ffmpeg)
 - [ ] Upgrade test: migrate a large database from an older version, with backup
@@ -164,11 +166,21 @@ TMDB is v1's only provider. These plug in behind the same `Provider` interface.
 - [ ] AniDB client (its own episode numbering as an ordering)
 - [ ] Choosing the primary provider per library or series
 
+## Later stage — people and richer metadata
+
+Design: `docs/people.md`.
+
+- [x] People and credits from TMDB: cast, guest stars, key crew, creators
+- [x] Networks, studios, tagline, age rating per region
+- [x] Ratings: TMDB, and IMDb, Rotten Tomatoes and Metacritic from OMDb
+- [x] UI: cast rails, crew and companies on media pages; a page per person
+- [ ] Search people by name
+
 ## After v1
 
 - Native and TV clients; Jellyfin-compatible API so existing apps work
 - Optional AI matching (embeddings for fuzzy titles, a local LLM as tie-breaker)
 - Light theme
 - Music and books
-- Localized titles, people and credits, collections, per-user library scoping
+- Localized titles, collections, per-user library scoping
 - A "work" identity built from external IDs, shared by the copies of a title in different libraries: watch history synced across libraries, and a stable key for third-party integrations. Watch history stays on `item_id` until then.

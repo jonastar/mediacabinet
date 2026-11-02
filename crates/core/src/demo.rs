@@ -54,11 +54,166 @@ pub async fn seed(pool: &SqlitePool, media_dir: &Path, now: i64) -> Result<(), D
     for show in OTHER_SHOWS {
         other_show(&mut s, tv, show).await?;
     }
+    people(&mut tx).await?;
     // Start the wanted snapshot from the seeded state, as a real library would be
     // after its first scans.
     crate::wanted::sync_events(&mut tx).await?;
     activity(&mut tx, now).await?;
     tx.commit().await?;
+    Ok(())
+}
+
+/// Invented cast and crew, networks and ratings for Kitsune Road and Harbor
+/// Lights. People have no photos, so their initials show.
+async fn people(conn: &mut SqliteConnection) -> Result<(), sqlx::Error> {
+    use crate::metadata::import::{set_companies, set_credits, set_rating};
+    use crate::metadata::{CompanyData, CreditData, Credits, PersonRef, RatingData};
+
+    fn credit(id: &str, name: &str, role: &str, episodes: Option<i64>) -> CreditData {
+        CreditData {
+            person: PersonRef {
+                id: format!("demo-{id}"),
+                name: name.into(),
+                photo: None,
+                known_for: None,
+            },
+            role: Some(role.into()),
+            department: None,
+            episodes,
+        }
+    }
+    fn crew(id: &str, name: &str, job: &str, department: &str) -> CreditData {
+        CreditData {
+            department: Some(department.into()),
+            ..credit(id, name, job, None)
+        }
+    }
+    let series = |title: &'static str| {
+        sqlx::query_scalar::<_, i64>("SELECT id FROM item WHERE kind = 'series' AND title = ?")
+            .bind(title)
+    };
+    let rate = |value: f64, scale: f64, votes: Option<i64>| RatingData {
+        value,
+        scale,
+        votes,
+    };
+
+    let kitsune = series("Kitsune Road").fetch_one(&mut *conn).await?;
+    let cast = vec![
+        credit("1", "Haruka Mori", "Kon (voice)", Some(12)),
+        credit("2", "Daichi Arai", "Old Tanuki (voice)", Some(12)),
+        credit("3", "Mei Takeda", "Sayo (voice)", Some(9)),
+        credit("4", "Ren Kuroda", "The Pilgrim (voice)", Some(6)),
+        credit("5", "Aoi Fujimura", "Shrine Keeper (voice)", Some(4)),
+    ];
+    let credits = Credits {
+        cast,
+        guests: vec![],
+        crew: vec![crew("10", "Sora Ishikawa", "Creator", "Writing")],
+    };
+    set_credits(conn, kitsune, "demo", &credits).await?;
+    set_companies(
+        conn,
+        kitsune,
+        "demo",
+        "network",
+        &[CompanyData {
+            id: None,
+            name: "Tokyo MX".into(),
+        }],
+    )
+    .await?;
+    set_companies(
+        conn,
+        kitsune,
+        "demo",
+        "studio",
+        &[CompanyData {
+            id: None,
+            name: "Studio Hokora".into(),
+        }],
+    )
+    .await?;
+    for (source, r) in [
+        ("tmdb", rate(8.3, 10.0, Some(214))),
+        ("imdb", rate(8.1, 10.0, Some(5_412))),
+        ("rotten_tomatoes", rate(100.0, 100.0, None)),
+    ] {
+        set_rating(conn, kitsune, source, Some(r)).await?;
+    }
+    sqlx::query("UPDATE item SET content_rating = 'TV-PG', tagline = 'Every debt has a road home.' WHERE id = ?")
+        .bind(kitsune)
+        .execute(&mut *conn)
+        .await?;
+    let episodes: Vec<i64> = sqlx::query_scalar(
+        "SELECT id FROM item WHERE parent_id = ? ORDER BY airs_at IS NULL, airs_at LIMIT 4",
+    )
+    .bind(kitsune)
+    .fetch_all(&mut *conn)
+    .await?;
+    let directors = [
+        ("11", "Yuki Hamada"),
+        ("12", "Kenta Oshiro"),
+        ("11", "Yuki Hamada"),
+        ("13", "Nanami Sato"),
+    ];
+    let guests = [
+        Some(("20", "Takumi Endo", "Ferryman (voice)")),
+        Some(("21", "Rina Kasai", "Lantern Seller (voice)")),
+        None,
+        Some(("20", "Takumi Endo", "Ferryman (voice)")),
+    ];
+    for ((episode, (id, name)), guest) in episodes.iter().zip(directors).zip(guests) {
+        let credits = Credits {
+            cast: vec![],
+            guests: guest
+                .map(|(id, name, role)| vec![credit(id, name, role, None)])
+                .unwrap_or_default(),
+            crew: vec![
+                crew(id, name, "Director", "Directing"),
+                crew("10", "Sora Ishikawa", "Writer", "Writing"),
+            ],
+        };
+        set_credits(conn, *episode, "demo", &credits).await?;
+    }
+
+    let harbor = series("Harbor Lights").fetch_one(&mut *conn).await?;
+    let credits = Credits {
+        cast: vec![
+            credit("30", "Nora Whitfield", "Ines Calder", Some(18)),
+            credit("31", "Tomás Okafor", "DI Rafe Moreno", Some(18)),
+            // Also in Kitsune Road, so her page lists both.
+            credit("3", "Mei Takeda", "Lin", Some(7)),
+        ],
+        guests: vec![],
+        crew: vec![
+            crew("32", "Hal Brennan", "Creator", "Writing"),
+            crew("33", "Edie Marsh", "Creator", "Writing"),
+        ],
+    };
+    set_credits(conn, harbor, "demo", &credits).await?;
+    set_companies(
+        conn,
+        harbor,
+        "demo",
+        "network",
+        &[CompanyData {
+            id: None,
+            name: "Channel 4".into(),
+        }],
+    )
+    .await?;
+    for (source, r) in [
+        ("imdb", rate(7.6, 10.0, Some(18_330))),
+        ("rotten_tomatoes", rate(88.0, 100.0, None)),
+        ("metacritic", rate(71.0, 100.0, None)),
+    ] {
+        set_rating(conn, harbor, source, Some(r)).await?;
+    }
+    sqlx::query("UPDATE item SET content_rating = 'TV-14' WHERE id = ?")
+        .bind(harbor)
+        .execute(&mut *conn)
+        .await?;
     Ok(())
 }
 

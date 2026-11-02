@@ -4,6 +4,8 @@ import { Badge } from '../components/Badge'
 import { BackIcon, PlayIcon } from '../components/Icons'
 import { DetailsToggle } from '../components/DetailsToggle'
 import { Link } from '../components/Link'
+import { AboutSections, Ratings } from '../components/People'
+import { hasAbout } from '../lib/people'
 import { Progress } from '../components/Progress'
 import { Failed, Loading } from '../components/Status'
 import { heroBackground } from '../lib/artwork'
@@ -34,6 +36,8 @@ export function EpisodePage({ seriesId, id }: { seriesId: number; id: number }) 
   const series = useApi(`series:${seriesId}`, () => api.seriesDetail(seriesId))
   // In the ordering the user picked for the series, so previous and next match its page.
   const episodes = useApi(`episodes:${seriesId}:`, () => api.episodes(seriesId))
+  const about = useApi(`about:${id}`, () => api.about(id))
+  const seriesAbout = useApi(`about:${seriesId}`, () => api.about(seriesId))
   useCanonicalPath(series.data ? episodePath(seriesId, id, series.data.library_id) : null)
   useLiveEvents(
     [
@@ -106,6 +110,7 @@ export function EpisodePage({ seriesId, id }: { seriesId: number; id: number }) 
               <Progress value={v.progress} />
             </div>
           )}
+          {mode === 'watch' && <Ratings about={about.data} />}
           {e.overview && <p className={styles.overview}>{e.overview}</p>}
           {mode === 'manage' && <p className={own.tech}>{v.tech}</p>}
           <div className={styles.actions}>
@@ -131,6 +136,12 @@ export function EpisodePage({ seriesId, id }: { seriesId: number; id: number }) 
 
       {mode === 'manage' && (
         <Inspector itemId={e.item_id} files={e.files} onChanged={episodes.reload} />
+      )}
+
+      {mode === 'watch' && about.data && hasAbout(about.data, seriesAbout.data?.cast) && (
+        <div className={styles.content}>
+          <AboutSections about={about.data} cast={seriesAbout.data?.cast ?? []} />
+        </div>
       )}
 
       {(previous || next) && (

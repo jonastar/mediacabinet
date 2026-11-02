@@ -5,6 +5,7 @@ import { bytes, dayTimeLabel, resolution } from '../../lib/format'
 import { useLiveEvents } from '../../lib/live'
 import { ActivityList } from '../../components/ActivityFeed'
 import { Segmented } from '../../components/Segmented'
+import { Streams } from '../../components/Streams'
 import styles from './Inspector.module.css'
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -91,6 +92,7 @@ function LinkRow({
         {file.root_path}/{file.relative_path}
       </span>
       <span className={styles.meta}>{linkMeta(file)}</span>
+      <Streams fileId={file.file_id} />
       {edition === null ? (
         <div className={styles.actions}>
           <button type="button" className={styles.button} onClick={unlink}>

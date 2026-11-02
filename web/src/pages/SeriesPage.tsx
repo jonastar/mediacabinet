@@ -20,6 +20,8 @@ import { useLiveEvents } from '../lib/live'
 import { useEpisodeLayout, useMode } from '../lib/prefs'
 import { DetailsToggle } from '../components/DetailsToggle'
 import { Link } from '../components/Link'
+import { AboutSections, Ratings } from '../components/People'
+import { hasAbout } from '../lib/people'
 import { Episodes } from './series/Episodes'
 import { ManagePanels } from './series/ManagePanels'
 import { PlaylistEditor } from './series/PlaylistEditor'
@@ -51,6 +53,7 @@ export function SeriesPage({ id }: { id: number }) {
   const [mode] = useMode()
   const [layout, setLayout] = useEpisodeLayout()
   const detail = useApi(`series:${id}`, () => api.seriesDetail(id))
+  const about = useApi(`about:${id}`, () => api.about(id))
   useCanonicalPath(detail.data ? itemPath('series', id, detail.data.library_id) : null)
   // The view the user picked on this page; until then, their saved one.
   const [pickedView, setPickedView] = useState<string | null>(null)
@@ -126,7 +129,7 @@ export function SeriesPage({ id }: { id: number }) {
     }
   }
 
-  const reloadAll = () => Promise.all([detail.reload(), episodes.reload()])
+  const reloadAll = () => Promise.all([detail.reload(), episodes.reload(), about.reload()])
 
   const playlistId = () => Number(currentView?.id.replace('playlist:', ''))
 
@@ -175,6 +178,7 @@ export function SeriesPage({ id }: { id: number }) {
   const meta = [
     series.year,
     series.genres[0],
+    about.data?.networks[0],
     series.series_status ? capitalize(series.series_status) : null,
     next?.airs_at ? `New episode ${airDayLabel(next.airs_at, next.airs_time_known)}` : null,
   ]
@@ -206,6 +210,8 @@ export function SeriesPage({ id }: { id: number }) {
           {meta && <p className={styles.heroMeta}>{meta}</p>}
           {!manage && (
             <>
+              <Ratings about={about.data} />
+              {about.data?.tagline && <p className={styles.tagline}>{about.data.tagline}</p>}
               {series.overview && <p className={styles.overview}>{series.overview}</p>}
               <div className={styles.actions}>
                 {upNext && (
@@ -379,6 +385,7 @@ export function SeriesPage({ id }: { id: number }) {
             onSetPlayed={setPlayed}
           />
         )}
+        {!manage && about.data && hasAbout(about.data) && <AboutSections about={about.data} />}
       </div>
     </>
   )

@@ -53,7 +53,7 @@ Two lanes, no general worker pool:
 ## Migration from what exists
 
 1. Done: the queue, coalescing, progress and recovery moved from `ScanService` into the task runner (`crates/core/src/tasks.rs`); scans are the first kind. `ScanService` keeps the scan's work, its schedule and watching.
-2. Metadata refresh (`metadata::refresh::spawn_refresher`) becomes a scheduled kind.
+2. Partly done: `metadata_refresh` is a kind with a library scope, requested by hand (`POST /libraries/{id}/refresh`). It refreshes every series and movie in the library not refreshed since the request, so a restart carries on. Still to do: the schedule (`metadata::refresh::spawn_refresher`) requesting it instead of refreshing on its own.
 3. Thumbnails, then trickplay, as the first heavy kinds.
 
 ## API and UI

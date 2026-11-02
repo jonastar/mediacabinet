@@ -47,7 +47,7 @@ const CODECS: Record<string, string> = {
 export const codecName = (codec: string | null | undefined) =>
   codec ? (CODECS[codec] ?? codec.toUpperCase()) : null
 
-function channelLayout(channels: number | null | undefined) {
+export function channelLayout(channels: number | null | undefined) {
   switch (channels) {
     case 1:
       return 'Mono'

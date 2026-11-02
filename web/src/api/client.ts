@@ -22,6 +22,7 @@ export type TemplateCheck = Schemas['TemplateCheck']
 export type FolderListing = Schemas['FolderListing']
 export type PlacementExample = Schemas['PlacementExample']
 export type ScanProgress = Schemas['ScanProgress']
+export type RefreshProgress = Schemas['RefreshProgress']
 export type ReviewQueue = Schemas['ReviewQueue']
 export type FolderReview = Schemas['FolderReview']
 export type FileReview = Schemas['FileReview']
@@ -55,9 +56,16 @@ export type PlayContext = Schemas['PlayContext']
 export type ItemView = Schemas['ItemView']
 export type OrderingNumber = Schemas['OrderingNumber']
 export type EventRecord = Schemas['EventRecord']
+export type StoredProbe = Schemas['StoredProbe']
+export type StoredStream = Schemas['StoredStream']
 export type ActivityEntry = Schemas['ActivityEntry']
 export type ItemRef = Schemas['ItemRef']
 export type ActivityPage = Schemas['ActivityPage']
+export type About = Schemas['About']
+export type Credit = Schemas['Credit']
+export type Rating = Schemas['Rating']
+export type PersonDetail = Schemas['PersonDetail']
+export type PersonCredit = Schemas['PersonCredit']
 export type LibraryKind = 'tv' | 'movies'
 
 export interface PlayChoice {
@@ -137,6 +145,10 @@ export function artworkUrl(item: { id: number; artwork: string[] }, kind: 'poste
   return item.artwork.includes(kind) ? `/api/artwork/${item.id}/${kind}` : null
 }
 
+export function personPhotoUrl(person: { id: number; has_photo: boolean }) {
+  return person.has_photo ? `/api/people/${person.id}/photo` : null
+}
+
 /** Fired when the session has ended (signed out elsewhere, expired). */
 export const SIGNED_OUT_EVENT = 'mc:signed-out'
 
@@ -186,6 +198,8 @@ export const api = {
   renameLibrary: (id: number, name: string) =>
     request<Library>('PATCH', `/api/libraries/${id}`, { name }),
   deleteLibrary: (id: number) => request<void>('DELETE', `/api/libraries/${id}`),
+  refreshLibrary: (id: number) =>
+    request<{ started: boolean }>('POST', `/api/libraries/${id}/refresh`),
   addRoot: (libraryId: number, root: NewRoot) =>
     request<Root>('POST', `/api/libraries/${libraryId}/roots`, root),
   updateRoot: (id: number, changes: RootChanges) =>
@@ -232,10 +246,13 @@ export const api = {
   movies: (library?: number) =>
     request<MovieSummary[]>('GET', `/api/movies${library ? `?library=${library}` : ''}`),
   movieDetail: (id: number) => request<MovieDetail>('GET', `/api/movies/${id}`),
+  about: (id: number) => request<About>('GET', `/api/items/${id}/about`),
+  person: (id: number) => request<PersonDetail>('GET', `/api/people/${id}`),
   search: (q: string) => request<SearchResults>('GET', `/api/search?q=${encodeURIComponent(q)}`),
   /** Everything about one item, including its number in every ordering. */
   item: (id: number) => request<ItemView>('GET', `/api/items/${id}`),
   itemEvents: (id: number) => request<EventRecord[]>('GET', `/api/items/${id}/events`),
+  fileProbe: (fileId: number) => request<StoredProbe>('GET', `/api/files/${fileId}/probe`),
   editItem: (id: number, edit: ItemEdit) => request<void>('PATCH', `/api/items/${id}`, edit),
   setLocks: (id: number, fields: string[]) =>
     request<void>('PUT', `/api/items/${id}/locks`, { fields }),

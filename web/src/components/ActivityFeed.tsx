@@ -8,6 +8,11 @@ import styles from './ActivityFeed.module.css'
 
 type Payload = Record<string, unknown>
 
+const TASK_KINDS: Record<string, string> = {
+  scan: 'Scan task',
+  metadata_refresh: 'Metadata refresh task',
+}
+
 const TARGETS: Record<string, string> = {
   library: 'the library',
   root: 'the folder',
@@ -127,10 +132,12 @@ function describe(entry: ActivityEntry, me: number): ReactNode {
     case 'task_failed': {
       const verb = entry.kind === 'task_failed' ? 'failed' : 'finished'
       const error = p.error ? `: ${String(p.error)}` : ''
+      const kind = TASK_KINDS[String(p.task_kind)] ?? `${String(p.task_kind)} task`
+      const to = p.library_id ? `/manage/libraries/${String(p.library_id)}` : '/manage/libraries'
       return (
         <>
-          <Link to="/manage/libraries">
-            {String(p.task_kind)} task {String(p.task_id)}
+          <Link to={to}>
+            {kind} {String(p.task_id)}
           </Link>{' '}
           {verb}
           {error}

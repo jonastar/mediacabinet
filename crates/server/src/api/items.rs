@@ -9,6 +9,7 @@ use cabinet_core::catalog::movies::{self, MovieDetail, MovieSummary, SearchResul
 use cabinet_core::catalog::{self, ViewRef};
 use cabinet_core::items::{self, ItemEdit, ItemError};
 use cabinet_core::metadata::import::ImportReport;
+use cabinet_core::metadata::omdb;
 use cabinet_core::metadata::refresh::{self, RefreshError};
 use cabinet_core::tasks::Trigger;
 use serde::Deserialize;
@@ -202,9 +203,14 @@ pub async fn refresh_item(
     State(state): State<AppState>,
     Path(id): Path<i64>,
 ) -> Result<Json<ImportReport>, ApiError> {
-    Ok(Json(
-        refresh::refresh_item(&state.db, &state.provider, id).await?,
-    ))
+    let report = refresh::refresh_item(&state.db, &state.provider, id).await?;
+    // Ratings are a bonus: a refresh that got the metadata succeeded without them.
+    if let Some(omdb) = &state.omdb
+        && let Err(e) = omdb::refresh(&state.db, omdb, id).await
+    {
+        tracing::warn!(item = id, error = %e, "can't refresh ratings");
+    }
+    Ok(Json(report))
 }
 
 #[derive(Deserialize, ToSchema)]

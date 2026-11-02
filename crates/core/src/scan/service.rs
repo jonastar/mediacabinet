@@ -121,10 +121,9 @@ impl ScanService {
         self.tasks
             .all_running()
             .into_iter()
-            .filter(|(kind, ..)| *kind == Kind::Scan)
-            .map(|(_, scope, running)| {
-                let Scope::Root(root_id) = scope;
-                (root_id, running.into())
+            .filter_map(|(kind, scope, running)| match (kind, scope) {
+                (Kind::Scan, Scope::Root(root_id)) => Some((root_id, running.into())),
+                _ => None,
             })
             .collect()
     }

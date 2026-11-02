@@ -781,6 +781,46 @@
         }
       }
     },
+    "/api/files/{id}/probe": {
+      "get": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "What the last probe found in a file: its streams in order, the container and\nduration, any probe error, and the sidecars next to it.",
+        "operationId": "file_probe",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StoredProbe"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/files/{id}/stream": {
       "get": {
         "tags": [
@@ -1161,6 +1201,46 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/items/{id}/about": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "A series', episode's or movie's cast and crew, networks, studios, ratings,\ntagline and age rating.",
+        "operationId": "about",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/About"
                 }
               }
             }
@@ -2112,6 +2192,55 @@
         }
       }
     },
+    "/api/libraries/{id}/refresh": {
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Fetches the metadata of every series and movie in a library from its provider\nagain, with ratings when OMDb is set up. Runs as a task; progress shows on the\nlibrary as `refreshing`.",
+        "operationId": "refresh_library",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshStarted"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/libraries/{id}/roots": {
       "post": {
         "tags": [
@@ -2392,6 +2521,82 @@
                   "$ref": "#/components/schemas/MovieDetail"
                 }
               }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/people/{id}": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Someone credited in the library: their biography (fetched from the provider\nthe first time) and everything in the library they're in.",
+        "operationId": "person",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PersonDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/people/{id}/photo": {
+      "get": {
+        "tags": [
+          "catalog"
+        ],
+        "summary": "Someone's photo, cached locally after first use.",
+        "operationId": "photo",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/*": {}
             }
           },
           "404": {
@@ -4239,6 +4444,73 @@
   },
   "components": {
     "schemas": {
+      "About": {
+        "type": "object",
+        "description": "What a series, episode or movie is beyond its title: people, companies and ratings.",
+        "required": [
+          "ratings",
+          "networks",
+          "studios",
+          "cast",
+          "guests",
+          "crew"
+        ],
+        "properties": {
+          "cast": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Credit"
+            },
+            "description": "A series' regulars or a movie's cast, in billing order."
+          },
+          "content_rating": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The age rating, e.g. PG-13 or TV-MA."
+          },
+          "crew": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Credit"
+            },
+            "description": "Directors, writers, creators and other key crew; someone with two jobs is listed twice."
+          },
+          "guests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Credit"
+            },
+            "description": "An episode's guest stars."
+          },
+          "networks": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ratings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Rating"
+            },
+            "description": "IMDb, Rotten Tomatoes, Metacritic, then TMDB; only those known."
+          },
+          "studios": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tagline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "Accept": {
         "type": "object",
         "properties": {
@@ -4858,6 +5130,49 @@
           },
           "password": {
             "type": "string"
+          }
+        }
+      },
+      "Credit": {
+        "type": "object",
+        "required": [
+          "person_id",
+          "name",
+          "has_photo"
+        ],
+        "properties": {
+          "department": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Crew only: Directing, Writing..."
+          },
+          "episodes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "A series' cast: how many episodes they're in."
+          },
+          "has_photo": {
+            "type": "boolean",
+            "description": "The photo is at `/api/people/{person_id}/photo`."
+          },
+          "name": {
+            "type": "string"
+          },
+          "person_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The character for cast and guests, the job for crew."
           }
         }
       },
@@ -6012,8 +6327,30 @@
             "type": "string",
             "description": "`tv` or `movies`."
           },
+          "last_refresh": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ScanRun",
+                "description": "The last metadata refresh of the whole library."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "name": {
             "type": "string"
+          },
+          "refreshing": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/RefreshProgress",
+                "description": "Set while the library's metadata is refreshed; filled in by whoever runs tasks."
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "roots": {
             "type": "array",
@@ -6692,6 +7029,166 @@
           }
         }
       },
+      "PersonCredit": {
+        "type": "object",
+        "description": "A series or movie in the library someone is in, with every role they have there.",
+        "required": [
+          "item_id",
+          "kind",
+          "library_id",
+          "title",
+          "artwork",
+          "roles",
+          "episodes"
+        ],
+        "properties": {
+          "artwork": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Artwork kinds available from `/api/artwork/{id}/{kind}`."
+          },
+          "episode_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "A series' regular: how many episodes they're in."
+          },
+          "episodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonEpisode"
+            },
+            "description": "Episodes they guest in or worked on, in order."
+          },
+          "item_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`series` or `movie`."
+          },
+          "library_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Characters and jobs, most prominent first, each once."
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "PersonDetail": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "has_photo",
+          "credits"
+        ],
+        "properties": {
+          "biography": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "birthday": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`YYYY-MM-DD`."
+          },
+          "birthplace": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "credits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonCredit"
+            },
+            "description": "Newest first."
+          },
+          "deathday": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "has_photo": {
+            "type": "boolean",
+            "description": "The photo is at `/api/people/{id}/photo`."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "known_for": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "PersonEpisode": {
+        "type": "object",
+        "description": "An episode someone is credited on.",
+        "required": [
+          "item_id",
+          "title"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "number": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EpisodeNumber",
+                "description": "In the series' default ordering."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "role": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "Phase": {
         "type": "string",
         "enum": [
@@ -7203,6 +7700,81 @@
           }
         }
       },
+      "Rating": {
+        "type": "object",
+        "required": [
+          "source",
+          "value",
+          "scale"
+        ],
+        "properties": {
+          "scale": {
+            "type": "number",
+            "format": "double",
+            "description": "What a perfect score is: 10 or 100."
+          },
+          "source": {
+            "type": "string",
+            "description": "`imdb`, `rotten_tomatoes`, `metacritic` or `tmdb`."
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "votes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "RefreshProgress": {
+        "type": "object",
+        "description": "A library refresh in progress.",
+        "required": [
+          "done",
+          "total",
+          "started_at",
+          "trigger",
+          "queued_again"
+        ],
+        "properties": {
+          "done": {
+            "type": "integer",
+            "description": "Series and movies refreshed so far, of `total`.",
+            "minimum": 0
+          },
+          "queued_again": {
+            "type": "boolean",
+            "description": "Another refresh is due when this one finishes."
+          },
+          "started_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "total": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "trigger": {
+            "type": "string"
+          }
+        }
+      },
+      "RefreshStarted": {
+        "type": "object",
+        "required": [
+          "started"
+        ],
+        "properties": {
+          "started": {
+            "type": "boolean",
+            "description": "False when a refresh was already running; one more runs after it."
+          }
+        }
+      },
       "Rematch": {
         "type": "object",
         "required": [
@@ -7374,6 +7946,7 @@
       },
       "ScanRun": {
         "type": "object",
+        "description": "A finished or running task: a root's scan or a library's metadata refresh.",
         "required": [
           "id",
           "trigger",
@@ -7829,6 +8402,174 @@
           "status": {
             "type": "string",
             "description": "Free text. Well-known values the UI styles: searching, queued, downloading,\nimporting, failed."
+          }
+        }
+      },
+      "StoredProbe": {
+        "type": "object",
+        "description": "What the last probe found in a file, as stored, with the sidecars next to it.",
+        "required": [
+          "file_id",
+          "streams",
+          "sidecars"
+        ],
+        "properties": {
+          "container": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ffprobe's format name, e.g. `matroska,webm`."
+          },
+          "duration_seconds": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double"
+          },
+          "file_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "probe_error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "probed_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Null until probed; reset when the content changes."
+          },
+          "sidecars": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoredSidecar"
+            }
+          },
+          "streams": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StoredStream"
+            },
+            "description": "In the file's own order."
+          }
+        }
+      },
+      "StoredSidecar": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "location",
+          "relative_path",
+          "is_forced",
+          "is_hearing_impaired"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "is_forced": {
+            "type": "boolean"
+          },
+          "is_hearing_impaired": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`subtitle`, `nfo` or `artwork`."
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location": {
+            "type": "string",
+            "description": "`root` (next to the video) or `cache`."
+          },
+          "relative_path": {
+            "type": "string"
+          }
+        }
+      },
+      "StoredStream": {
+        "type": "object",
+        "required": [
+          "index",
+          "kind",
+          "is_default",
+          "is_forced"
+        ],
+        "properties": {
+          "bitrate": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Bits per second."
+          },
+          "channels": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "codec": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hdr_format": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "height": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "index": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "is_default": {
+            "type": "boolean"
+          },
+          "is_forced": {
+            "type": "boolean"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`video`, `audio` or `subtitle`."
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "width": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
           }
         }
       },

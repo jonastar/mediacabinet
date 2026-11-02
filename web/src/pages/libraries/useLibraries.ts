@@ -3,7 +3,7 @@ import { api } from '../../api/client'
 import { useApi } from '../../api/useApi'
 import { useLiveEvents } from '../../lib/live'
 
-/** All libraries, kept current: live events, and every second while anything scans. */
+/** All libraries, kept current: live events, and every second while anything scans or refreshes. */
 export function useLibraries() {
   const libraries = useApi('libraries', api.libraries)
   const reload = libraries.reload
@@ -19,13 +19,13 @@ export function useLibraries() {
     ],
     reload,
   )
-  const scanning = libraries.data?.some((l) => l.roots.some((r) => r.scanning)) ?? false
+  const busy = libraries.data?.some((l) => l.refreshing || l.roots.some((r) => r.scanning)) ?? false
   useEffect(() => {
-    if (!scanning) {
+    if (!busy) {
       return
     }
     const timer = window.setInterval(reload, 1000)
     return () => window.clearInterval(timer)
-  }, [scanning, reload])
+  }, [busy, reload])
   return libraries
 }

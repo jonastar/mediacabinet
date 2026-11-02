@@ -14,7 +14,10 @@ mod web;
 pub struct AppState {
     pub db: sqlx::SqlitePool,
     pub scans: cabinet_core::scan::ScanService,
+    pub tasks: cabinet_core::tasks::Tasks,
     pub provider: cabinet_core::metadata::Provider,
+    /// Rotten Tomatoes, Metacritic and IMDb ratings, when `CABINET_OMDB_KEY` is set.
+    pub omdb: Option<cabinet_core::metadata::omdb::Omdb>,
     pub match_settings: cabinet_core::matcher::MatchSettings,
     pub artwork: artwork::ArtworkCache,
     pub transcoder: transcode::Transcoder,
@@ -62,12 +65,30 @@ fn metadata_provider() -> anyhow::Result<cabinet_core::metadata::Provider> {
         return Ok(Provider::Fake(std::sync::Arc::new(catalog)));
     }
     match std::env::var("CABINET_TMDB_KEY") {
-        Ok(key) if !key.trim().is_empty() => Ok(Provider::Tmdb(Tmdb::new(key.trim()))),
+        Ok(key) if !key.trim().is_empty() => {
+            let mut tmdb = Tmdb::new(key.trim());
+            if let Ok(region) = std::env::var("CABINET_TMDB_REGION")
+                && !region.trim().is_empty()
+            {
+                tmdb = tmdb.with_region(region.trim());
+            }
+            Ok(Provider::Tmdb(tmdb))
+        }
         _ => {
             tracing::warn!("no metadata provider: set CABINET_TMDB_KEY to identify new folders");
             Ok(Provider::None)
         }
     }
+}
+
+/// OMDb, for Rotten Tomatoes and Metacritic ratings, with CABINET_OMDB_KEY.
+fn omdb() -> Option<cabinet_core::metadata::omdb::Omdb> {
+    let key = std::env::var("CABINET_OMDB_KEY").ok()?;
+    let key = key.trim();
+    if key.is_empty() {
+        return None;
+    }
+    Some(cabinet_core::metadata::omdb::Omdb::new(key))
 }
 
 fn env_number(name: &str, default: u64) -> anyhow::Result<u64> {
@@ -133,16 +154,18 @@ async fn main() -> anyhow::Result<()> {
             Err(_) => cabinet_core::matcher::MatchSettings::default().accept,
         },
     };
+    let omdb = omdb();
     let tasks = cabinet_core::tasks::Tasks::new(
         db.clone(),
         cabinet_core::tasks::Services {
             prober,
             provider: provider.clone(),
             match_settings,
+            omdb: omdb.clone(),
         },
     );
     tasks.resume().await?;
-    let scans = cabinet_core::scan::ScanService::new(tasks);
+    let scans = cabinet_core::scan::ScanService::new(tasks.clone());
     let interval = env_number("CABINET_SCAN_INTERVAL_MINUTES", 360)?;
     if interval > 0 {
         scans.spawn_scheduler(Duration::from_secs(interval * 60));
@@ -160,6 +183,13 @@ async fn main() -> anyhow::Result<()> {
         provider.clone(),
         Duration::from_secs(10 * 60),
     );
+    if let Some(omdb) = &omdb {
+        cabinet_core::metadata::omdb::spawn_refresher(
+            db.clone(),
+            omdb.clone(),
+            Duration::from_secs(10 * 60),
+        );
+    }
 
     let hwaccel = std::env::var("CABINET_HWACCEL").unwrap_or_default();
     let hwaccel = cabinet_core::playback::HwAccel::parse(&hwaccel)
@@ -186,7 +216,9 @@ async fn main() -> anyhow::Result<()> {
     let app = api::router(AppState {
         db,
         scans,
+        tasks,
         provider,
+        omdb,
         match_settings,
         artwork: artwork::ArtworkCache::new(data_dir.join("artwork")),
         transcoder,

@@ -12,6 +12,12 @@ Details belong in the commit, docs or API reference.
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
+- A library's metadata can be fetched again in one go from its Metadata panel (`POST /api/libraries/{id}/refresh`), running as a task with progress.
+- Cast and crew on movie, series and episode pages (guest stars, directors, writers, creators), with a page per person listing everything they're in across the library.
+- Series show their network; movies and series show studios, a tagline and the age rating (`CABINET_TMDB_REGION` picks the country).
+- Ratings from TMDB, plus IMDb, Rotten Tomatoes and Metacritic with an OMDb key (`CABINET_OMDB_KEY`); `GET /api/items/{id}/about` and `GET /api/people/{id}` return the new details.
+- Migration 0014 adds people, credits, companies and ratings.
+- Files in the episode inspector and a movie's Details view can show their probed streams and sidecars; `GET /api/files/{id}/probe` returns them (admin only).
 - A series folder whose name has a wrong provider ID (such as `[tmdb-…]`) can be renamed to the series' own from its Location panel; read-only roots ask for confirmation first.
 - The review queue can ignore a whole folder (its files now and later), with a list of ignored folders to bring back; clicking an open series again folds it.
 - Migration 0013 adds ignored folders.

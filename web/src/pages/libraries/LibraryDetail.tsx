@@ -7,7 +7,7 @@ import { navigate, useQueryParam } from '../../lib/router'
 import { NotFoundPage } from '../NotFoundPage'
 import { AddFolder } from './AddFolder'
 import { PlacementPanel } from './PlacementPanel'
-import { librarySummary } from './roots'
+import { librarySummary, refreshStatus } from './roots'
 import { RootRow } from './RootRow'
 import { useLibraries } from './useLibraries'
 import styles from './Libraries.module.css'
@@ -27,6 +27,57 @@ function NoImportTarget({ library }: { library: Library }) {
           : `Every folder here is read-only. Add a folder Media Cabinet may write to and make it the import target.`}
       </p>
     </div>
+  )
+}
+
+/** Fetching the library's metadata again, beyond the schedule. */
+function Metadata({ library, onChanged }: { library: Library; onChanged: () => void }) {
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const status = refreshStatus(library)
+
+  const refresh = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      await api.refreshLibrary(library.id)
+      onChanged()
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const things = library.kind === 'movies' ? 'movie' : 'show'
+  return (
+    <section aria-labelledby="library-metadata" className={styles.panel}>
+      <h2 id="library-metadata">Metadata</h2>
+      <p className={styles.muted}>
+        Details, episodes, artwork, cast and ratings refresh on a schedule: continuing shows daily,
+        everything else weekly. Refresh now to fetch every {things} in {library.name} again. Locked
+        fields are kept.
+      </p>
+      <span className={`${styles.status} ${styles[status.tone]}`} role="status">
+        <span className={styles.dot} aria-hidden="true" />
+        {status.text}
+      </span>
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      )}
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={`${styles.button} ${styles.small}`}
+          disabled={busy || library.refreshing?.queued_again}
+          onClick={refresh}
+        >
+          {library.refreshing ? 'Refresh again after this' : 'Refresh metadata'}
+        </button>
+      </div>
+    </section>
   )
 }
 
@@ -184,6 +235,7 @@ export function LibraryDetail({ id }: { id: number }) {
           )}
         </section>
 
+        <Metadata library={library} onChanged={libraries.reload} />
         {/* Keyed so a rename elsewhere resets the field. */}
         <Settings key={library.name} library={library} onChanged={libraries.reload} />
         <PlacementPanel libraryId={library.id} version={version} />

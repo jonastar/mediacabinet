@@ -36,6 +36,10 @@ pub struct Library {
     /// `tv` or `movies`.
     pub kind: String,
     pub roots: Vec<Root>,
+    /// The last metadata refresh of the whole library.
+    pub last_refresh: Option<ScanRun>,
+    /// Set while the library's metadata is refreshed; filled in by whoever runs tasks.
+    pub refreshing: Option<crate::metadata::refresh::RefreshProgress>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, ToSchema)]
@@ -45,6 +49,7 @@ pub struct FileCounts {
     pub ignored: i64,
 }
 
+/// A finished or running task: a root's scan or a library's metadata refresh.
 #[derive(Debug, Clone, Serialize, ToSchema)]
 pub struct ScanRun {
     pub id: i64,
@@ -163,6 +168,20 @@ pub async fn list(pool: &SqlitePool) -> Result<Vec<Library>, LibraryError> {
     .await?;
     let mut last_scan: HashMap<i64, ScanRun> =
         runs.into_iter().map(|r| (r.root_id, r.into())).collect();
+    let refreshes: Vec<ScanRunRow> = sqlx::query_as(
+        "SELECT t.id, t.library_id AS root_id, t.trigger, t.state, t.started_at, t.finished_at,
+                t.outcome AS report, t.error
+         FROM task t
+         WHERE t.id = (SELECT max(id) FROM task
+                       WHERE library_id = t.library_id AND kind = 'metadata_refresh'
+                         AND state IN ('running', 'ok', 'failed'))",
+    )
+    .fetch_all(pool)
+    .await?;
+    let mut last_refresh: HashMap<i64, ScanRun> = refreshes
+        .into_iter()
+        .map(|r| (r.root_id, r.into()))
+        .collect();
 
     let kinds: HashMap<i64, LibraryKind> = libraries
         .iter()
@@ -196,6 +215,8 @@ pub async fn list(pool: &SqlitePool) -> Result<Vec<Library>, LibraryError> {
             name,
             kind,
             roots: by_library.remove(&id).unwrap_or_default(),
+            last_refresh: last_refresh.remove(&id),
+            refreshing: None,
         })
         .collect())
 }

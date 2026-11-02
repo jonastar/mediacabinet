@@ -1,4 +1,4 @@
-import type { Library, Root, ScanProgress, WritePolicy } from '../../api/client'
+import type { Library, RefreshProgress, Root, ScanProgress, WritePolicy } from '../../api/client'
 import { ago, dayTimeLabel, time } from '../../lib/format'
 
 export const POLICY_NOTES: Record<WritePolicy, string> = {
@@ -21,7 +21,8 @@ function since(seconds: number) {
   return Date.now() / 1000 - seconds < 86400 ? time(seconds) : dayTimeLabel(seconds)
 }
 
-const ofTotal = (s: ScanProgress) => `${s.done.toLocaleString()} of ${s.total.toLocaleString()}`
+const ofTotal = (s: ScanProgress | RefreshProgress) =>
+  `${s.done.toLocaleString()} of ${s.total.toLocaleString()}`
 
 function scanStep(s: ScanProgress) {
   switch (s.phase) {
@@ -66,6 +67,31 @@ export function rootStatus(r: Root): { text: string; tone: 'ok' | 'busy' | 'bad'
   const missing = files.missing ? ` · ${count(files.missing, 'file')} missing` : ''
   const scanned = last.finished_at ? ` · scanned ${ago(last.finished_at)}` : ''
   return { text: `Online · ${count(files.present, 'file')}${missing}${scanned}`, tone: 'ok' }
+}
+
+/** One line on the library's last or running metadata refresh, and its colour. */
+export function refreshStatus(library: Library): {
+  text: string
+  tone: 'ok' | 'busy' | 'bad' | 'idle'
+} {
+  const r = library.refreshing
+  if (r) {
+    const step = r.total > 0 ? `Refreshing · ${ofTotal(r)}` : 'Refreshing…'
+    return { text: r.queued_again ? `${step} · another refresh queued` : step, tone: 'busy' }
+  }
+  const last = library.last_refresh
+  if (!last) {
+    return { text: 'Refreshed on the schedule only', tone: 'idle' }
+  }
+  if (last.state === 'failed') {
+    return { text: `Last refresh failed · ${last.error ?? 'unknown error'}`, tone: 'bad' }
+  }
+  const when = last.finished_at ? ` ${ago(last.finished_at)}` : ''
+  if (last.error) {
+    return { text: `Refreshed${when} · ${last.error}`, tone: 'bad' }
+  }
+  const n = Number((last.report as { refreshed?: number } | null)?.refreshed ?? 0)
+  return { text: `Refreshed ${count(n, 'title')}${when}`, tone: 'ok' }
 }
 
 /** What a library holds, in a line. */

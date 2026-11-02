@@ -15,11 +15,12 @@ pub struct ArtworkCache {
     http: reqwest::Client,
 }
 
-/// TMDB image sizes per kind: big enough for the UI, small enough to load fast.
+/// TMDB image sizes per kind (people's photos are `profile`): big enough for the UI, small enough to load fast.
 fn size(kind: &str) -> &'static str {
     match kind {
         "backdrop" => "w1280",
         "still" => "w300",
+        "profile" => "w342",
         _ => "w500",
     }
 }

@@ -380,6 +380,7 @@ async fn concurrent_scans_of_several_roots_dont_lock_each_other_out() {
             prober,
             provider,
             match_settings: Default::default(),
+            omdb: None,
         },
     ));
     // Each root holds a different catalog series, so imports run side by side.

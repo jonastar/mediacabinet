@@ -1,4 +1,4 @@
-//! Libraries, their roots, layout templates and scans.
+//! Libraries, their roots, layout templates, scans and metadata refreshes.
 
 use axum::Json;
 use axum::extract::{Path, Query, State};
@@ -7,7 +7,9 @@ use cabinet_core::layout::{LibraryKind, Proposal, Template, TemplatePiece};
 use cabinet_core::library::{
     self, FolderListing, Library, NewRoot, PlacementExample, Root, RootChanges,
 };
-use cabinet_core::tasks::Trigger;
+use cabinet_core::metadata::refresh::RefreshProgress;
+use cabinet_core::scan::{self, StoredProbe};
+use cabinet_core::tasks::{Kind, Scope, Trigger};
 use serde::{Deserialize, Serialize};
 use utoipa::{IntoParams, ToSchema};
 
@@ -19,10 +21,20 @@ use crate::AppState;
 
 fn with_progress(state: &AppState, mut libraries: Vec<Library>) -> Vec<Library> {
     let running = state.scans.all_progress();
-    for root in libraries.iter_mut().flat_map(|l| l.roots.iter_mut()) {
-        root.scanning = running.get(&root.id).cloned();
+    for library in &mut libraries {
+        library.refreshing = refreshing(state, library.id);
+        for root in &mut library.roots {
+            root.scanning = running.get(&root.id).cloned();
+        }
     }
     libraries
+}
+
+fn refreshing(state: &AppState, library: i64) -> Option<RefreshProgress> {
+    state
+        .tasks
+        .running(Kind::MetadataRefresh, Scope::Library(library))
+        .map(RefreshProgress::from)
 }
 
 fn kind(kind: &str) -> Result<LibraryKind, ApiError> {
@@ -264,6 +276,43 @@ pub async fn scan_root(
     Ok((StatusCode::ACCEPTED, Json(ScanStarted { started })))
 }
 
+#[derive(Serialize, ToSchema)]
+pub struct RefreshStarted {
+    /// False when a refresh was already running; one more runs after it.
+    started: bool,
+}
+
+/// Fetches the metadata of every series and movie in a library from its provider
+/// again, with ratings when OMDb is set up. Runs as a task; progress shows on the
+/// library as `refreshing`.
+#[utoipa::path(
+    post,
+    path = "/libraries/{id}/refresh",
+    tag = "libraries",
+    params(("id" = i64, Path)),
+    responses(
+        (status = 202, body = RefreshStarted),
+        (status = 404, body = ErrorBody),
+        (status = 503, body = ErrorBody)
+    )
+)]
+pub async fn refresh_library(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+) -> Result<(StatusCode, Json<RefreshStarted>), ApiError> {
+    library::get(&state.db, id).await?;
+    if !state.provider.is_configured() {
+        return Err(ApiError::Unavailable(
+            cabinet_core::metadata::MetadataError::NotConfigured.to_string(),
+        ));
+    }
+    let started = state
+        .tasks
+        .request(Kind::MetadataRefresh, Scope::Library(id), Trigger::Manual)
+        .await?;
+    Ok((StatusCode::ACCEPTED, Json(RefreshStarted { started })))
+}
+
 #[derive(Deserialize, ToSchema)]
 pub struct ProposeTemplate {
     path: String,
@@ -390,4 +439,23 @@ pub async fn placement_example(
     Path(id): Path<i64>,
 ) -> Result<Json<Option<PlacementExample>>, ApiError> {
     Ok(Json(library::placement_example(&state.db, id).await?))
+}
+
+/// What the last probe found in a file: its streams in order, the container and
+/// duration, any probe error, and the sidecars next to it.
+#[utoipa::path(
+    get,
+    path = "/files/{id}/probe",
+    tag = "libraries",
+    params(("id" = i64, Path)),
+    responses((status = 200, body = StoredProbe), (status = 404, body = ErrorBody))
+)]
+pub async fn file_probe(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+) -> Result<Json<StoredProbe>, ApiError> {
+    scan::stored_probe(&state.db, id)
+        .await?
+        .map(Json)
+        .ok_or(ApiError::NotFound)
 }

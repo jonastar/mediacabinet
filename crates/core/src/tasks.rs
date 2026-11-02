@@ -16,23 +16,27 @@ use sqlx::{SqliteConnection, SqlitePool};
 
 use crate::matcher::MatchSettings;
 use crate::metadata::Provider;
+use crate::metadata::omdb::Omdb;
 use crate::scan::{self, Prober};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Kind {
     Scan,
+    MetadataRefresh,
 }
 
 impl Kind {
     pub fn as_str(self) -> &'static str {
         match self {
             Kind::Scan => "scan",
+            Kind::MetadataRefresh => "metadata_refresh",
         }
     }
 
     pub fn parse(kind: &str) -> Option<Kind> {
         match kind {
             "scan" => Some(Kind::Scan),
+            "metadata_refresh" => Some(Kind::MetadataRefresh),
             _ => None,
         }
     }
@@ -42,6 +46,21 @@ impl Kind {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum Scope {
     Root(i64),
+    Library(i64),
+}
+
+impl Scope {
+    /// The task row's `root_id` and `library_id`.
+    fn columns(self) -> (Option<i64>, Option<i64>) {
+        match self {
+            Scope::Root(id) => (Some(id), None),
+            Scope::Library(id) => (None, Some(id)),
+        }
+    }
+
+    fn from_columns(root_id: Option<i64>, library_id: Option<i64>) -> Option<Scope> {
+        root_id.map(Scope::Root).or(library_id.map(Scope::Library))
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -127,6 +146,8 @@ pub struct Services {
     /// new folders wait until one is configured.
     pub provider: Provider,
     pub match_settings: MatchSettings,
+    /// Ratings, refreshed along with metadata when set.
+    pub omdb: Option<Omdb>,
 }
 
 impl Default for Services {
@@ -135,6 +156,7 @@ impl Default for Services {
             prober: Prober::default(),
             provider: Provider::None,
             match_settings: MatchSettings::default(),
+            omdb: None,
         }
     }
 }
@@ -225,14 +247,16 @@ impl Tasks {
         sqlx::query("UPDATE task SET state = 'queued', started_at = NULL WHERE state = 'running'")
             .execute(pool)
             .await?;
-        let open: Vec<(i64, String, Option<i64>, String)> = sqlx::query_as(
-            "SELECT id, kind, root_id, trigger FROM task WHERE state = 'queued' ORDER BY id",
+        type Open = (i64, String, Option<i64>, Option<i64>, String);
+        let open: Vec<Open> = sqlx::query_as(
+            "SELECT id, kind, root_id, library_id, trigger FROM task
+             WHERE state = 'queued' ORDER BY id",
         )
         .fetch_all(pool)
         .await?;
-        for (id, kind, root_id, trigger) in open {
+        for (id, kind, root_id, library_id, trigger) in open {
             let parsed = Kind::parse(&kind)
-                .zip(root_id.map(Scope::Root))
+                .zip(Scope::from_columns(root_id, library_id))
                 .zip(Trigger::parse(&trigger));
             let Some((key, trigger)) = parsed else {
                 sqlx::query(
@@ -285,12 +309,14 @@ impl Tasks {
         if queued {
             return Ok(false);
         }
-        let Scope::Root(root_id) = scope;
+        let (root_id, library_id) = scope.columns();
         let id: i64 = sqlx::query_scalar(
-            "INSERT INTO task (kind, root_id, trigger) VALUES (?, ?, ?) RETURNING id",
+            "INSERT INTO task (kind, root_id, library_id, trigger) VALUES (?, ?, ?, ?)
+             RETURNING id",
         )
         .bind(kind.as_str())
         .bind(root_id)
+        .bind(library_id)
         .bind(trigger.as_str())
         .fetch_one(&self.inner.pool)
         .await?;
@@ -385,6 +411,14 @@ impl Tasks {
         let (kind, scope) = key;
         let ran = match (kind, scope) {
             (Kind::Scan, Scope::Root(root_id)) => scan::run_task(&handle, root_id).await,
+            (Kind::MetadataRefresh, Scope::Library(library_id)) => {
+                crate::metadata::refresh::run_task(&handle, library_id).await
+            }
+            _ => Ok(Finished {
+                state: Ended::Cancelled,
+                outcome: None,
+                error: Some(format!("A {} task can't run on {scope:?}.", kind.as_str())),
+            }),
         };
         let finished = ran.unwrap_or_else(|e| Finished {
             state: Ended::Failed,
@@ -433,7 +467,7 @@ fn activity(
     if !failed && finished.error.is_none() && trigger != Trigger::Manual {
         return None;
     }
-    let Scope::Root(root_id) = scope;
+    let (root_id, library_id) = scope.columns();
     Some(crate::activity::NewEntry::admins(
         if failed {
             crate::activity::TASK_FAILED
@@ -449,6 +483,7 @@ fn activity(
             "state": finished.state.as_str(),
             "error": finished.error,
             "root_id": root_id,
+            "library_id": library_id,
         }),
     ))
 }
@@ -464,5 +499,7 @@ async fn finish(
         (Kind::Scan, Scope::Root(root_id)) => {
             scan::finish_task(tx, id, root_id, finished.state.as_str()).await
         }
+        // Each refreshed item recorded its own changes as it went.
+        _ => Ok(()),
     }
 }

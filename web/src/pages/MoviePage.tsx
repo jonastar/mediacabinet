@@ -7,6 +7,9 @@ import { LibraryBack } from '../components/LibraryBack'
 import { itemPath, useCanonicalPath } from '../lib/router'
 import { DetailsToggle } from '../components/DetailsToggle'
 import { Link } from '../components/Link'
+import { AboutSections, Ratings } from '../components/People'
+import { hasAbout } from '../lib/people'
+import { Streams } from '../components/Streams'
 import { Failed, Loading } from '../components/Status'
 import { heroBackground } from '../lib/artwork'
 import { ago, bytes, filesSummary, matchSummary, resolution, seriesTone } from '../lib/format'
@@ -35,6 +38,7 @@ function versionLabel(f: LinkedFile) {
 export function MoviePage({ id }: { id: number }) {
   const [mode] = useMode()
   const movie = useApi(`movie:${id}`, () => api.movieDetail(id))
+  const about = useApi(`about:${id}`, () => api.about(id))
   useCanonicalPath(movie.data ? itemPath('movie', id, movie.data.library_id) : null)
   const [editing, setEditing] = useState(false)
   const [notice, setNotice] = useState<string | null>(null)
@@ -59,7 +63,7 @@ export function MoviePage({ id }: { id: number }) {
     try {
       await api.refreshItem(id)
       setNotice('Refreshed.')
-      await movie.reload()
+      await Promise.all([movie.reload(), about.reload()])
     } catch (e) {
       setNotice(`Refresh failed: ${(e as Error).message}`)
     }
@@ -86,6 +90,8 @@ export function MoviePage({ id }: { id: number }) {
             {m.title}
           </h1>
           {meta && <p className={styles.heroMeta}>{meta}</p>}
+          {!manage && <Ratings about={about.data} />}
+          {!manage && about.data?.tagline && <p className={styles.tagline}>{about.data.tagline}</p>}
           {!manage && m.overview && <p className={styles.overview}>{m.overview}</p>}
           {!manage && (
             <div className={styles.actions}>
@@ -200,9 +206,11 @@ export function MoviePage({ id }: { id: number }) {
                   {f.root_path}/{f.relative_path} · {matchSummary([f])}
                 </span>
               )}
+              {manage && <Streams fileId={f.file_id} />}
             </li>
           ))}
         </ul>
+        {!manage && about.data && hasAbout(about.data) && <AboutSections about={about.data} />}
         {manage && m.refresh_error && (
           <p className={styles.notice}>Last refresh failed: {m.refresh_error}</p>
         )}

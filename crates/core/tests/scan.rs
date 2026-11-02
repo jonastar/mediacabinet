@@ -413,6 +413,68 @@ async fn sidecars_follow_the_files_on_disk() {
     );
 }
 
+#[tokio::test]
+async fn stored_probe_lists_streams_in_order_with_sidecars() {
+    let lib = Lib::new().await;
+    lib.write("S1/e01.mkv", "1");
+    lib.write("S1/e01.en.srt", "sub");
+    lib.scan().await;
+    let id = lib.file_id("S1/e01.mkv").await;
+
+    let probe = cabinet_core::scan::stored_probe(&lib.pool, id)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(probe.probed_at, None);
+    assert!(probe.streams.is_empty());
+
+    sqlx::query(
+        "INSERT INTO media_stream (file_id, stream_index, kind, codec, language, channels, bitrate, is_default)
+         VALUES (?, 1, 'audio', 'eac3', 'jpn', 6, 640000, 1), (?, 0, 'video', 'hevc', NULL, NULL, NULL, 1)",
+    )
+    .bind(id)
+    .bind(id)
+    .execute(&lib.pool)
+    .await
+    .unwrap();
+    let probe = cabinet_core::scan::stored_probe(&lib.pool, id)
+        .await
+        .unwrap()
+        .unwrap();
+    let streams: Vec<_> = probe
+        .streams
+        .iter()
+        .map(|s| (s.index, s.kind.as_str(), s.codec.as_deref(), s.bitrate))
+        .collect();
+    assert_eq!(
+        streams,
+        [
+            (0, "video", Some("hevc"), None),
+            (1, "audio", Some("eac3"), Some(640000)),
+        ]
+    );
+    assert!(probe.streams[1].is_default);
+    let sidecars: Vec<_> = probe
+        .sidecars
+        .iter()
+        .map(|s| {
+            (
+                s.kind.as_str(),
+                s.relative_path.as_str(),
+                s.language.as_deref(),
+            )
+        })
+        .collect();
+    assert_eq!(sidecars, [("subtitle", "S1/e01.en.srt", Some("eng"))]);
+
+    assert!(
+        cabinet_core::scan::stored_probe(&lib.pool, 999)
+            .await
+            .unwrap()
+            .is_none()
+    );
+}
+
 fn has_ffmpeg() -> bool {
     let ok = |program: &str| {
         std::process::Command::new(program)

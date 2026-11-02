@@ -79,6 +79,13 @@
   color: #e4dfdf;
 }
 
+.tagline {
+  margin: 0;
+  font-size: 17px;
+  font-style: italic;
+  color: #e4dfdf;
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;

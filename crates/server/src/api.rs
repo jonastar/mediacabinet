@@ -20,6 +20,7 @@ mod integration;
 mod items;
 mod library;
 mod organize;
+mod people;
 mod playback;
 mod playlists;
 mod review;
@@ -55,10 +56,12 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(library::add_root))
         .routes(routes!(library::update_root, library::remove_root))
         .routes(routes!(library::scan_root))
+        .routes(routes!(library::refresh_library))
         .routes(routes!(library::propose_template))
         .routes(routes!(library::check_template))
         .routes(routes!(library::list_folders))
         .routes(routes!(library::placement_example))
+        .routes(routes!(library::file_probe))
         .routes(routes!(review::queue))
         .routes(routes!(review::accept))
         .routes(routes!(review::reject))
@@ -74,6 +77,9 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(items::movie_detail))
         .routes(routes!(items::search))
         .routes(routes!(items::artwork))
+        .routes(routes!(people::about))
+        .routes(routes!(people::person))
+        .routes(routes!(people::photo))
         .routes(routes!(items::edit_item))
         .routes(routes!(items::set_locks))
         .routes(routes!(items::set_tags))

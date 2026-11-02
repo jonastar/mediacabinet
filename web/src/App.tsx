@@ -9,6 +9,7 @@ import { ManagePage } from './pages/manage/ManagePage'
 import { MoviesPage } from './pages/MoviesPage'
 import { SearchPage } from './pages/SearchPage'
 import { NotFoundPage } from './pages/NotFoundPage'
+import { PersonPage } from './pages/PersonPage'
 import { SeriesPage } from './pages/SeriesPage'
 import { ShowsPage } from './pages/ShowsPage'
 import { match, usePath } from './lib/router'
@@ -45,6 +46,10 @@ function Page({ path, admin }: { path: string; admin: boolean }) {
   }
   if (path === '/search') {
     return <SearchPage />
+  }
+  const person = match('/people/:id', path)
+  if (person && /^\d+$/.test(person.id)) {
+    return <PersonPage key={person.id} id={Number(person.id)} />
   }
   const library = match('/library/:id', path)
   if (library && /^\d+$/.test(library.id)) {

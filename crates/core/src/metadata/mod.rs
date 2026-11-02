@@ -6,6 +6,7 @@
 pub mod fake;
 pub mod import;
 pub mod model;
+pub mod omdb;
 pub mod refresh;
 pub mod tmdb;
 
@@ -87,6 +88,15 @@ impl Provider {
         match self {
             Provider::Tmdb(t) => t.movie(id).await,
             Provider::Fake(c) => c.movie(id).cloned().ok_or(MetadataError::NotFound),
+            Provider::None => Err(MetadataError::NotConfigured),
+        }
+    }
+
+    pub async fn person(&self, id: &str) -> Result<PersonData, MetadataError> {
+        match self {
+            Provider::Tmdb(t) => t.person(id).await,
+            // The offline catalog only has people as credits.
+            Provider::Fake(_) => Err(MetadataError::NotFound),
             Provider::None => Err(MetadataError::NotConfigured),
         }
     }

@@ -1,5 +1,5 @@
 //! Keeps metadata current: refreshes series and movies from their primary
-//! provider on a schedule, and on request.
+//! provider on a schedule, and on request, one item or a whole library.
 //!
 //! Continuing series refresh daily; ended and cancelled series, and movies,
 //! weekly. A failed refresh keeps the metadata already there, records the error,
@@ -8,11 +8,15 @@
 
 use std::time::Duration;
 
+use serde::Serialize;
+use serde_json::json;
 use sqlx::SqlitePool;
 use tokio::task::JoinHandle;
+use utoipa::ToSchema;
 
 use super::import::{ImportReport, import_movie, record_refresh_error, refresh_series};
-use super::{MetadataError, Provider};
+use super::{MetadataError, Provider, omdb};
+use crate::tasks::{Ended, Finished, Handle, Running};
 
 const DAY: i64 = 24 * 3600;
 
@@ -135,5 +139,134 @@ pub fn spawn_refresher(pool: SqlitePool, provider: Provider, every: Duration) ->
                 }
             }
         }
+    })
+}
+
+/// A library refresh in progress.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct RefreshProgress {
+    /// Series and movies refreshed so far, of `total`.
+    pub done: usize,
+    pub total: usize,
+    pub started_at: i64,
+    pub trigger: String,
+    /// Another refresh is due when this one finishes.
+    pub queued_again: bool,
+}
+
+impl From<Running> for RefreshProgress {
+    fn from(r: Running) -> Self {
+        RefreshProgress {
+            done: r.progress.done,
+            total: r.progress.total,
+            started_at: r.started_at,
+            trigger: r.trigger.as_str().into(),
+            queued_again: r.queued,
+        }
+    }
+}
+
+/// Failures kept in a task's outcome; the rest are only counted.
+const FAILURES_KEPT: usize = 200;
+
+/// Refreshes every series and movie in `library` from its provider, with its
+/// ratings when OMDb is set up. Items refreshed since the task was requested are
+/// skipped, so a task interrupted by a restart carries on where it stopped.
+pub(crate) async fn run_task(task: &Handle, library: i64) -> Result<Finished, sqlx::Error> {
+    let pool = task.pool();
+    let services = task.services();
+    let provider = &services.provider;
+    if !provider.is_configured() {
+        return Ok(Finished {
+            state: Ended::Failed,
+            outcome: None,
+            error: Some(MetadataError::NotConfigured.to_string()),
+        });
+    }
+    let requested_at: i64 = sqlx::query_scalar("SELECT requested_at FROM task WHERE id = ?")
+        .bind(task.id())
+        .fetch_one(pool)
+        .await?;
+    // Items whose metadata comes from another provider can't be refreshed here.
+    let skipped: i64 = sqlx::query_scalar(
+        "SELECT count(*) FROM item WHERE library_id = ? AND kind IN ('series', 'movie')
+           AND coalesce(primary_provider, '') <> ?",
+    )
+    .bind(library)
+    .bind(provider.name())
+    .fetch_one(pool)
+    .await?;
+    let items: Vec<(i64, String)> = sqlx::query_as(
+        "SELECT id, title FROM item WHERE library_id = ? AND kind IN ('series', 'movie')
+           AND primary_provider = ? AND coalesce(refreshed_at, 0) <= ?
+         ORDER BY title COLLATE NOCASE, id",
+    )
+    .bind(library)
+    .bind(provider.name())
+    .bind(requested_at)
+    .fetch_all(pool)
+    .await?;
+    task.progress(|p| {
+        p.phase = "refreshing";
+        p.done = 0;
+        p.total = items.len();
+    });
+
+    let mut refreshed = 0;
+    let mut failures = Vec::new();
+    let mut failed = 0;
+    let mut omdb = services.omdb.as_ref();
+    let mut problem = None;
+    for (done, (item, title)) in items.iter().enumerate() {
+        match refresh_item(pool, provider, *item).await {
+            Ok(_) => refreshed += 1,
+            Err(RefreshError::Provider(MetadataError::Unreachable(e))) => {
+                // Offline or rate limited: the rest would fail the same way.
+                problem = Some(format!(
+                    "The metadata provider is unreachable ({e}); {refreshed} of {} refreshed.",
+                    items.len()
+                ));
+                break;
+            }
+            Err(RefreshError::Db(e)) => return Err(e),
+            Err(e) => {
+                failed += 1;
+                if failures.len() < FAILURES_KEPT {
+                    failures
+                        .push(json!({ "item_id": item, "title": title, "error": e.to_string() }));
+                }
+            }
+        }
+        // Ratings are a bonus: stop asking once OMDb is unavailable or over its limit.
+        if let Some(client) = omdb {
+            match omdb::refresh(pool, client, *item).await {
+                Ok(()) => {}
+                Err(MetadataError::Unreachable(e) | MetadataError::Auth(e)) => {
+                    tracing::warn!(error = e, "OMDb unavailable; skipping ratings for the rest");
+                    omdb = None;
+                }
+                Err(e) => tracing::warn!(item, error = %e, "can't refresh ratings"),
+            }
+        }
+        task.progress(|p| p.done = done + 1);
+    }
+
+    let outcome = json!({
+        "refreshed": refreshed,
+        "failed": failed,
+        "skipped": skipped,
+        "failures": failures,
+    });
+    let error = problem.clone().or_else(|| {
+        (failed > 0).then(|| format!("{failed} of {} couldn't be refreshed.", items.len()))
+    });
+    Ok(Finished {
+        state: if problem.is_some() {
+            Ended::Failed
+        } else {
+            Ended::Ok
+        },
+        outcome: Some(outcome),
+        error,
     })
 }

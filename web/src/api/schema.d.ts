@@ -309,6 +309,26 @@ export interface paths {
         patch: operations["edit_link"];
         trace?: never;
     };
+    "/api/files/{id}/probe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What the last probe found in a file: its streams in order, the container and
+         *     duration, any probe error, and the sidecars next to it.
+         */
+        get: operations["file_probe"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/files/{id}/stream": {
         parameters: {
             query?: never;
@@ -454,6 +474,26 @@ export interface paths {
         head?: never;
         /** Edits a series', episode's or movie's details, optionally locking them against refresh. */
         patch: operations["edit_item"];
+        trace?: never;
+    };
+    "/api/items/{id}/about": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A series', episode's or movie's cast and crew, networks, studios, ratings,
+         *     tagline and age rating.
+         */
+        get: operations["about"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/items/{id}/events": {
@@ -720,6 +760,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/libraries/{id}/refresh": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Fetches the metadata of every series and movie in a library from its provider
+         *     again, with ratings when OMDb is set up. Runs as a task; progress shows on the
+         *     library as `refreshing`.
+         */
+        post: operations["refresh_library"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/libraries/{id}/roots": {
         parameters: {
             query?: never;
@@ -801,6 +862,43 @@ export interface paths {
         };
         /** A movie with its files (versions, editions and parts). */
         get: operations["movie_detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/people/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Someone credited in the library: their biography (fetched from the provider
+         *     the first time) and everything in the library they're in.
+         */
+        get: operations["person"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/people/{id}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Someone's photo, cached locally after first use. */
+        get: operations["photo"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1391,6 +1489,22 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description What a series, episode or movie is beyond its title: people, companies and ratings. */
+        About: {
+            /** @description A series' regulars or a movie's cast, in billing order. */
+            cast: components["schemas"]["Credit"][];
+            /** @description The age rating, e.g. PG-13 or TV-MA. */
+            content_rating?: string | null;
+            /** @description Directors, writers, creators and other key crew; someone with two jobs is listed twice. */
+            crew: components["schemas"]["Credit"][];
+            /** @description An episode's guest stars. */
+            guests: components["schemas"]["Credit"][];
+            networks: string[];
+            /** @description IMDb, Rotten Tomatoes, Metacritic, then TMDB; only those known. */
+            ratings: components["schemas"]["Rating"][];
+            studios: string[];
+            tagline?: string | null;
+        };
         Accept: {
             /** @description Pin the resulting link so rescans never change it. */
             pin?: boolean;
@@ -1598,6 +1712,22 @@ export interface components {
         Credentials: {
             name: string;
             password: string;
+        };
+        Credit: {
+            /** @description Crew only: Directing, Writing... */
+            department?: string | null;
+            /**
+             * Format: int64
+             * @description A series' cast: how many episodes they're in.
+             */
+            episodes?: number | null;
+            /** @description The photo is at `/api/people/{person_id}/photo`. */
+            has_photo: boolean;
+            name: string;
+            /** Format: int64 */
+            person_id: number;
+            /** @description The character for cast and guests, the job for crew. */
+            role?: string | null;
         };
         DryRun: {
             dry_run?: boolean;
@@ -1931,7 +2061,9 @@ export interface components {
             id: number;
             /** @description `tv` or `movies`. */
             kind: string;
+            last_refresh?: components["schemas"]["ScanRun"] | null;
             name: string;
+            refreshing?: components["schemas"]["RefreshProgress"] | null;
             roots: components["schemas"]["Root"][];
         };
         LinkFile: {
@@ -2125,6 +2257,52 @@ export interface components {
             role: string;
             text: string;
         };
+        /** @description A series or movie in the library someone is in, with every role they have there. */
+        PersonCredit: {
+            /** @description Artwork kinds available from `/api/artwork/{id}/{kind}`. */
+            artwork: string[];
+            /**
+             * Format: int64
+             * @description A series' regular: how many episodes they're in.
+             */
+            episode_count?: number | null;
+            /** @description Episodes they guest in or worked on, in order. */
+            episodes: components["schemas"]["PersonEpisode"][];
+            /** Format: int64 */
+            item_id: number;
+            /** @description `series` or `movie`. */
+            kind: string;
+            /** Format: int64 */
+            library_id: number;
+            /** @description Characters and jobs, most prominent first, each once. */
+            roles: string[];
+            title: string;
+            /** Format: int64 */
+            year?: number | null;
+        };
+        PersonDetail: {
+            biography?: string | null;
+            /** @description `YYYY-MM-DD`. */
+            birthday?: string | null;
+            birthplace?: string | null;
+            /** @description Newest first. */
+            credits: components["schemas"]["PersonCredit"][];
+            deathday?: string | null;
+            /** @description The photo is at `/api/people/{id}/photo`. */
+            has_photo: boolean;
+            /** Format: int64 */
+            id: number;
+            known_for?: string | null;
+            name: string;
+        };
+        /** @description An episode someone is credited on. */
+        PersonEpisode: {
+            /** Format: int64 */
+            item_id: number;
+            number?: components["schemas"]["EpisodeNumber"] | null;
+            role?: string | null;
+            title: string;
+        };
         /** @enum {string} */
         Phase: "walking" | "hashing" | "probing" | "matching";
         Placement: {
@@ -2283,6 +2461,34 @@ export interface components {
             imdb_id?: string | null;
             title: string;
         };
+        Rating: {
+            /**
+             * Format: double
+             * @description What a perfect score is: 10 or 100.
+             */
+            scale: number;
+            /** @description `imdb`, `rotten_tomatoes`, `metacritic` or `tmdb`. */
+            source: string;
+            /** Format: double */
+            value: number;
+            /** Format: int64 */
+            votes?: number | null;
+        };
+        /** @description A library refresh in progress. */
+        RefreshProgress: {
+            /** @description Series and movies refreshed so far, of `total`. */
+            done: number;
+            /** @description Another refresh is due when this one finishes. */
+            queued_again: boolean;
+            /** Format: int64 */
+            started_at: number;
+            total: number;
+            trigger: string;
+        };
+        RefreshStarted: {
+            /** @description False when a refresh was already running; one more runs after it. */
+            started: boolean;
+        };
         Rematch: {
             /** @description The provider's ID for the right series. */
             provider_id: string;
@@ -2334,6 +2540,7 @@ export interface components {
             total: number;
             trigger: string;
         };
+        /** @description A finished or running task: a root's scan or a library's metadata refresh. */
         ScanRun: {
             error?: string | null;
             /** Format: int64 */
@@ -2469,6 +2676,58 @@ export interface components {
              *     importing, failed.
              */
             status: string;
+        };
+        /** @description What the last probe found in a file, as stored, with the sidecars next to it. */
+        StoredProbe: {
+            /** @description ffprobe's format name, e.g. `matroska,webm`. */
+            container?: string | null;
+            /** Format: double */
+            duration_seconds?: number | null;
+            /** Format: int64 */
+            file_id: number;
+            probe_error?: string | null;
+            /**
+             * Format: int64
+             * @description Null until probed; reset when the content changes.
+             */
+            probed_at?: number | null;
+            sidecars: components["schemas"]["StoredSidecar"][];
+            /** @description In the file's own order. */
+            streams: components["schemas"]["StoredStream"][];
+        };
+        StoredSidecar: {
+            /** Format: int64 */
+            id: number;
+            is_forced: boolean;
+            is_hearing_impaired: boolean;
+            /** @description `subtitle`, `nfo` or `artwork`. */
+            kind: string;
+            language?: string | null;
+            /** @description `root` (next to the video) or `cache`. */
+            location: string;
+            relative_path: string;
+        };
+        StoredStream: {
+            /**
+             * Format: int64
+             * @description Bits per second.
+             */
+            bitrate?: number | null;
+            /** Format: int64 */
+            channels?: number | null;
+            codec?: string | null;
+            hdr_format?: string | null;
+            /** Format: int64 */
+            height?: number | null;
+            /** Format: int64 */
+            index: number;
+            is_default: boolean;
+            is_forced: boolean;
+            /** @description `video`, `audio` or `subtitle`. */
+            kind: string;
+            language?: string | null;
+            /** Format: int64 */
+            width?: number | null;
         };
         SubtitleSource: {
             forced: boolean;
@@ -3202,6 +3461,35 @@ export interface operations {
             };
         };
     };
+    file_probe: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredProbe"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     stream: {
         parameters: {
             query?: never;
@@ -3494,6 +3782,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    about: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["About"];
                 };
             };
             404: {
@@ -4158,6 +4475,43 @@ export interface operations {
             };
         };
     };
+    refresh_library: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RefreshStarted"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     add_root: {
         parameters: {
             query?: never;
@@ -4348,6 +4702,64 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MovieDetail"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    person: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PersonDetail"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    photo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "image/*": unknown;
                 };
             };
             404: {

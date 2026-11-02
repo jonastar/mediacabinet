@@ -248,6 +248,8 @@ async fn new_episodes_are_added_with_an_event() {
         runtime_minutes: Some(45),
         season: 3,
         number: 1,
+        credits: Default::default(),
+        rating: None,
     });
 
     let report = import_series(&pool, TV, &data).await.unwrap();
@@ -317,6 +319,78 @@ async fn refresh_schedule_and_failures() {
             .unwrap();
     assert_eq!(title, "Paper Moons");
     assert!(error.is_some());
+}
+
+#[tokio::test]
+async fn refreshing_a_library_refreshes_its_items_as_a_task() {
+    use cabinet_core::metadata::Provider;
+    use cabinet_core::tasks::{Kind, Scope, Services, Tasks, Trigger};
+    use std::sync::Arc;
+
+    let (_dir, pool) = db().await;
+    let series = import_series(&pool, TV, &night_harbor())
+        .await
+        .unwrap()
+        .item_id;
+    let gone = import_series(&pool, TV, &catalog().series("99031").unwrap().clone())
+        .await
+        .unwrap()
+        .item_id;
+    // Another library's items are left alone.
+    let movie = import_movie(&pool, MOVIES, &catalog().movie("99020").unwrap().clone())
+        .await
+        .unwrap()
+        .item_id;
+    sqlx::query("UPDATE item SET refreshed_at = 0")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    // The provider has lost one of the two series.
+    let mut lost = catalog();
+    lost.series.retain(|s| s.id != "99031");
+    let tasks = Tasks::new(
+        pool.clone(),
+        Services {
+            provider: Provider::Fake(Arc::new(lost)),
+            ..Services::default()
+        },
+    );
+    let scope = Scope::Library(TV);
+    assert!(
+        tasks
+            .request(Kind::MetadataRefresh, scope, Trigger::Manual)
+            .await
+            .unwrap()
+    );
+    tasks.wait_idle(Kind::MetadataRefresh, scope).await;
+
+    let (state, outcome, error): (String, String, Option<String>) = sqlx::query_as(
+        "SELECT state, outcome, error FROM task WHERE kind = 'metadata_refresh' AND library_id = ?",
+    )
+    .bind(TV)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(state, "ok");
+    let outcome: serde_json::Value = serde_json::from_str(&outcome).unwrap();
+    assert_eq!(
+        (outcome["refreshed"].as_i64(), outcome["failed"].as_i64()),
+        (Some(1), Some(1))
+    );
+    assert_eq!(outcome["failures"][0]["item_id"].as_i64(), Some(gone));
+    assert_eq!(error.as_deref(), Some("1 of 2 couldn't be refreshed."));
+
+    let refreshed: Vec<(i64, i64, Option<String>)> = sqlx::query_as(
+        "SELECT id, refreshed_at, refresh_error FROM item WHERE kind IN ('series', 'movie') ORDER BY id",
+    )
+    .fetch_all(&pool)
+    .await
+    .unwrap();
+    let of = |id: i64| refreshed.iter().find(|r| r.0 == id).unwrap();
+    assert!(of(series).1 > 0 && of(series).2.is_none());
+    assert!(of(gone).2.is_some(), "the failure is recorded on the item");
+    assert_eq!(of(movie).1, 0);
 }
 
 #[tokio::test]

@@ -3,6 +3,7 @@
 //! dates (see `rules`), never stored.
 
 pub mod movies;
+pub mod people;
 pub mod rules;
 
 use std::collections::{HashMap, HashSet};

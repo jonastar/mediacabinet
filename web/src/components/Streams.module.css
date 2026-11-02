@@ -1,0 +1,76 @@
+.streams {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.toggle {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.toggle:hover {
+  color: var(--text);
+}
+
+.probe {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.note,
+.error,
+.sidecars {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  color: var(--text-muted);
+}
+
+.error {
+  color: var(--state-missing-text);
+}
+
+.table {
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+}
+
+.table th {
+  font-weight: 600;
+  text-align: left;
+  color: var(--text-muted);
+}
+
+.table th,
+.table td {
+  padding: 4px 16px 4px 0;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.sidecars {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: var(--text-secondary);
+}

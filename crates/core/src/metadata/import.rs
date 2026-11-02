@@ -10,6 +10,8 @@
 //! - Episodes the provider dropped are flagged (`removed_upstream_at`) if they
 //!   have links or watch state, and deleted otherwise.
 //! - Fields listed in `metadata_locked` are never overwritten.
+//! - Credits, companies and the provider's score are replaced wholesale; they
+//!   aren't edited by hand.
 
 use std::collections::{HashMap, HashSet};
 
@@ -102,6 +104,10 @@ async fn update_fields(
             }
             "airs_at" => "UPDATE item SET airs_at = ? WHERE id = ? AND airs_at IS NOT ?",
             "airs_tz" => "UPDATE item SET airs_tz = ? WHERE id = ? AND airs_tz IS NOT ?",
+            "tagline" => "UPDATE item SET tagline = ? WHERE id = ? AND tagline IS NOT ?",
+            "content_rating" => {
+                "UPDATE item SET content_rating = ? WHERE id = ? AND content_rating IS NOT ?"
+            }
             "series_status" => "UPDATE series SET status = ? WHERE item_id = ? AND status IS NOT ?",
             _ => unreachable!("unknown field {column}"),
         };
@@ -223,6 +229,173 @@ async fn set_artwork(
     Ok(())
 }
 
+/// A credit as stored, for telling whether incoming credits changed.
+type StoredCredit = (
+    String,
+    String,
+    String,
+    Option<String>,
+    Option<String>,
+    Option<String>,
+    Option<i64>,
+);
+
+/// Replaces an item's credits, unless they're unchanged. People nobody is
+/// credited as any more are removed.
+pub(crate) async fn set_credits(
+    conn: &mut SqliteConnection,
+    item: i64,
+    provider: &str,
+    credits: &Credits,
+) -> Result<(), sqlx::Error> {
+    // In the stored order: kind, then billing.
+    let incoming: Vec<(&str, &CreditData)> = [
+        ("cast", &credits.cast),
+        ("crew", &credits.crew),
+        ("guest", &credits.guests),
+    ]
+    .into_iter()
+    .flat_map(|(kind, list)| list.iter().map(move |c| (kind, c)))
+    .collect();
+    let stored: Vec<StoredCredit> = sqlx::query_as(
+        "SELECT c.kind, p.provider_id, p.name, p.photo, c.role, c.department, c.episodes
+         FROM credit c JOIN person p ON p.id = c.person_id
+         WHERE c.item_id = ? AND p.provider = ?
+         ORDER BY c.kind, c.position",
+    )
+    .bind(item)
+    .bind(provider)
+    .fetch_all(&mut *conn)
+    .await?;
+    let unchanged = stored.len() == incoming.len()
+        && stored.iter().zip(&incoming).all(|(s, (kind, c))| {
+            s.0 == *kind
+                && s.1 == c.person.id
+                && s.2 == c.person.name
+                && (c.person.photo.is_none() || s.3 == c.person.photo)
+                && s.4 == c.role
+                && s.5 == c.department
+                && s.6 == c.episodes
+        });
+    if unchanged {
+        return Ok(());
+    }
+
+    let before: Vec<i64> =
+        sqlx::query_scalar("SELECT DISTINCT person_id FROM credit WHERE item_id = ?")
+            .bind(item)
+            .fetch_all(&mut *conn)
+            .await?;
+    sqlx::query("DELETE FROM credit WHERE item_id = ?")
+        .bind(item)
+        .execute(&mut *conn)
+        .await?;
+    let mut position: HashMap<&str, i64> = HashMap::new();
+    for (kind, c) in incoming {
+        let person: i64 = sqlx::query_scalar(
+            "INSERT INTO person (provider, provider_id, name, photo, known_for) VALUES (?, ?, ?, ?, ?)
+             ON CONFLICT (provider, provider_id) DO UPDATE SET
+                 name = excluded.name,
+                 photo = coalesce(excluded.photo, photo),
+                 known_for = coalesce(excluded.known_for, known_for)
+             RETURNING id",
+        )
+        .bind(provider)
+        .bind(&c.person.id)
+        .bind(&c.person.name)
+        .bind(&c.person.photo)
+        .bind(&c.person.known_for)
+        .fetch_one(&mut *conn)
+        .await?;
+        let n = position.entry(kind).or_default();
+        *n += 1;
+        sqlx::query(
+            "INSERT INTO credit (item_id, kind, position, person_id, role, department, episodes)
+             VALUES (?, ?, ?, ?, ?, ?, ?)",
+        )
+        .bind(item)
+        .bind(kind)
+        .bind(*n)
+        .bind(person)
+        .bind(&c.role)
+        .bind(&c.department)
+        .bind(c.episodes)
+        .execute(&mut *conn)
+        .await?;
+    }
+    sqlx::query(
+        "DELETE FROM person WHERE id IN (SELECT value FROM json_each(?))
+           AND NOT EXISTS (SELECT 1 FROM credit WHERE person_id = person.id)",
+    )
+    .bind(json!(before).to_string())
+    .execute(&mut *conn)
+    .await?;
+    Ok(())
+}
+
+/// Replaces an item's networks or studios.
+pub(crate) async fn set_companies(
+    conn: &mut SqliteConnection,
+    item: i64,
+    provider: &str,
+    role: &str,
+    companies: &[CompanyData],
+) -> Result<(), sqlx::Error> {
+    sqlx::query("DELETE FROM item_company WHERE item_id = ? AND role = ?")
+        .bind(item)
+        .bind(role)
+        .execute(&mut *conn)
+        .await?;
+    for (i, c) in companies.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO item_company (item_id, role, position, name, provider, provider_id)
+             VALUES (?, ?, ?, ?, ?, ?)",
+        )
+        .bind(item)
+        .bind(role)
+        .bind(i as i64 + 1)
+        .bind(&c.name)
+        .bind(provider)
+        .bind(&c.id)
+        .execute(&mut *conn)
+        .await?;
+    }
+    Ok(())
+}
+
+/// Replaces the provider's own score for an item.
+pub(crate) async fn set_rating(
+    conn: &mut SqliteConnection,
+    item: i64,
+    provider: &str,
+    rating: Option<RatingData>,
+) -> Result<(), sqlx::Error> {
+    match rating {
+        Some(r) => {
+            sqlx::query(
+                "INSERT INTO item_rating (item_id, source, value, scale, votes) VALUES (?, ?, ?, ?, ?)
+                 ON CONFLICT (item_id, source) DO UPDATE SET value = excluded.value,
+                     scale = excluded.scale, votes = excluded.votes, fetched_at = unixepoch()",
+            )
+            .bind(item)
+            .bind(provider)
+            .bind(r.value)
+            .bind(r.scale)
+            .bind(r.votes)
+            .execute(&mut *conn)
+            .await?;
+        }
+        None => {
+            sqlx::query("DELETE FROM item_rating WHERE item_id = ? AND source = ?")
+                .bind(item)
+                .bind(provider)
+                .execute(&mut *conn)
+                .await?;
+        }
+    }
+    Ok(())
+}
+
 /// The library an item belongs to.
 pub async fn item_library(conn: &mut SqliteConnection, item: i64) -> Result<i64, sqlx::Error> {
     sqlx::query_scalar("SELECT library_id FROM item WHERE id = ?")
@@ -320,9 +493,15 @@ async fn sync_series(
                 "series_status",
                 Value::Text(data.status.map(|s| s.as_str().to_string())),
             ),
+            ("tagline", Value::Text(data.tagline.clone())),
+            ("content_rating", Value::Text(data.content_rating.clone())),
         ],
     )
     .await?;
+    set_credits(tx, series, provider, &data.credits).await?;
+    set_companies(tx, series, provider, "network", &data.networks).await?;
+    set_companies(tx, series, provider, "studio", &data.studios).await?;
+    set_rating(tx, series, provider, data.rating).await?;
     set_external_ids(tx, series, provider, &data.id, &data.external_ids).await?;
     set_genres(tx, series, provider, &data.genres).await?;
     set_artwork(
@@ -413,6 +592,8 @@ async fn sync_series(
             }
         };
         set_external_ids(tx, id, provider, &e.id, &[]).await?;
+        set_credits(tx, id, provider, &e.credits).await?;
+        set_rating(tx, id, provider, e.rating).await?;
         sqlx::query("UPDATE item SET removed_upstream_at = NULL WHERE id = ?")
             .bind(id)
             .execute(&mut *tx)
@@ -692,9 +873,14 @@ pub async fn import_movie(
                 Value::Int(data.runtime_minutes.map(|m| m * 60)),
             ),
             ("airs_at", Value::Int(data.release.map(|r| r.at))),
+            ("tagline", Value::Text(data.tagline.clone())),
+            ("content_rating", Value::Text(data.content_rating.clone())),
         ],
     )
     .await?;
+    set_credits(&mut tx, id, &data.provider, &data.credits).await?;
+    set_companies(&mut tx, id, &data.provider, "studio", &data.studios).await?;
+    set_rating(&mut tx, id, &data.provider, data.rating).await?;
     set_external_ids(&mut tx, id, &data.provider, &data.id, &data.external_ids).await?;
     set_genres(&mut tx, id, &data.provider, &data.genres).await?;
     set_artwork(

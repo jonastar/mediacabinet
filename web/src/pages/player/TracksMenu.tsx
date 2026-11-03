@@ -1,4 +1,5 @@
 import type { PlayChoice, PlayPlan, Version } from '../../api/client'
+import { resolution } from '../../lib/format'
 import { audioLabel, subtitleLabel, versionLabel } from './labels'
 import styles from './Player.module.css'
 
@@ -46,11 +47,13 @@ export function TracksMenu({
   versions,
   choice,
   onChange,
+  onStats,
 }: {
   plan: PlayPlan
   versions: Version[]
   choice: PlayChoice
   onChange: (next: PlayChoice) => void
+  onStats: () => void
 }) {
   const v = plan.version
   const encoder = plan.encoder === 'software' ? 'in software' : `on the GPU (${plan.encoder})`
@@ -76,7 +79,7 @@ export function TracksMenu({
           <Option
             key={label}
             selected={(choice.max_height ?? null) === height}
-            label={label}
+            label={height === null && v.height ? `${label} (${resolution(v.height)})` : label}
             onSelect={() => onChange({ ...choice, max_height: height })}
           />
         ))}
@@ -121,6 +124,9 @@ export function TracksMenu({
             {reason}
           </p>
         ))}
+        <button type="button" role="menuitem" className={styles.option} onClick={onStats}>
+          Playback stats (i)
+        </button>
       </div>
     </div>
   )

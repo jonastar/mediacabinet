@@ -1,5 +1,19 @@
 import { useEffect, type RefObject } from 'react'
 import type { PlayPlan } from '../../api/client'
+import type { Meter } from './meter'
+
+/** Whether streams go through hls.js here, rather than the browser's own HLS. */
+const mediaSource = () => 'MediaSource' in window || 'ManagedMediaSource' in window
+
+/**
+ * Starts loading hls.js before it's known to be needed, so a stream doesn't
+ * wait for it after the server answers. Direct play just leaves it cached.
+ */
+export function preloadHls() {
+  if (mediaSource()) {
+    import('hls.js').catch(() => undefined)
+  }
+}
 
 /**
  * Points the video at a plan's stream: the file itself, or HLS through hls.js
@@ -7,11 +21,13 @@ import type { PlayPlan } from '../../api/client'
  * where the browser claims HLS itself: Chrome's own HLS can't read these
  * streams. Native HLS is the fallback for iPhones without Media Source.
  * `onFatal` is called when the stream breaks, for the player to start over.
+ * hls.js reports its segment downloads to `meter`.
  */
 export function useSource(
   video: RefObject<HTMLVideoElement | null>,
   plan: PlayPlan | null,
   onFatal: (message: string) => void,
+  meter: Meter,
 ) {
   useEffect(() => {
     const el = video.current
@@ -30,14 +46,14 @@ export function useSource(
     }
 
     const hls = plan.url.endsWith('.m3u8')
-    const mediaSource = 'MediaSource' in window || 'ManagedMediaSource' in window
-    if (hls && mediaSource) {
+    if (hls && mediaSource()) {
       import('hls.js').then(({ default: Hls }) => {
         if (cancelled) {
           return
         }
         // An EVENT playlist grows as ffmpeg works; play it from the start.
         const player = new Hls({ startPosition: 0, liveDurationInfinity: false })
+        meter.attach(player, Hls.Events)
         player.on(Hls.Events.MANIFEST_PARSED, begin)
         let recovered = false
         player.on(Hls.Events.ERROR, (_event, data) => {
@@ -66,5 +82,5 @@ export function useSource(
       el.removeAttribute('src')
       el.load()
     }
-  }, [video, plan, onFatal])
+  }, [video, plan, onFatal, meter])
 }

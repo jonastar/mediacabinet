@@ -12,6 +12,9 @@ Details belong in the commit, docs or API reference.
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
+- Converted streams start sooner: the first seconds are sent in 1-second segments, HDR is scaled down before it's tone-mapped, and the player loads its streaming code while the server starts.
+- The quality menu shows the resolution of Original.
+- The player has a stats panel (press `i`, or Playback stats in the tracks menu): how long each step of starting took, download rate, bitrate, buffer, dropped frames, stalls and, when converting, what it's converted to, ffmpeg's speed and how far ahead it is; admins also see the ffmpeg command. `GET /play/{id}` reports a stream's progress.
 - Sign in with Authentik, Keycloak, Pocket ID or any OpenID Connect provider, set up in Manage → Users or with `CABINET_OIDC_*`; new people wait for an admin to let them in unless the provider is set to let them straight in.
 - Sign in with GitHub, Discord or any plain OAuth2 provider with a user endpoint, besides OpenID Connect.
 - Adding a sign-in provider starts by picking it from a list (Authentik, Keycloak, Google, Microsoft, Apple…), with setup steps for each; Sign in with Apple is supported.

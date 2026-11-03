@@ -15,13 +15,26 @@ import { clientCaps } from '../lib/caps'
 import { episodeLabel } from '../lib/format'
 import { navigate, useQueryParam } from '../lib/router'
 import { clock } from './player/labels'
+import { Meter } from './player/meter'
+import { StatsPanel } from './player/StatsPanel'
 import { TracksMenu } from './player/TracksMenu'
-import { useSource } from './player/useSource'
+import { preloadHls, useSource } from './player/useSource'
+import { useStats } from './player/useStats'
 import styles from './player/Player.module.css'
 
 /** How often progress is saved while playing. */
 const REPORT_EVERY_MS = 10_000
 const UP_NEXT_SECONDS = 10
+const STATS_KEY = 'mc:player-stats'
+
+/** Whether the stats panel was left open, so it stays open between episodes. */
+function statsWereOpen(): boolean {
+  try {
+    return localStorage.getItem(STATS_KEY) === '1'
+  } catch {
+    return false
+  }
+}
 
 const MODE_HINT: Record<PlayPlan['mode'], string> = {
   direct: 'Direct play',
@@ -69,6 +82,8 @@ export function PlayerPage({ id }: { id: number }) {
   const [idle, setIdle] = useState(false)
   const [fullscreen, setFullscreen] = useState(false)
   const [countdown, setCountdown] = useState<number | null>(null)
+  const [statsOpen, setStatsOpen] = useState(statsWereOpen)
+  const [meter] = useState(() => new Meter())
 
   // Latest values for callbacks that outlive a render (unmount, timers).
   const planRef = useRef<PlayPlan | null>(null)
@@ -83,6 +98,7 @@ export function PlayerPage({ id }: { id: number }) {
   const load = useCallback(
     (next: PlayChoice, at?: number) => {
       const request = ++requestRef.current
+      meter.begin()
       return api.play(id, next, clientCaps(), at).then(
         (p) => {
           if (request !== requestRef.current) {
@@ -92,6 +108,7 @@ export function PlayerPage({ id }: { id: number }) {
             }
             return
           }
+          meter.mark('planned')
           const old = planRef.current
           if (old?.session_id && old.session_id !== p.session_id) {
             api.stopPlay(old.session_id).catch(() => undefined)
@@ -121,8 +138,10 @@ export function PlayerPage({ id }: { id: number }) {
         },
       )
     },
-    [id],
+    [id, meter],
   )
+
+  useEffect(preloadHls, [])
 
   useEffect(() => {
     load({ file_id: fileParam ? Number(fileParam) : undefined }, fromStart ? 0 : undefined)
@@ -175,7 +194,20 @@ export function PlayerPage({ id }: { id: number }) {
     },
     [load],
   )
-  useSource(videoRef, plan, onFatal)
+  useSource(videoRef, plan, onFatal, meter)
+  const snapshot = useStats(videoRef, plan, meter, statsOpen)
+
+  const toggleStats = () => {
+    setMenuOpen(false)
+    setStatsOpen((open) => {
+      try {
+        localStorage.setItem(STATS_KEY, open ? '0' : '1')
+      } catch {
+        // Not remembered; it still toggles.
+      }
+      return !open
+    })
+  }
 
   const offset = plan?.offset_seconds ?? 0
   const duration = plan?.version.duration_seconds ?? offset + videoDuration
@@ -321,6 +353,7 @@ export function PlayerPage({ id }: { id: number }) {
       ArrowLeft: () => seek(now() - 10),
       ArrowRight: () => seek(now() + 30),
       f: toggleFullscreen,
+      i: toggleStats,
       m: () => {
         if (videoRef.current) {
           videoRef.current.muted = !videoRef.current.muted
@@ -373,13 +406,20 @@ export function PlayerPage({ id }: { id: number }) {
         onDurationChange={(e) =>
           setVideoDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)
         }
+        onLoadedMetadata={() => meter.mark('metadata')}
         onPlay={() => setPlaying(true)}
         onPause={() => {
           setPlaying(false)
           report()
         }}
-        onWaiting={() => setWaiting(true)}
-        onPlaying={() => setWaiting(false)}
+        onWaiting={(e) => {
+          setWaiting(true)
+          meter.waiting(e.currentTarget.seeking)
+        }}
+        onPlaying={() => {
+          setWaiting(false)
+          meter.playing()
+        }}
         onCanPlay={() => setWaiting(false)}
         onVolumeChange={(e) => setMuted(e.currentTarget.muted)}
         onEnded={() => {
@@ -440,6 +480,8 @@ export function PlayerPage({ id }: { id: number }) {
           </div>
         )}
       </header>
+
+      {statsOpen && plan && <StatsPanel plan={plan} snapshot={snapshot} onClose={toggleStats} />}
 
       {countdown !== null && next && (
         <section className={styles.upNext} aria-label="Up next">
@@ -556,6 +598,7 @@ export function PlayerPage({ id }: { id: number }) {
             versions={versions.data ?? [plan.version]}
             choice={choice}
             onChange={change}
+            onStats={toggleStats}
           />
         )}
       </div>

@@ -139,7 +139,7 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(playback::play))
         .routes(routes!(playback::stream))
         .routes(routes!(playback::session_file))
-        .routes(routes!(playback::stop))
+        .routes(routes!(playback::stats, playback::stop))
         .routes(routes!(playback::file_subtitles))
         .routes(routes!(playback::sidecar_subtitles));
     OpenApiRouter::with_openapi(ApiDoc::openapi()).nest("/api", api)

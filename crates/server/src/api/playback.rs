@@ -18,9 +18,10 @@ use tower_http::services::ServeFile;
 use utoipa::{IntoParams, ToSchema};
 
 use super::ApiError;
-use super::auth::Viewer;
+use super::auth::{Actor, Viewer};
 use super::error::ErrorBody;
 use crate::AppState;
+use crate::transcode::StreamStats;
 
 /// The item's playable files, best first.
 #[utoipa::path(
@@ -75,6 +76,8 @@ pub struct PlayPlan {
     audio_stream: Option<i64>,
     subtitle: Option<String>,
     subtitles: Vec<SubtitleSource>,
+    /// What the HLS stream carries; none when playing directly.
+    output: Option<playback::StreamOutput>,
     /// The video encoder in use when transcoding: `software`, `vaapi`, `nvenc` or `qsv`.
     encoder: String,
     watch: ItemWatch,
@@ -176,6 +179,8 @@ pub async fn play(
     };
     Ok(Json(PlayPlan {
         mode: decision.mode,
+        output: (decision.mode != Mode::Direct)
+            .then(|| playback::stream_output(&version, &decision, state.transcoder.hardware())),
         reasons: decision.reasons,
         url,
         session_id,
@@ -247,6 +252,28 @@ pub async fn session_file(
         bytes,
     )
         .into_response())
+}
+
+/// How an HLS session is doing: ffmpeg's speed and how far ahead it is. Admins
+/// also get the ffmpeg command and the end of its log.
+#[utoipa::path(
+    get,
+    path = "/play/{id}",
+    tag = "playback",
+    params(("id" = String, Path)),
+    responses((status = 200, body = StreamStats), (status = 404, body = ErrorBody))
+)]
+pub async fn stats(
+    State(state): State<AppState>,
+    Actor(actor): Actor,
+    Path(id): Path<String>,
+) -> Result<Json<StreamStats>, ApiError> {
+    state
+        .transcoder
+        .stats(actor.user, &id, actor.admin)
+        .await
+        .map(Json)
+        .ok_or(ApiError::NotFound)
 }
 
 /// Stops an HLS session.

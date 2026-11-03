@@ -3358,6 +3358,43 @@
       }
     },
     "/api/play/{id}": {
+      "get": {
+        "tags": [
+          "playback"
+        ],
+        "summary": "How an HLS session is doing: ffmpeg's speed and how far ahead it is. Admins\nalso get the ffmpeg command and the end of its log.",
+        "operationId": "stats",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StreamStats"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "playback"
@@ -8524,6 +8561,17 @@
             "format": "double",
             "description": "The stream's time 0 is this far into the file. Zero when direct: seek\nto `start_seconds` instead."
           },
+          "output": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/StreamOutput",
+                "description": "What the HLS stream carries; none when playing directly."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "reasons": {
             "type": "array",
             "items": {
@@ -10125,6 +10173,178 @@
               "null"
             ],
             "format": "int64"
+          }
+        }
+      },
+      "StreamOutput": {
+        "type": "object",
+        "description": "What an HLS stream is made of, for the player to show beside the source.",
+        "required": [
+          "tonemap",
+          "burned_subtitle",
+          "segment_seconds"
+        ],
+        "properties": {
+          "audio_bitrate_kbps": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "Set when the audio is converted.",
+            "minimum": 0
+          },
+          "audio_channels": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "audio_codec": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The audio codec sent: the track's own when copied, otherwise `aac`."
+          },
+          "burned_subtitle": {
+            "type": "boolean",
+            "description": "A picture subtitle drawn onto the video."
+          },
+          "height": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "The height the video is encoded at; the file's own when copied."
+          },
+          "initial_segment_seconds": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The length of the first segments, when shorter.",
+            "minimum": 0
+          },
+          "max_bitrate_kbps": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int32",
+            "description": "The encoder's bitrate ceiling, in kbit/s.",
+            "minimum": 0
+          },
+          "segment_seconds": {
+            "type": "integer",
+            "format": "int32",
+            "minimum": 0
+          },
+          "tonemap": {
+            "type": "boolean"
+          },
+          "video_codec": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The video codec sent: the file's own when copied, otherwise `h264`."
+          },
+          "video_encoder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The H.264 encoder (`libx264`, `h264_nvenc`…); none when the video is copied."
+          }
+        }
+      },
+      "StreamStats": {
+        "type": "object",
+        "description": "How an HLS session is doing on the server, for the player's stats.",
+        "required": [
+          "converted_seconds",
+          "segments_written",
+          "segments_requested",
+          "throttled",
+          "finished",
+          "running_seconds"
+        ],
+        "properties": {
+          "bitrate_kbps": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "The output's average bitrate so far, from the segments written, in kbit/s."
+          },
+          "command": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The ffmpeg command line, for admins."
+          },
+          "converted_seconds": {
+            "type": "number",
+            "format": "double",
+            "description": "How much of the stream is written, in the stream's time."
+          },
+          "finished": {
+            "type": "boolean",
+            "description": "ffmpeg reached the end of the file."
+          },
+          "first_segment_seconds": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "How long ffmpeg took to write its first segment."
+          },
+          "fps": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "Frames written per second."
+          },
+          "log": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The end of ffmpeg's error log, for admins."
+          },
+          "running_seconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "segments_requested": {
+            "type": "integer",
+            "description": "The highest segment the player has asked for.",
+            "minimum": 0
+          },
+          "segments_written": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "speed": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "format": "double",
+            "description": "ffmpeg's speed as a multiple of real time; above 1 keeps ahead."
+          },
+          "throttled": {
+            "type": "boolean",
+            "description": "Paused for being far enough ahead of the player."
           }
         }
       },

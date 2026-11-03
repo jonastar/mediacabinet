@@ -1172,7 +1172,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * How an HLS session is doing: ffmpeg's speed and how far ahead it is. Admins
+         *     also get the ffmpeg command and the end of its log.
+         */
+        get: operations["stats"];
         put?: never;
         post?: never;
         /** Stops an HLS session. */
@@ -2742,6 +2746,7 @@ export interface components {
              *     to `start_seconds` instead.
              */
             offset_seconds: number;
+            output?: components["schemas"]["StreamOutput"] | null;
             /** @description Why it isn't played directly. */
             reasons: string[];
             /** @description The HLS session, to stop when done. */
@@ -3220,6 +3225,83 @@ export interface components {
             language?: string | null;
             /** Format: int64 */
             width?: number | null;
+        };
+        /** @description What an HLS stream is made of, for the player to show beside the source. */
+        StreamOutput: {
+            /**
+             * Format: int32
+             * @description Set when the audio is converted.
+             */
+            audio_bitrate_kbps?: number | null;
+            /** Format: int64 */
+            audio_channels?: number | null;
+            /** @description The audio codec sent: the track's own when copied, otherwise `aac`. */
+            audio_codec?: string | null;
+            /** @description A picture subtitle drawn onto the video. */
+            burned_subtitle: boolean;
+            /**
+             * Format: int64
+             * @description The height the video is encoded at; the file's own when copied.
+             */
+            height?: number | null;
+            /**
+             * Format: int32
+             * @description The length of the first segments, when shorter.
+             */
+            initial_segment_seconds?: number | null;
+            /**
+             * Format: int32
+             * @description The encoder's bitrate ceiling, in kbit/s.
+             */
+            max_bitrate_kbps?: number | null;
+            /** Format: int32 */
+            segment_seconds: number;
+            tonemap: boolean;
+            /** @description The video codec sent: the file's own when copied, otherwise `h264`. */
+            video_codec?: string | null;
+            /** @description The H.264 encoder (`libx264`, `h264_nvenc`…); none when the video is copied. */
+            video_encoder?: string | null;
+        };
+        /** @description How an HLS session is doing on the server, for the player's stats. */
+        StreamStats: {
+            /**
+             * Format: double
+             * @description The output's average bitrate so far, from the segments written, in kbit/s.
+             */
+            bitrate_kbps?: number | null;
+            /** @description The ffmpeg command line, for admins. */
+            command?: string | null;
+            /**
+             * Format: double
+             * @description How much of the stream is written, in the stream's time.
+             */
+            converted_seconds: number;
+            /** @description ffmpeg reached the end of the file. */
+            finished: boolean;
+            /**
+             * Format: double
+             * @description How long ffmpeg took to write its first segment.
+             */
+            first_segment_seconds?: number | null;
+            /**
+             * Format: double
+             * @description Frames written per second.
+             */
+            fps?: number | null;
+            /** @description The end of ffmpeg's error log, for admins. */
+            log?: string | null;
+            /** Format: double */
+            running_seconds: number;
+            /** @description The highest segment the player has asked for. */
+            segments_requested: number;
+            segments_written: number;
+            /**
+             * Format: double
+             * @description ffmpeg's speed as a multiple of real time; above 1 keeps ahead.
+             */
+            speed?: number | null;
+            /** @description Paused for being far enough ahead of the player. */
+            throttled: boolean;
         };
         SubtitleSource: {
             forced: boolean;
@@ -5859,6 +5941,35 @@ export interface operations {
                 };
                 content: {
                     "image/*": unknown;
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    stats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StreamStats"];
                 };
             };
             404: {

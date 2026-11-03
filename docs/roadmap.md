@@ -128,6 +128,7 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Decide: remote access via the user's reverse proxy or VPN, or an optional relay (decided: reverse proxy or VPN; see decisions)
 - [x] UI: login and user management
 - [x] UI: Player (version and track picker, direct play or transcode hint, resume)
+- [x] UI: Player stats (download rate, bitrate, buffer, frames, stalls; ffmpeg speed and command from `GET /play/{id}`)
 - [x] UI: playlists, mark watched
 
 ## Phase 8 — Tasks and activity

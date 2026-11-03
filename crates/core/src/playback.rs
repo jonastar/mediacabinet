@@ -19,6 +19,9 @@ use utoipa::ToSchema;
 
 /// Seconds per HLS segment.
 pub const SEGMENT_SECONDS: u32 = 4;
+/// Seconds per segment for the first `SEGMENT_SECONDS` of an encoded stream,
+/// so the first is ready, and downloaded, sooner.
+pub const INITIAL_SEGMENT_SECONDS: u32 = 1;
 
 /// What the client says it can play. Codec names are ffprobe's (`h264`, `hevc`,
 /// `av1`, `vp9`, `aac`, `mp3`, `opus`, `flac`, `ac3`, `eac3`); containers are
@@ -464,41 +467,43 @@ impl HwAccel {
         }
     }
 
+    /// ffmpeg's name for the H.264 encoder.
+    pub fn encoder(&self) -> &'static str {
+        match self {
+            HwAccel::Software => "libx264",
+            HwAccel::Vaapi { .. } => "h264_vaapi",
+            HwAccel::Nvenc => "h264_nvenc",
+            HwAccel::Qsv => "h264_qsv",
+        }
+    }
+
     fn encoder_args(&self, bitrate: u32) -> Vec<String> {
         let rate = format!("{bitrate}k");
         let buffer = format!("{}k", bitrate * 2);
-        let mut args: Vec<String> = match self {
+        let mut args = vec!["-c:v".to_string(), self.encoder().to_string()];
+        args.extend(match self {
+            // x264 holds back a frame per thread before writing any; its default
+            // on a many-core machine (1.5 per core) delays the first segment.
             HwAccel::Software => [
-                "-c:v",
-                "libx264",
                 "-preset",
                 "veryfast",
                 "-crf",
                 "22",
                 "-profile:v",
                 "high",
+                "-threads:v",
+                "8",
             ]
             .map(String::from)
             .to_vec(),
-            HwAccel::Vaapi { .. } => ["-c:v", "h264_vaapi", "-b:v", &rate]
+            HwAccel::Vaapi { .. } => ["-b:v", &rate].map(String::from).to_vec(),
+            HwAccel::Nvenc => ["-preset", "p4", "-cq", "23", "-b:v", "0"]
                 .map(String::from)
                 .to_vec(),
-            HwAccel::Nvenc => [
-                "-c:v",
-                "h264_nvenc",
-                "-preset",
-                "p4",
-                "-cq",
-                "23",
-                "-b:v",
-                "0",
-            ]
-            .map(String::from)
-            .to_vec(),
-            HwAccel::Qsv => ["-c:v", "h264_qsv", "-preset", "veryfast", "-b:v", &rate]
+            HwAccel::Qsv => ["-preset", "veryfast", "-b:v", &rate]
                 .map(String::from)
                 .to_vec(),
-        };
+        });
         args.extend(["-maxrate".into(), rate, "-bufsize".into(), buffer]);
         args
     }
@@ -527,6 +532,74 @@ impl HwAccel {
         args.extend(["-f", "null", "-"].map(String::from));
         args
     }
+}
+
+/// The bitrate of audio converted to stereo AAC, in kbit/s.
+const AUDIO_KBPS: u32 = 192;
+
+/// What an HLS stream is made of, for the player to show beside the source.
+#[derive(Debug, Clone, PartialEq, Serialize, ToSchema)]
+pub struct StreamOutput {
+    /// The video codec sent: the file's own when copied, otherwise `h264`.
+    pub video_codec: Option<String>,
+    /// The H.264 encoder (`libx264`, `h264_nvenc`…); none when the video is copied.
+    pub video_encoder: Option<String>,
+    /// The height the video is encoded at; the file's own when copied.
+    pub height: Option<i64>,
+    /// The encoder's bitrate ceiling, in kbit/s.
+    pub max_bitrate_kbps: Option<u32>,
+    pub tonemap: bool,
+    /// A picture subtitle drawn onto the video.
+    pub burned_subtitle: bool,
+    /// The audio codec sent: the track's own when copied, otherwise `aac`.
+    pub audio_codec: Option<String>,
+    pub audio_channels: Option<i64>,
+    /// Set when the audio is converted.
+    pub audio_bitrate_kbps: Option<u32>,
+    pub segment_seconds: u32,
+    /// The length of the first segments, when shorter.
+    pub initial_segment_seconds: Option<u32>,
+}
+
+/// What `hls_args` makes of `version` under `decision`.
+pub fn stream_output(version: &Version, decision: &Decision, hw: &HwAccel) -> StreamOutput {
+    let audio = decision.audio.and_then(|(index, convert)| {
+        Some((version.audio.iter().find(|a| a.index == index)?, convert))
+    });
+    let (audio_codec, audio_channels, audio_bitrate_kbps) = match audio {
+        Some((_, true)) => (Some("aac".to_string()), Some(2), Some(AUDIO_KBPS)),
+        Some((track, false)) => (track.codec.clone(), track.channels, None),
+        None => (None, None, None),
+    };
+    let mut output = StreamOutput {
+        video_codec: version.video_codec.clone(),
+        video_encoder: None,
+        height: version.height,
+        max_bitrate_kbps: None,
+        tonemap: false,
+        burned_subtitle: false,
+        audio_codec,
+        audio_channels,
+        audio_bitrate_kbps,
+        segment_seconds: SEGMENT_SECONDS,
+        initial_segment_seconds: None,
+    };
+    if let VideoPlan::Encode {
+        height,
+        tonemap,
+        burn_subtitle,
+    } = &decision.video
+    {
+        let target = height.or(version.height).unwrap_or(1080);
+        output.video_codec = Some("h264".into());
+        output.video_encoder = Some(hw.encoder().into());
+        output.height = Some(version.height.map_or(target, |h| h.min(target)));
+        output.max_bitrate_kbps = Some(bitrate_for(target));
+        output.tonemap = *tonemap;
+        output.burned_subtitle = burn_subtitle.is_some();
+        output.initial_segment_seconds = Some(INITIAL_SEGMENT_SECONDS);
+    }
+    output
 }
 
 /// A ceiling for the H.264 bitrate, in kbit/s, by output height.
@@ -589,21 +662,32 @@ pub fn hls_args(
                 Some(s) => format!("[0:{v}][0:{s}]overlay"),
                 None => format!("[0:{v}]null"),
             };
+            // Scaled down before tone mapping, the slowest filter by far: 4K to
+            // 1080p first makes it a quarter of the work.
+            let target = height.or(version.height).unwrap_or(1080);
+            graph.push_str(&format!(",scale=-2:'min(ih,{target})'"));
             if *tonemap {
                 graph.push(',');
                 graph.push_str(TONEMAP);
             }
-            let target = height.or(version.height).unwrap_or(1080);
-            graph.push_str(&format!(",scale=-2:'min(ih,{target})'"));
             graph.push(',');
             graph.push_str(hw.upload());
             graph.push_str("[v]");
             args.extend(["-filter_complex".into(), graph, "-map".into(), "[v]".into()]);
             args.extend(hw.encoder_args(bitrate_for(target)));
-            // A keyframe at every segment boundary, so segments start cleanly.
+            // A keyframe at every segment boundary, so segments start cleanly:
+            // every second at first, then every segment.
+            let (init, seg) = (INITIAL_SEGMENT_SECONDS, SEGMENT_SECONDS);
             args.extend([
                 "-force_key_frames".into(),
-                format!("expr:gte(t,n_forced*{SEGMENT_SECONDS})"),
+                format!(
+                    "expr:if(lt(t,{seg}),gte(t,n_forced*{init}),gte(t,{seg}+(n_forced-{})*{seg}))",
+                    seg / init
+                ),
+                // Only when encoding: copied video would be cut at every source
+                // keyframe for the whole stream.
+                "-hls_init_time".into(),
+                init.to_string(),
             ]);
         }
         _ => {}
@@ -612,7 +696,8 @@ pub fn hls_args(
     if let Some((index, convert)) = decision.audio {
         args.extend(["-map".into(), format!("0:{index}")]);
         if convert {
-            args.extend(["-c:a", "aac", "-ac", "2", "-b:a", "192k"].map(String::from));
+            args.extend(["-c:a", "aac", "-ac", "2", "-b:a"].map(String::from));
+            args.push(format!("{AUDIO_KBPS}k"));
         } else {
             args.extend(["-c:a".into(), "copy".into()]);
         }
@@ -830,6 +915,41 @@ mod tests {
     }
 
     #[test]
+    fn describes_the_stream_it_sends() {
+        let v = version("mkv", "hevc", &["eac3"]);
+        let d = decide(&v, &Choice::default(), &chrome());
+        let out = stream_output(&v, &d, &HwAccel::Nvenc);
+        assert_eq!(
+            (out.video_codec.as_deref(), out.video_encoder.as_deref()),
+            (Some("h264"), Some("h264_nvenc"))
+        );
+        assert_eq!(
+            (out.height, out.max_bitrate_kbps),
+            (Some(1080), Some(8_000))
+        );
+        assert_eq!(
+            (
+                out.audio_codec.as_deref(),
+                out.audio_channels,
+                out.audio_bitrate_kbps
+            ),
+            (Some("aac"), Some(2), Some(192))
+        );
+
+        let v = version("mkv", "h264", &["aac"]);
+        let d = decide(&v, &Choice::default(), &chrome());
+        let out = stream_output(&v, &d, &HwAccel::Software);
+        assert_eq!(
+            (
+                out.video_codec.as_deref(),
+                out.video_encoder,
+                out.audio_bitrate_kbps
+            ),
+            (Some("h264"), None, None)
+        );
+    }
+
+    #[test]
     fn transcodes_for_codec_quality_hdr_and_picture_subtitles() {
         let d = decide(
             &version("mkv", "hevc", &["aac"]),
@@ -903,9 +1023,25 @@ mod tests {
             "{args}"
         );
         assert!(args.contains("-c:v libx264"), "{args}");
+        assert!(args.contains("-threads:v 8"), "{args}");
+        assert!(
+            args.contains(
+                "-force_key_frames expr:if(lt(t,4),gte(t,n_forced*1),gte(t,4+(n_forced-4)*4)) -hls_init_time 1"
+            ),
+            "{args}"
+        );
         assert!(args.contains("-map 0:1 -c:a aac -ac 2"), "{args}");
         assert!(
             args.ends_with("/tmp/s/seg%05d.m4s /tmp/s/index.m3u8"),
+            "{args}"
+        );
+
+        let mut hdr = version("mkv", "hevc", &["aac"]);
+        (hdr.height, hdr.hdr_format) = (Some(2160), Some("hdr10".into()));
+        let d = decide(&hdr, &Choice::default(), &chrome());
+        let args = hls_args(&hdr, &d, 0.0, Path::new("/tmp/s"), &HwAccel::Software).join(" ");
+        assert!(
+            args.contains("[0:0]null,scale=-2:'min(ih,2160)',zscale=t=linear"),
             "{args}"
         );
 
@@ -924,6 +1060,7 @@ mod tests {
         let d = decide(&v, &Choice::default(), &caps);
         let args = hls_args(&v, &d, 0.0, Path::new("/tmp/s"), &HwAccel::Software).join(" ");
         assert!(args.contains("-map 0:0 -c:v copy -tag:v hvc1"), "{args}");
+        assert!(!args.contains("-hls_init_time"), "{args}");
         assert_eq!(HwAccel::parse("bogus"), None);
     }
 

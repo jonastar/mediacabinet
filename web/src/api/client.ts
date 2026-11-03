@@ -64,6 +64,7 @@ export type Playlist = Schemas['Playlist']
 export type PlaylistInput = Schemas['PlaylistInput']
 export type Version = Schemas['Version']
 export type PlayPlan = Schemas['PlayPlan']
+export type StreamStats = Schemas['StreamStats']
 export type ClientCaps = Schemas['ClientCaps']
 export type PlayContext = Schemas['PlayContext']
 export type ItemView = Schemas['ItemView']
@@ -377,6 +378,7 @@ export const api = {
       start_seconds: startSeconds,
     }),
   /** Keeps going when the page is closing, so the last position is saved. */
+  streamStats: (sessionId: string) => request<StreamStats>('GET', `/api/play/${sessionId}`),
   stopPlay: (sessionId: string) =>
     request<void>('DELETE', `/api/play/${sessionId}`, undefined, { keepalive: true }),
   progress: (itemId: number, position: number, duration?: number | null) =>

@@ -73,3 +73,44 @@
   margin: 0;
   color: var(--state-missing-text);
 }
+
+.providers {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.provider {
+  min-height: var(--touch-target);
+  display: grid;
+  place-items: center;
+  padding: 0 12px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-control);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.provider:hover {
+  border-color: var(--accent);
+}
+
+.or {
+  margin: 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.quiet {
+  align-self: center;
+  border: 0;
+  background: none;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}

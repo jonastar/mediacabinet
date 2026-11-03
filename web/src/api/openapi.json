@@ -364,6 +364,437 @@
         }
       }
     },
+    "/api/auth-providers": {
+      "get": {
+        "tags": [
+          "sign-in"
+        ],
+        "operationId": "list_providers",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInSettings"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Adds a provider.",
+        "operationId": "create_provider",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderView"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth-providers/check": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Checks settings with the provider without anyone signing in: the issuer,\nthe scopes it lists, and whether it takes the client ID and secret.",
+        "operationId": "check_provider",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderDraft"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckReport"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth-providers/test": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Checks an issuer URL by fetching its OpenID configuration.",
+        "operationId": "test_issuer",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IssuerTest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssuerFound"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth-providers/tests/{token}": {
+      "get": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "What came back from a test sign-in, for ten minutes after.",
+        "operationId": "test_report",
+        "parameters": [
+          {
+            "name": "token",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestReport"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth-providers/try": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Starts a test sign-in with settings, saved or not. Nobody is signed in\nand nothing is saved; the report is at `/auth-providers/tests/{token}`.",
+        "operationId": "try_provider",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderDraft"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestStarted"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth-providers/{key}": {
+      "put": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Changes a provider. The client secret is kept unless a new one is given.",
+        "operationId": "update_provider",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProviderInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderView"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Removes a provider and every account linked through it. People who could\nonly sign in with it are turned off until an admin gives them a password.",
+        "operationId": "delete_provider",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Removed"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth-providers/{key}/override": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Edit a provider from environment variables here instead; its variables\nare ignored from then on.",
+        "operationId": "take_over",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderView"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Go back to the environment: reapplies the provider's variables.",
+        "operationId": "give_back",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderView"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth-settings": {
+      "put": {
+        "tags": [
+          "sign-in"
+        ],
+        "operationId": "set_auth_settings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AuthSettingsInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/login": {
       "post": {
         "tags": [
@@ -412,6 +843,261 @@
         "operationId": "logout",
         "responses": {
           "204": {}
+        }
+      }
+    },
+    "/api/auth/oidc/confirm": {
+      "get": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "What the \"Is this you?\" screen shows.",
+        "operationId": "confirmation",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Confirmation"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "It's me: proves it with the account's password, links the two and signs in.",
+        "operationId": "confirm",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/oidc/confirm/decline": {
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "It isn't me: makes a new account for the provider's account instead.",
+        "operationId": "decline",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/oidc/{key}/callback": {
+      "get": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Where the provider sends the browser back.",
+        "operationId": "callback",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "error",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "error_description",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "Back into the app"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Where a provider posts the browser back (`response_mode=form_post`, which\nApple uses). The sign-in cookie is SameSite=Lax, so a cross-site POST\narrives without it: this answers with a page that carries on to the GET\ncallback from this site, where it does. Apple's one-time name is kept with\nthe sign-in rather than put in the URL.",
+        "operationId": "posted_callback",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/PostedCallback"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "A page that carries on to the GET callback"
+          }
+        }
+      }
+    },
+    "/api/auth/oidc/{key}/start": {
+      "get": {
+        "tags": [
+          "sign-in"
+        ],
+        "summary": "Sends the browser to the provider to sign in, or to link an account.",
+        "operationId": "start",
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "link",
+            "in": "query",
+            "description": "Link the account to the signed-in user instead of signing in.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "then_confirm",
+            "in": "query",
+            "description": "Also complete the waiting \"Is this you?\" if this turns out to be them.",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "303": {
+            "description": "To the provider"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -2314,7 +3000,7 @@
         "tags": [
           "accounts"
         ],
-        "summary": "Changes your own name or password. A new password signs out your other\nsessions; this one gets a new cookie.",
+        "summary": "Changes your own name, email or password. A new password signs out your\nother sessions; this one gets a new cookie.",
         "operationId": "update_me",
         "requestBody": {
           "content": {
@@ -2341,6 +3027,66 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/logins/{id}": {
+      "delete": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Unlinks one of your accounts, if you still have another way in.",
+        "operationId": "unlink_mine",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/sign-in": {
+      "get": {
+        "tags": [
+          "accounts"
+        ],
+        "operationId": "my_sign_in",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MySignIn"
                 }
               }
             }
@@ -4006,7 +4752,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/User"
+                    "$ref": "#/components/schemas/ManagedUser"
                   }
                 }
               }
@@ -4114,6 +4860,115 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/UserUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}/logins/{login}": {
+      "delete": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Unlinks a user's account, if they still have another way in.",
+        "operationId": "unlink_user",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "login",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/{id}/status": {
+      "put": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Approves or declines someone waiting, or turns a user off or back on.\nTurning someone off signs them out; admins can't be turned off.",
+        "operationId": "set_user_status",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StatusChange"
               }
             }
           },
@@ -4790,12 +5645,37 @@
           }
         }
       },
+      "AuthSettingsInput": {
+        "type": "object",
+        "required": [
+          "password_sign_in"
+        ],
+        "properties": {
+          "password_sign_in": {
+            "type": "boolean",
+            "description": "Show the password form on the login page up front."
+          }
+        }
+      },
       "AuthStatus": {
         "type": "object",
         "required": [
-          "setup_needed"
+          "setup_needed",
+          "providers",
+          "password_sign_in"
         ],
         "properties": {
+          "password_sign_in": {
+            "type": "boolean",
+            "description": "Whether the login page shows the password form up front."
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderButton"
+            },
+            "description": "Other accounts people can sign in with."
+          },
           "setup_needed": {
             "type": "boolean",
             "description": "No account has a password yet: show the setup screen."
@@ -4804,7 +5684,7 @@
             "oneOf": [
               {
                 "$ref": "#/components/schemas/User",
-                "description": "The signed-in user, if any."
+                "description": "The signed-in user, if any. A pending one may only sign out."
               },
               {
                 "type": "null"
@@ -4940,6 +5820,35 @@
           }
         }
       },
+      "CheckReport": {
+        "type": "object",
+        "description": "What the provider says about the settings, without anyone signing in.",
+        "required": [
+          "notes"
+        ],
+        "properties": {
+          "issuer": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The issuer as the provider names itself, if it was found."
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Note"
+            }
+          },
+          "scopes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The scopes a sign-in would ask for."
+          }
+        }
+      },
       "CheckTemplate": {
         "type": "object",
         "required": [
@@ -5051,6 +5960,49 @@
           },
           "series_title": {
             "type": "string"
+          }
+        }
+      },
+      "ConfirmBody": {
+        "type": "object",
+        "required": [
+          "password"
+        ],
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "The matched account's password."
+          }
+        }
+      },
+      "Confirmation": {
+        "type": "object",
+        "description": "\"Is this you?\": an account whose verified email matched a user's.",
+        "required": [
+          "provider",
+          "account",
+          "has_password",
+          "other_providers"
+        ],
+        "properties": {
+          "account": {
+            "type": "string",
+            "description": "The Media Cabinet account with that email."
+          },
+          "has_password": {
+            "type": "boolean",
+            "description": "Whether they can prove it with the account's password."
+          },
+          "other_providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderButton"
+            },
+            "description": "Or by signing in with a provider the account is already linked to."
+          },
+          "provider": {
+            "type": "string",
+            "description": "The provider they signed in with."
           }
         }
       },
@@ -5193,6 +6145,36 @@
               "null"
             ],
             "description": "Which edition of the item the file is, such as \"Director's Cut\"; null or\nempty for the only or usual one."
+          }
+        }
+      },
+      "EnvInfo": {
+        "type": "object",
+        "required": [
+          "prefix",
+          "fields",
+          "overridden",
+          "missing"
+        ],
+        "properties": {
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The fields set by a variable; the rest have their defaults."
+          },
+          "missing": {
+            "type": "boolean",
+            "description": "The variables are no longer set."
+          },
+          "overridden": {
+            "type": "boolean",
+            "description": "Edited here instead; the variables are ignored."
+          },
+          "prefix": {
+            "type": "string",
+            "description": "e.g. `CABINET_OIDC_AUTHENTIK_`; a field's variable is this plus its\nname in upper case."
           }
         }
       },
@@ -6085,6 +7067,29 @@
           }
         }
       },
+      "IssuerFound": {
+        "type": "object",
+        "required": [
+          "issuer"
+        ],
+        "properties": {
+          "issuer": {
+            "type": "string",
+            "description": "The issuer as the provider names itself; save this one."
+          }
+        }
+      },
+      "IssuerTest": {
+        "type": "object",
+        "required": [
+          "issuer"
+        ],
+        "properties": {
+          "issuer": {
+            "type": "string"
+          }
+        }
+      },
       "ItemEdit": {
         "type": "object",
         "description": "Fields people can edit. Absent fields are left alone.",
@@ -6309,6 +7314,25 @@
             "format": "double"
           }
         }
+      },
+      "Kind": {
+        "type": "string",
+        "description": "How a provider signs people in.",
+        "enum": [
+          "oidc",
+          "github",
+          "discord",
+          "oauth2"
+        ]
+      },
+      "Level": {
+        "type": "string",
+        "enum": [
+          "good",
+          "info",
+          "warning",
+          "problem"
+        ]
       },
       "Library": {
         "type": "object",
@@ -6535,6 +7559,80 @@
           }
         }
       },
+      "Login": {
+        "type": "object",
+        "description": "A linked account, as its user and admins see it.",
+        "required": [
+          "id",
+          "provider_key",
+          "provider_name",
+          "linked_at"
+        ],
+        "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The account's email at the provider, as last seen."
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_used_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "linked_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "provider_key": {
+            "type": "string"
+          },
+          "provider_name": {
+            "type": "string"
+          }
+        }
+      },
+      "ManagedUser": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/User"
+          },
+          {
+            "type": "object",
+            "required": [
+              "has_password",
+              "logins"
+            ],
+            "properties": {
+              "has_password": {
+                "type": "boolean"
+              },
+              "logins": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/Login"
+                },
+                "description": "Accounts at sign-in providers."
+              },
+              "role_from": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The provider whose groups decide whether they're an admin, if any."
+              }
+            }
+          }
+        ],
+        "description": "A user as admins see them."
+      },
       "MatchOrdering": {
         "type": "object",
         "properties": {
@@ -6556,6 +7654,13 @@
               "null"
             ]
           },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Empty to remove it."
+          },
           "incognito": {
             "type": [
               "boolean",
@@ -6574,7 +7679,7 @@
               "string",
               "null"
             ],
-            "description": "A new password; needs `current_password`."
+            "description": "A new password; needs `current_password` if there is one."
           }
         }
       },
@@ -6802,6 +7907,32 @@
           }
         }
       },
+      "MySignIn": {
+        "type": "object",
+        "description": "How you sign in: a password, linked accounts, and providers to link.",
+        "required": [
+          "has_password",
+          "logins",
+          "providers"
+        ],
+        "properties": {
+          "has_password": {
+            "type": "boolean"
+          },
+          "logins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Login"
+            }
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderButton"
+            }
+          }
+        }
+      },
       "NewApiKey": {
         "allOf": [
           {
@@ -6857,6 +7988,21 @@
             }
           }
         ]
+      },
+      "Note": {
+        "type": "object",
+        "required": [
+          "level",
+          "text"
+        ],
+        "properties": {
+          "level": {
+            "$ref": "#/components/schemas/Level"
+          },
+          "text": {
+            "type": "string"
+          }
+        }
       },
       "NumberStyle": {
         "type": "string",
@@ -7588,6 +8734,42 @@
           }
         ]
       },
+      "PostedCallback": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error_description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "user": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Apple's, on someone's first sign-in: their name and email as JSON."
+          }
+        }
+      },
       "Progress": {
         "type": "object",
         "required": [
@@ -7656,6 +8838,326 @@
           },
           "path": {
             "type": "string"
+          }
+        }
+      },
+      "ProviderButton": {
+        "type": "object",
+        "description": "A button on the login page.",
+        "required": [
+          "key",
+          "name"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "ProviderDraft": {
+        "type": "object",
+        "description": "Settings to try, saved or not.",
+        "required": [
+          "provider"
+        ],
+        "properties": {
+          "existing": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The provider being edited: its secret is used when none is given."
+          },
+          "provider": {
+            "$ref": "#/components/schemas/ProviderInput"
+          }
+        }
+      },
+      "ProviderInput": {
+        "type": "object",
+        "required": [
+          "name",
+          "client_id"
+        ],
+        "properties": {
+          "admin_group": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "allowed_groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authorize_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Plain OAuth2 only, as are the fields below."
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "client_secret": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Leave out to keep the current one."
+          },
+          "email_field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "groups_claim": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id_field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issuer": {
+            "type": "string",
+            "description": "OIDC only."
+          },
+          "key": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Defaults to one made from the name."
+          },
+          "key_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/Kind"
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "new_users": {
+            "$ref": "#/components/schemas/UserStatus"
+          },
+          "preset": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Picked by name in the form, e.g. `keycloak`."
+          },
+          "redirect_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scopes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "team_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Sign in with Apple only, as is `key_id`; the private key goes in\n`client_secret`."
+          },
+          "token_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "userinfo_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verified_field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ProviderView": {
+        "type": "object",
+        "description": "A provider as admins see it: never the secret.",
+        "required": [
+          "key",
+          "kind",
+          "name",
+          "issuer",
+          "client_id",
+          "has_secret",
+          "new_users",
+          "groups_claim",
+          "allowed_groups",
+          "scopes",
+          "enabled",
+          "users",
+          "sole_users"
+        ],
+        "properties": {
+          "admin_group": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "allowed_groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "authorize_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "client_id": {
+            "type": "string"
+          },
+          "email_field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "env": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/EnvInfo",
+                "description": "Set for providers from environment variables."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "groups_claim": {
+            "type": "string"
+          },
+          "has_secret": {
+            "type": "boolean"
+          },
+          "id_field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "issuer": {
+            "type": "string"
+          },
+          "key": {
+            "type": "string"
+          },
+          "key_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "$ref": "#/components/schemas/Kind"
+          },
+          "name": {
+            "type": "string"
+          },
+          "name_field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "new_users": {
+            "$ref": "#/components/schemas/UserStatus"
+          },
+          "preset": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "redirect_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "scopes": {
+            "type": "string"
+          },
+          "sole_users": {
+            "type": "integer",
+            "format": "int64",
+            "description": "People who can sign in only with this provider."
+          },
+          "team_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "token_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "userinfo_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "users": {
+            "type": "integer",
+            "format": "int64",
+            "description": "People with a linked account."
+          },
+          "verified_field": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -7784,6 +9286,19 @@
           "provider_id": {
             "type": "string",
             "description": "The provider's ID for the right series."
+          }
+        }
+      },
+      "Removed": {
+        "type": "object",
+        "required": [
+          "disabled_users"
+        ],
+        "properties": {
+          "disabled_users": {
+            "type": "integer",
+            "description": "People who could only sign in with it, now turned off.",
+            "minimum": 0
           }
         }
       },
@@ -8304,6 +9819,35 @@
           }
         }
       },
+      "SignInSettings": {
+        "type": "object",
+        "description": "Sign-in providers and the password switch, for Manage → Users.",
+        "required": [
+          "providers",
+          "password_sign_in",
+          "password_sign_in_from_env",
+          "callback_base"
+        ],
+        "properties": {
+          "callback_base": {
+            "type": "string",
+            "description": "A provider's redirect URL is this plus `{key}/callback`."
+          },
+          "password_sign_in": {
+            "type": "boolean"
+          },
+          "password_sign_in_from_env": {
+            "type": "boolean",
+            "description": "`CABINET_PASSWORD_SIGN_IN` is set, so the switch is read-only."
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProviderView"
+            }
+          }
+        }
+      },
       "SonarrListItem": {
         "type": "object",
         "description": "One series in Sonarr's \"Custom List\" format.",
@@ -8375,6 +9919,17 @@
           "wanted": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "StatusChange": {
+        "type": "object",
+        "required": [
+          "status"
+        ],
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
           }
         }
       },
@@ -8723,6 +10278,85 @@
           "separator"
         ]
       },
+      "TestReport": {
+        "type": "object",
+        "description": "What came back from a test sign-in. Nothing was saved.",
+        "required": [
+          "provider",
+          "scopes",
+          "email_verified",
+          "claims",
+          "notes"
+        ],
+        "properties": {
+          "claims": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every claim's name, from the ID token and userinfo."
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "email_verified": {
+            "type": "boolean"
+          },
+          "granted_scopes": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "As granted, if the provider said."
+          },
+          "groups": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Missing when the groups claim wasn't there."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The name a new user would get."
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Note"
+            }
+          },
+          "outcome": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What a real sign-in would have done with this account."
+          },
+          "provider": {
+            "type": "string"
+          },
+          "scopes": {
+            "type": "string",
+            "description": "As asked for."
+          },
+          "subject": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
       "TestResult": {
         "type": "object",
         "required": [
@@ -8737,6 +10371,18 @@
           },
           "ok": {
             "type": "boolean"
+          }
+        }
+      },
+      "TestStarted": {
+        "type": "object",
+        "required": [
+          "url"
+        ],
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Open this in a new window; it ends by handing over the report's token."
           }
         }
       },
@@ -8778,12 +10424,19 @@
           "name",
           "is_admin",
           "created_at",
-          "incognito"
+          "incognito",
+          "status"
         ],
         "properties": {
           "created_at": {
             "type": "integer",
             "format": "int64"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "id": {
             "type": "integer",
@@ -8798,6 +10451,9 @@
           },
           "name": {
             "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
           }
         }
       },
@@ -8817,9 +10473,25 @@
           }
         }
       },
+      "UserStatus": {
+        "type": "string",
+        "description": "Whether a user may use the app.",
+        "enum": [
+          "active",
+          "pending",
+          "disabled"
+        ]
+      },
       "UserUpdate": {
         "type": "object",
         "properties": {
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Empty to remove it."
+          },
           "is_admin": {
             "type": [
               "boolean",

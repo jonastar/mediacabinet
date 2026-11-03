@@ -147,6 +147,21 @@ Designs: `docs/tasks.md`, `docs/activity.md`.
 - [x] Activity for users, logins, configuration changes and task results (admins)
 - [x] UI: Activity screen, Home feed, inspector Activity and Events tabs
 
+## Sign-in with other accounts
+
+Design: `docs/sign-in.md`.
+
+- [x] OIDC code flow with PKCE, written by hand; HTTPS issuers only
+- [x] Any number of providers, from the UI or `CABINET_OIDC_*`; env providers read-only until taken over
+- [x] New people pending until an admin lets them in, or let straight in; allowed groups and an admin group
+- [x] "Is this you?" for a verified email that matches an account; linking and unlinking from Account
+- [x] Users turned off instead of removed; Manage → Users tab with a waiting count
+- [x] Checking and trying a provider's settings before saving
+- [x] GitHub, Discord and other plain OAuth2 providers
+- [x] A list of known providers with setup steps for each, Sign in with Apple included
+- [ ] Library access from groups (waits for per-user library scoping)
+- [ ] Sign-in for native and TV clients (device code or quick connect)
+
 ## Phase 9 — Release
 
 - [ ] Keyboard navigation and accessibility pass across all screens

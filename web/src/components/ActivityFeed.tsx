@@ -18,12 +18,16 @@ const TARGETS: Record<string, string> = {
   root: 'the folder',
   api_key: 'the API key',
   webhook: 'the webhook',
+  sign_in_provider: 'the sign-in provider',
+  sign_in: 'the sign-in settings',
 }
 
 const ACTIONS: Record<string, string> = {
   created: 'added',
   changed: 'changed',
   removed: 'removed',
+  overridden: 'took over from the environment',
+  from_env: 'handed back to the environment',
 }
 
 function ItemLink({ entry }: { entry: ActivityEntry }) {
@@ -76,6 +80,18 @@ function stoppedAt(p: Payload) {
   return total ? ` at ${minutes} of ${Math.round(total / 60)} min` : ` at ${minutes} min`
 }
 
+/** Approved, declined, turned off or back on. */
+function statusChange(who: string, p: Payload) {
+  const name = String(p.name ?? 'someone')
+  if (p.status === 'active') {
+    if (p.via) {
+      return `${name} was let in by their ${String(p.via)} groups`
+    }
+    return p.from === 'pending' ? `${who} let ${name} in` : `${who} turned ${name} back on`
+  }
+  return p.from === 'pending' ? `${who} declined ${name}` : `${who} turned ${name} off`
+}
+
 function userChange(p: Payload) {
   const fields = Array.isArray(p.fields) ? (p.fields as string[]) : []
   const name = String(p.name ?? 'someone')
@@ -113,14 +129,32 @@ function describe(entry: ActivityEntry, me: number): ReactNode {
         </>
       )
     case 'user_created':
+      if (p.via) {
+        const waiting = p.pending ? ' and is waiting to be let in' : ''
+        return `${String(p.name)} signed in with ${String(p.via)} for the first time${waiting}`
+      }
       return `${who} added the account ${String(p.name)}${p.is_admin ? ' (admin)' : ''}`
     case 'user_changed':
-      return `${who} ${userChange(p)}`
+      if (p.kept_admin) {
+        return `${String(p.name)} left ${String(p.via)}'s admin group but stays an admin: they're the only one`
+      }
+      return `${p.via ? String(p.via) : who} ${userChange(p)}`
+    case 'user_status':
+      return statusChange(who, p)
+    case 'login_linked':
+      return `${who} linked a ${String(p.via)} account to ${String(p.name)}`
+    case 'login_unlinked':
+      return `${who} unlinked ${String(p.name)}'s ${String(p.via)} account`
     case 'user_removed':
       return `${who} removed the account ${String(p.name)}`
-    case 'login':
-      return `${entry.subject?.id === me ? 'You' : (entry.subject?.name ?? 'Someone')} signed in`
+    case 'login': {
+      const via = p.via && p.via !== 'password' ? ` with ${String(p.via)}` : ''
+      return `${entry.subject?.id === me ? 'You' : (entry.subject?.name ?? 'Someone')} signed in${via}`
+    }
     case 'login_failed':
+      if (p.via) {
+        return `${String(p.via)} sign-in refused for “${String(p.name)}”: ${String(p.reason)}`
+      }
       return `Failed sign-in as “${String(p.name)}”`
     case 'config_changed': {
       const fields = Array.isArray(p.fields) && p.fields.length ? ` (${p.fields.join(', ')})` : ''

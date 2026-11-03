@@ -1,15 +1,33 @@
 import { useState, type FormEvent } from 'react'
 import { api } from '../api/client'
+import { useApi } from '../api/useApi'
+import { Loading } from '../components/Status'
+import { ago } from '../lib/format'
 import { signedIn, useUser } from '../lib/session'
 import styles from './Settings.module.css'
 
-/** Your own name, password and privacy. */
+/** What linking an account left in the URL; read once, then removed. */
+function takeLinkResult(): { ok: boolean; text: string } | null {
+  const params = new URLSearchParams(window.location.search)
+  const error = params.get('sign_in_error')
+  const linked = params.get('linked')
+  if (!error && !linked) {
+    return null
+  }
+  window.history.replaceState(null, '', window.location.pathname)
+  return error ? { ok: false, text: error } : { ok: true, text: 'Linked.' }
+}
+
+/** Your own name, email, password, linked accounts and privacy. */
 export function AccountPage() {
   const user = useUser()
   const [name, setName] = useState(user.name)
+  const [email, setEmail] = useState(user.email ?? '')
   const [current, setCurrent] = useState('')
   const [password, setPassword] = useState('')
-  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(takeLinkResult)
+  const signIn = useApi('my-sign-in', api.mySignIn)
+  const hasPassword = signIn.data?.has_password ?? true
 
   const save = async (e: FormEvent, changes: Parameters<typeof api.updateMe>[0], done: string) => {
     e.preventDefault()
@@ -19,6 +37,20 @@ export function AccountPage() {
       setMessage({ ok: true, text: done })
       setCurrent('')
       setPassword('')
+      signIn.reload()
+    } catch (err) {
+      setMessage({ ok: false, text: (err as Error).message })
+    }
+  }
+
+  const unlink = async (id: number, provider: string) => {
+    if (!window.confirm(`Unlink your ${provider} account? You won't be able to sign in with it.`)) {
+      return
+    }
+    setMessage(null)
+    try {
+      await api.unlinkMine(id)
+      signIn.reload()
     } catch (err) {
       setMessage({ ok: false, text: (err as Error).message })
     }
@@ -88,27 +120,116 @@ export function AccountPage() {
         </form>
         <form
           className={styles.panel}
+          onSubmit={(e) => save(e, { email }, email ? 'Email saved.' : 'Email removed.')}
+          aria-labelledby="email"
+        >
+          <h2 id="email">Email</h2>
+          <p className={styles.muted}>
+            Signing in with another account that has this address offers to link it to this one.
+          </p>
+          <div className={styles.row}>
+            <input
+              className={styles.input}
+              aria-label="Email"
+              type="email"
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <button
+              type="submit"
+              className={`${styles.button} ${styles.primary}`}
+              disabled={email === (user.email ?? '')}
+            >
+              Save
+            </button>
+          </div>
+        </form>
+        <section className={styles.panel} aria-labelledby="linked">
+          <h2 id="linked">Sign-in</h2>
+          {!signIn.data && <Loading />}
+          {signIn.data && (
+            <>
+              <p className={styles.muted}>
+                {signIn.data.providers.length
+                  ? 'Link an account you have elsewhere to sign in with it.'
+                  : 'An admin can set up signing in with other accounts.'}
+              </p>
+              {signIn.data.providers.length > 0 && (
+                <ul className={styles.list}>
+                  {signIn.data.providers.map((p) => {
+                    const login = signIn.data?.logins.find((l) => l.provider_key === p.key)
+                    return (
+                      <li key={p.key} className={styles.item}>
+                        <span className={styles.itemText}>
+                          <b>{p.name}</b>
+                          <span className={styles.muted}>
+                            {login
+                              ? [
+                                  login.email,
+                                  `linked ${ago(login.linked_at)}`,
+                                  login.last_used_at && `used ${ago(login.last_used_at)}`,
+                                ]
+                                  .filter(Boolean)
+                                  .join(' · ')
+                              : 'Not linked'}
+                          </span>
+                        </span>
+                        {login ? (
+                          <button
+                            type="button"
+                            className={styles.button}
+                            onClick={() => unlink(login.id, p.name)}
+                          >
+                            Unlink
+                          </button>
+                        ) : (
+                          <a
+                            className={styles.button}
+                            href={api.signInWithUrl(p.key, { link: true })}
+                          >
+                            Link
+                          </a>
+                        )}
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </>
+          )}
+        </section>
+        <form
+          className={styles.panel}
           onSubmit={(e) =>
             save(
               e,
-              { password, current_password: current },
-              'Password changed. Other devices are signed out.',
+              hasPassword ? { password, current_password: current } : { password },
+              hasPassword
+                ? 'Password changed. Other devices are signed out.'
+                : 'Password set. You can sign in with it as well.',
             )
           }
           aria-labelledby="password"
         >
           <h2 id="password">Password</h2>
-          <p className={styles.muted}>Changing it signs you out on other devices.</p>
+          <p className={styles.muted}>
+            {hasPassword
+              ? 'Changing it signs you out on other devices.'
+              : 'You sign in with another account. A password lets you sign in without it too.'}
+          </p>
           <div className={styles.row}>
-            <input
-              className={styles.input}
-              aria-label="Current password"
-              placeholder="Current password"
-              type="password"
-              autoComplete="current-password"
-              value={current}
-              onChange={(e) => setCurrent(e.target.value)}
-            />
+            {hasPassword && (
+              <input
+                className={styles.input}
+                aria-label="Current password"
+                placeholder="Current password"
+                type="password"
+                autoComplete="current-password"
+                value={current}
+                onChange={(e) => setCurrent(e.target.value)}
+              />
+            )}
             <input
               className={styles.input}
               aria-label="New password"
@@ -121,9 +242,9 @@ export function AccountPage() {
             <button
               type="submit"
               className={`${styles.button} ${styles.primary}`}
-              disabled={!current || !password}
+              disabled={(hasPassword && !current) || !password}
             >
-              Change password
+              {hasPassword ? 'Change password' : 'Set password'}
             </button>
           </div>
         </form>

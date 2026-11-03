@@ -148,6 +148,155 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth-providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_providers"];
+        put?: never;
+        /** Adds a provider. */
+        post: operations["create_provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth-providers/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Checks settings with the provider without anyone signing in: the issuer,
+         *     the scopes it lists, and whether it takes the client ID and secret.
+         */
+        post: operations["check_provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth-providers/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Checks an issuer URL by fetching its OpenID configuration. */
+        post: operations["test_issuer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth-providers/tests/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What came back from a test sign-in, for ten minutes after. */
+        get: operations["test_report"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth-providers/try": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Starts a test sign-in with settings, saved or not. Nobody is signed in
+         *     and nothing is saved; the report is at `/auth-providers/tests/{token}`.
+         */
+        post: operations["try_provider"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth-providers/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Changes a provider. The client secret is kept unless a new one is given. */
+        put: operations["update_provider"];
+        post?: never;
+        /**
+         * Removes a provider and every account linked through it. People who could
+         *     only sign in with it are turned off until an admin gives them a password.
+         */
+        delete: operations["delete_provider"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth-providers/{key}/override": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Edit a provider from environment variables here instead; its variables
+         *     are ignored from then on.
+         */
+        post: operations["take_over"];
+        /** Go back to the environment: reapplies the provider's variables. */
+        delete: operations["give_back"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["set_auth_settings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -176,6 +325,82 @@ export interface paths {
         put?: never;
         /** Ends this session. */
         post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the "Is this you?" screen shows. */
+        get: operations["confirmation"];
+        put?: never;
+        /** It's me: proves it with the account's password, links the two and signs in. */
+        post: operations["confirm"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/confirm/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** It isn't me: makes a new account for the provider's account instead. */
+        post: operations["decline"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/{key}/callback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Where the provider sends the browser back. */
+        get: operations["callback"];
+        put?: never;
+        /**
+         * Where a provider posts the browser back (`response_mode=form_post`, which
+         *     Apple uses). The sign-in cookie is SameSite=Lax, so a cross-site POST
+         *     arrives without it: this answers with a page that carries on to the GET
+         *     callback from this site, where it does. Apple's one-time name is kept with
+         *     the sign-in rather than put in the URL.
+         */
+        post: operations["posted_callback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oidc/{key}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Sends the browser to the provider to sign in, or to link an account. */
+        get: operations["start"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -812,10 +1037,43 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Changes your own name or password. A new password signs out your other
-         *     sessions; this one gets a new cookie.
+         * Changes your own name, email or password. A new password signs out your
+         *     other sessions; this one gets a new cookie.
          */
         patch: operations["update_me"];
+        trace?: never;
+    };
+    "/api/me/logins/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unlinks one of your accounts, if you still have another way in. */
+        delete: operations["unlink_mine"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/sign-in": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["my_sign_in"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/metadata/search": {
@@ -1415,6 +1673,43 @@ export interface paths {
         patch: operations["update_user"];
         trace?: never;
     };
+    "/api/users/{id}/logins/{login}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Unlinks a user's account, if they still have another way in. */
+        delete: operations["unlink_user"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/users/{id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Approves or declines someone waiting, or turns a user off or back on.
+         *     Turning someone off signs them out; admins can't be turned off.
+         */
+        put: operations["set_user_status"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/wanted": {
         parameters: {
             query?: never;
@@ -1599,7 +1894,15 @@ export interface components {
             is_default: boolean;
             language?: string | null;
         };
+        AuthSettingsInput: {
+            /** @description Show the password form on the login page up front. */
+            password_sign_in: boolean;
+        };
         AuthStatus: {
+            /** @description Whether the login page shows the password form up front. */
+            password_sign_in: boolean;
+            /** @description Other accounts people can sign in with. */
+            providers: components["schemas"]["ProviderButton"][];
             /** @description No account has a password yet: show the setup screen. */
             setup_needed: boolean;
             user?: components["schemas"]["User"] | null;
@@ -1641,6 +1944,14 @@ export interface components {
             source: string;
             /** @description A title to show: the provider's, or the episode's with its number. */
             title: string;
+        };
+        /** @description What the provider says about the settings, without anyone signing in. */
+        CheckReport: {
+            /** @description The issuer as the provider names itself, if it was found. */
+            issuer?: string | null;
+            notes: components["schemas"]["Note"][];
+            /** @description The scopes a sign-in would ask for. */
+            scopes?: string | null;
         };
         CheckTemplate: {
             /** @description `tv` or `movies`. */
@@ -1688,6 +1999,21 @@ export interface components {
             /** Format: int64 */
             series_id: number;
             series_title: string;
+        };
+        ConfirmBody: {
+            /** @description The matched account's password. */
+            password: string;
+        };
+        /** @description "Is this you?": an account whose verified email matched a user's. */
+        Confirmation: {
+            /** @description The Media Cabinet account with that email. */
+            account: string;
+            /** @description Whether they can prove it with the account's password. */
+            has_password: boolean;
+            /** @description Or by signing in with a provider the account is already linked to. */
+            other_providers: components["schemas"]["ProviderButton"][];
+            /** @description The provider they signed in with. */
+            provider: string;
         };
         ContinueItem: {
             episode: components["schemas"]["EpisodeRef"];
@@ -1738,6 +2064,19 @@ export interface components {
              *     empty for the only or usual one.
              */
             edition?: string | null;
+        };
+        EnvInfo: {
+            /** @description The fields set by a variable; the rest have their defaults. */
+            fields: string[];
+            /** @description The variables are no longer set. */
+            missing: boolean;
+            /** @description Edited here instead; the variables are ignored. */
+            overridden: boolean;
+            /**
+             * @description e.g. `CABINET_OIDC_AUTHENTIK_`; a field's variable is this plus its
+             *     name in upper case.
+             */
+            prefix: string;
         };
         Episode: components["schemas"]["EpisodeRef"] & {
             availability: components["schemas"]["Availability"];
@@ -1996,6 +2335,13 @@ export interface components {
             root_id: number;
             sidecars: string[];
         };
+        IssuerFound: {
+            /** @description The issuer as the provider names itself; save this one. */
+            issuer: string;
+        };
+        IssuerTest: {
+            issuer: string;
+        };
         /** @description Fields people can edit. Absent fields are left alone. */
         ItemEdit: {
             /** @description Lock the edited fields so metadata refreshes never overwrite them. */
@@ -2056,6 +2402,13 @@ export interface components {
             /** Format: double */
             position_seconds: number;
         };
+        /**
+         * @description How a provider signs people in.
+         * @enum {string}
+         */
+        Kind: "oidc" | "github" | "discord" | "oauth2";
+        /** @enum {string} */
+        Level: "good" | "info" | "warning" | "problem";
         Library: {
             /** Format: int64 */
             id: number;
@@ -2123,16 +2476,39 @@ export interface components {
             /** @description Fields refreshes must not overwrite; empty unlocks all. */
             fields: string[];
         };
+        /** @description A linked account, as its user and admins see it. */
+        Login: {
+            /** @description The account's email at the provider, as last seen. */
+            email?: string | null;
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            last_used_at?: number | null;
+            /** Format: int64 */
+            linked_at: number;
+            provider_key: string;
+            provider_name: string;
+        };
+        /** @description A user as admins see them. */
+        ManagedUser: components["schemas"]["User"] & {
+            has_password: boolean;
+            /** @description Accounts at sign-in providers. */
+            logins: components["schemas"]["Login"][];
+            /** @description The provider whose groups decide whether they're an admin, if any. */
+            role_from?: string | null;
+        };
         MatchOrdering: {
             /** @description `ordering:<id>` of this series, or null to try the default first. */
             view?: string | null;
         };
         MeUpdate: {
             current_password?: string | null;
+            /** @description Empty to remove it. */
+            email?: string | null;
             /** @description Hide what you watch from other users (not from admins), from now on. */
             incognito?: boolean | null;
             name?: string | null;
-            /** @description A new password; needs `current_password`. */
+            /** @description A new password; needs `current_password` if there is one. */
             password?: string | null;
         };
         /** @enum {string} */
@@ -2199,6 +2575,12 @@ export interface components {
             /** Format: int64 */
             year?: number | null;
         };
+        /** @description How you sign in: a password, linked accounts, and providers to link. */
+        MySignIn: {
+            has_password: boolean;
+            logins: components["schemas"]["Login"][];
+            providers: components["schemas"]["ProviderButton"][];
+        };
         NewApiKey: components["schemas"]["ApiKey"] & {
             /** @description The key itself. Shown only now; store it in the tool that uses it. */
             secret: string;
@@ -2211,6 +2593,10 @@ export interface components {
         NewWebhook: components["schemas"]["Webhook"] & {
             /** @description For verifying signatures. Shown only now. */
             secret: string;
+        };
+        Note: {
+            level: components["schemas"]["Level"];
+            text: string;
         };
         /** @enum {string} */
         NumberStyle: "season" | "absolute" | "playlist";
@@ -2422,6 +2808,14 @@ export interface components {
             /** @description `managed`, `adaptive` or `read_only`. */
             policy: string;
         };
+        PostedCallback: {
+            code?: string | null;
+            error?: string | null;
+            error_description?: string | null;
+            state?: string | null;
+            /** @description Apple's, on someone's first sign-in: their name and email as JSON. */
+            user?: string | null;
+        };
         Progress: {
             /**
              * Format: double
@@ -2445,6 +2839,88 @@ export interface components {
             /** @description `tv` or `movies`. */
             kind: string;
             path: string;
+        };
+        /** @description A button on the login page. */
+        ProviderButton: {
+            key: string;
+            name: string;
+        };
+        /** @description Settings to try, saved or not. */
+        ProviderDraft: {
+            /** @description The provider being edited: its secret is used when none is given. */
+            existing?: string | null;
+            provider: components["schemas"]["ProviderInput"];
+        };
+        ProviderInput: {
+            admin_group?: string | null;
+            allowed_groups?: string[];
+            /** @description Plain OAuth2 only, as are the fields below. */
+            authorize_url?: string | null;
+            client_id: string;
+            /** @description Leave out to keep the current one. */
+            client_secret?: string | null;
+            email_field?: string | null;
+            enabled?: boolean;
+            groups_claim?: string | null;
+            id_field?: string | null;
+            /** @description OIDC only. */
+            issuer?: string;
+            /** @description Defaults to one made from the name. */
+            key?: string | null;
+            key_id?: string | null;
+            kind?: components["schemas"]["Kind"];
+            name: string;
+            name_field?: string | null;
+            new_users?: components["schemas"]["UserStatus"];
+            /** @description Picked by name in the form, e.g. `keycloak`. */
+            preset?: string | null;
+            redirect_url?: string | null;
+            scopes?: string | null;
+            /**
+             * @description Sign in with Apple only, as is `key_id`; the private key goes in
+             *     `client_secret`.
+             */
+            team_id?: string | null;
+            token_url?: string | null;
+            userinfo_url?: string | null;
+            verified_field?: string | null;
+        };
+        /** @description A provider as admins see it: never the secret. */
+        ProviderView: {
+            admin_group?: string | null;
+            allowed_groups: string[];
+            authorize_url?: string | null;
+            client_id: string;
+            email_field?: string | null;
+            enabled: boolean;
+            env?: components["schemas"]["EnvInfo"] | null;
+            groups_claim: string;
+            has_secret: boolean;
+            id_field?: string | null;
+            issuer: string;
+            key: string;
+            key_id?: string | null;
+            kind: components["schemas"]["Kind"];
+            name: string;
+            name_field?: string | null;
+            new_users: components["schemas"]["UserStatus"];
+            preset?: string | null;
+            redirect_url?: string | null;
+            scopes: string;
+            /**
+             * Format: int64
+             * @description People who can sign in only with this provider.
+             */
+            sole_users: number;
+            team_id?: string | null;
+            token_url?: string | null;
+            userinfo_url?: string | null;
+            /**
+             * Format: int64
+             * @description People with a linked account.
+             */
+            users: number;
+            verified_field?: string | null;
         };
         QualityProfile: {
             /** Format: int64 */
@@ -2492,6 +2968,10 @@ export interface components {
         Rematch: {
             /** @description The provider's ID for the right series. */
             provider_id: string;
+        };
+        Removed: {
+            /** @description People who could only sign in with it, now turned off. */
+            disabled_users: number;
         };
         RenameLibrary: {
             name: string;
@@ -2638,6 +3118,15 @@ export interface components {
             /** @description `ordering:<id>` or `playlist:<id>` of this series. */
             view: string;
         };
+        /** @description Sign-in providers and the password switch, for Manage → Users. */
+        SignInSettings: {
+            /** @description A provider's redirect URL is this plus `{key}/callback`. */
+            callback_base: string;
+            password_sign_in: boolean;
+            /** @description `CABINET_PASSWORD_SIGN_IN` is set, so the switch is read-only. */
+            password_sign_in_from_env: boolean;
+            providers: components["schemas"]["ProviderView"][];
+        };
         /** @description One series in Sonarr's "Custom List" format. */
         SonarrListItem: {
             imdbId?: string | null;
@@ -2662,6 +3151,9 @@ export interface components {
             upcoming: number;
             /** Format: int64 */
             wanted: number;
+        };
+        StatusChange: {
+            status: components["schemas"]["UserStatus"];
         };
         StatusUpdate: {
             /** @description JSON detail, e.g. `{"progress": 0.4, "eta_seconds": 540}`. */
@@ -2772,9 +3264,33 @@ export interface components {
          * @enum {string}
          */
         TemplateRole: "grouping" | "item" | "below" | "separator";
+        /** @description What came back from a test sign-in. Nothing was saved. */
+        TestReport: {
+            /** @description Every claim's name, from the ID token and userinfo. */
+            claims: string[];
+            email?: string | null;
+            email_verified: boolean;
+            /** @description As granted, if the provider said. */
+            granted_scopes?: string | null;
+            /** @description Missing when the groups claim wasn't there. */
+            groups?: string[] | null;
+            /** @description The name a new user would get. */
+            name?: string | null;
+            notes: components["schemas"]["Note"][];
+            /** @description What a real sign-in would have done with this account. */
+            outcome?: string | null;
+            provider: string;
+            /** @description As asked for. */
+            scopes: string;
+            subject?: string | null;
+        };
         TestResult: {
             error?: string | null;
             ok: boolean;
+        };
+        TestStarted: {
+            /** @description Open this in a new window; it ends by handing over the report's token. */
+            url: string;
         };
         /** @enum {string} */
         TransferMode: "hardlink" | "copy" | "move";
@@ -2786,19 +3302,28 @@ export interface components {
         User: {
             /** Format: int64 */
             created_at: number;
+            email?: string | null;
             /** Format: int64 */
             id: number;
             /** @description Hides what the user watches from other users, not from admins. */
             incognito: boolean;
             is_admin: boolean;
             name: string;
+            status: components["schemas"]["UserStatus"];
         };
         UserRef: {
             /** Format: int64 */
             id: number;
             name: string;
         };
+        /**
+         * @description Whether a user may use the app.
+         * @enum {string}
+         */
+        UserStatus: "active" | "pending" | "disabled";
         UserUpdate: {
+            /** @description Empty to remove it. */
+            email?: string | null;
             is_admin?: boolean | null;
             name?: string | null;
             /** @description Sets a new password, signing the user out everywhere. */
@@ -3174,6 +3699,351 @@ export interface operations {
             };
         };
     };
+    list_providers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInSettings"];
+                };
+            };
+        };
+    };
+    create_provider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderInput"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderView"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    check_provider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderDraft"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CheckReport"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    test_issuer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IssuerTest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IssuerFound"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    test_report: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestReport"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    try_provider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderDraft"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TestStarted"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    update_provider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderView"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    delete_provider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Removed"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    take_over: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderView"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    give_back: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderView"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_auth_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AuthSettingsInput"];
+            };
+        };
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -3219,6 +4089,181 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    confirmation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Confirmation"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    confirm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmBody"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    decline: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    callback: {
+        parameters: {
+            query?: {
+                code?: string | null;
+                state?: string | null;
+                error?: string | null;
+                error_description?: string | null;
+            };
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Back into the app */
+            303: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    posted_callback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/x-www-form-urlencoded": components["schemas"]["PostedCallback"];
+            };
+        };
+        responses: {
+            /** @description A page that carries on to the GET callback */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    start: {
+        parameters: {
+            query?: {
+                /** @description Link the account to the signed-in user instead of signing in. */
+                link?: boolean;
+                /** @description Also complete the waiting "Is this you?" if this turns out to be them. */
+                then_confirm?: boolean;
+            };
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description To the provider */
+            303: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
             };
         };
     };
@@ -4592,6 +5637,60 @@ export interface operations {
             };
         };
     };
+    unlink_mine: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    my_sign_in: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MySignIn"];
+                };
+            };
+        };
+    };
     search: {
         parameters: {
             query: {
@@ -5835,7 +6934,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["User"][];
+                    "application/json": components["schemas"]["ManagedUser"][];
                 };
             };
         };
@@ -5918,6 +7017,83 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["UserUpdate"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    unlink_user: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+                login: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    set_user_status: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StatusChange"];
             };
         };
         responses: {

@@ -24,6 +24,7 @@ mod people;
 mod playback;
 mod playlists;
 mod review;
+mod sign_in;
 mod wanted;
 mod watch;
 
@@ -43,6 +44,22 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(accounts::update_me))
         .routes(routes!(accounts::list_users, accounts::create_user))
         .routes(routes!(accounts::update_user, accounts::delete_user))
+        .routes(routes!(accounts::set_user_status))
+        .routes(routes!(accounts::my_sign_in))
+        .routes(routes!(accounts::unlink_mine))
+        .routes(routes!(accounts::unlink_user))
+        .routes(routes!(sign_in::start))
+        .routes(routes!(sign_in::callback, sign_in::posted_callback))
+        .routes(routes!(sign_in::confirmation, sign_in::confirm))
+        .routes(routes!(sign_in::decline))
+        .routes(routes!(sign_in::list_providers, sign_in::create_provider))
+        .routes(routes!(sign_in::update_provider, sign_in::delete_provider))
+        .routes(routes!(sign_in::take_over, sign_in::give_back))
+        .routes(routes!(sign_in::test_issuer))
+        .routes(routes!(sign_in::check_provider))
+        .routes(routes!(sign_in::try_provider))
+        .routes(routes!(sign_in::test_report))
+        .routes(routes!(sign_in::set_auth_settings))
         .routes(routes!(activity::list))
         .routes(routes!(activity::clear_my_watch))
         .routes(routes!(catalog::home))

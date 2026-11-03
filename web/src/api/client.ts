@@ -45,6 +45,19 @@ export type NewWebhook = Schemas['NewWebhook']
 export type MovePlan = Schemas['MovePlan']
 export type FolderRename = Schemas['FolderRename']
 export type User = Schemas['User']
+export type UserStatus = Schemas['UserStatus']
+export type ManagedUser = Schemas['ManagedUser']
+export type Login = Schemas['Login']
+export type MySignIn = Schemas['MySignIn']
+export type ProviderButton = Schemas['ProviderButton']
+export type ProviderView = Schemas['ProviderView']
+export type ProviderInput = Schemas['ProviderInput']
+export type ProviderKind = Schemas['Kind']
+export type SignInSettings = Schemas['SignInSettings']
+export type CheckReport = Schemas['CheckReport']
+export type TestReport = Schemas['TestReport']
+export type Note = Schemas['Note']
+export type Confirmation = Schemas['Confirmation']
 export type AuthStatus = Schemas['AuthStatus']
 export type ItemWatch = Schemas['ItemWatch']
 export type Playlist = Schemas['Playlist']
@@ -300,16 +313,61 @@ export const api = {
   logout: () => request<void>('POST', '/api/auth/logout'),
   updateMe: (changes: {
     name?: string
+    email?: string
     password?: string
     current_password?: string
     incognito?: boolean
   }) => request<User>('PATCH', '/api/me', changes),
-  users: () => request<User[]>('GET', '/api/users'),
+  mySignIn: () => request<MySignIn>('GET', '/api/me/sign-in'),
+  unlinkMine: (loginId: number) => request<void>('DELETE', `/api/me/logins/${loginId}`),
+  users: () => request<ManagedUser[]>('GET', '/api/users'),
   createUser: (name: string, password: string, isAdmin: boolean) =>
     request<User>('POST', '/api/users', { name, password, is_admin: isAdmin }),
-  updateUser: (id: number, changes: { name?: string; password?: string; is_admin?: boolean }) =>
-    request<User>('PATCH', `/api/users/${id}`, changes),
+  updateUser: (
+    id: number,
+    changes: { name?: string; email?: string; password?: string; is_admin?: boolean },
+  ) => request<User>('PATCH', `/api/users/${id}`, changes),
   deleteUser: (id: number) => request<void>('DELETE', `/api/users/${id}`),
+  /** Approve (`active`), decline or turn off (`disabled`), or turn back on. */
+  setUserStatus: (id: number, status: UserStatus) =>
+    request<User>('PUT', `/api/users/${id}/status`, { status }),
+  unlinkUser: (id: number, loginId: number) =>
+    request<void>('DELETE', `/api/users/${id}/logins/${loginId}`),
+
+  /** Full-page navigation: the provider's sign-in, then back here. */
+  signInWithUrl: (key: string, opts: { link?: boolean; thenConfirm?: boolean } = {}) =>
+    `/api/auth/oidc/${encodeURIComponent(key)}/start?${query({
+      link: opts.link || undefined,
+      then_confirm: opts.thenConfirm || undefined,
+    })}`,
+  confirmation: () => request<Confirmation>('GET', '/api/auth/oidc/confirm'),
+  confirm: (password: string) => request<User>('POST', '/api/auth/oidc/confirm', { password }),
+  declineConfirm: () => request<User>('POST', '/api/auth/oidc/confirm/decline'),
+  signInSettings: () => request<SignInSettings>('GET', '/api/auth-providers'),
+  createProvider: (input: ProviderInput) =>
+    request<ProviderView>('POST', '/api/auth-providers', input),
+  updateProvider: (key: string, input: ProviderInput) =>
+    request<ProviderView>('PUT', `/api/auth-providers/${encodeURIComponent(key)}`, input),
+  deleteProvider: (key: string) =>
+    request<{ disabled_users: number }>('DELETE', `/api/auth-providers/${encodeURIComponent(key)}`),
+  /** Edit a provider from environment variables here instead. */
+  overrideProvider: (key: string) =>
+    request<ProviderView>('POST', `/api/auth-providers/${encodeURIComponent(key)}/override`),
+  /** Go back to the provider's environment variables. */
+  revertProvider: (key: string) =>
+    request<ProviderView>('DELETE', `/api/auth-providers/${encodeURIComponent(key)}/override`),
+  testIssuer: (issuer: string) =>
+    request<{ issuer: string }>('POST', '/api/auth-providers/test', { issuer }),
+  /** Asks the provider about settings, saved or not, without anyone signing in. */
+  checkProvider: (existing: string | null, provider: ProviderInput) =>
+    request<CheckReport>('POST', '/api/auth-providers/check', { existing, provider }),
+  /** Starts a test sign-in; open the URL in a new window. */
+  tryProvider: (existing: string | null, provider: ProviderInput) =>
+    request<{ url: string }>('POST', '/api/auth-providers/try', { existing, provider }),
+  testReport: (token: string) =>
+    request<TestReport>('GET', `/api/auth-providers/tests/${encodeURIComponent(token)}`),
+  setPasswordSignIn: (on: boolean) =>
+    request<void>('PUT', '/api/auth-settings', { password_sign_in: on }),
 
   versions: (itemId: number) => request<Version[]>('GET', `/api/items/${itemId}/versions`),
   play: (itemId: number, choice: PlayChoice, caps: ClientCaps, startSeconds?: number) =>

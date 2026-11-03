@@ -19,6 +19,8 @@ pub struct AppState {
     /// Rotten Tomatoes, Metacritic and IMDb ratings, when `CABINET_OMDB_KEY` is set.
     pub omdb: Option<cabinet_core::metadata::omdb::Omdb>,
     pub match_settings: cabinet_core::matcher::MatchSettings,
+    /// Signing in with other accounts: sign-ins in progress, env providers.
+    pub sign_in: cabinet_core::sign_in::SignIn,
     pub artwork: artwork::ArtworkCache,
     pub transcoder: transcode::Transcoder,
     /// Derived files that can be rebuilt, such as subtitles as WebVTT.
@@ -91,6 +93,26 @@ fn omdb() -> Option<cabinet_core::metadata::omdb::Omdb> {
     Some(cabinet_core::metadata::omdb::Omdb::new(key))
 }
 
+/// Providers from CABINET_OIDC_*, written to the database; problems are
+/// logged and the server starts anyway.
+async fn sign_in_providers(db: &sqlx::SqlitePool) -> anyhow::Result<cabinet_core::sign_in::SignIn> {
+    use cabinet_core::sign_in::{SignIn, env, providers};
+    let vars: Vec<(String, String)> = std::env::vars().collect();
+    let password = env::password_sign_in(&vars).map_err(anyhow::Error::msg)?;
+    let (from_env, problems) = env::parse(&vars);
+    for problem in problems {
+        tracing::warn!("{problem}");
+    }
+    for warning in providers::sync_env(db, &from_env).await? {
+        tracing::warn!("{warning}");
+    }
+    if !from_env.is_empty() {
+        let keys: Vec<&str> = from_env.iter().map(|p| p.key.as_str()).collect();
+        tracing::info!(?keys, "sign-in providers from the environment");
+    }
+    Ok(SignIn::new(from_env, password))
+}
+
 fn env_number(name: &str, default: u64) -> anyhow::Result<u64> {
     match std::env::var(name) {
         Ok(v) => v
@@ -138,6 +160,7 @@ async fn main() -> anyhow::Result<()> {
 
     // The first admin; the setup screen gives it a name and password.
     cabinet_core::catalog::ensure_default_user(&db).await?;
+    let sign_in = sign_in_providers(&db).await?;
 
     let prober = cabinet_core::scan::Prober {
         program: std::env::var("CABINET_FFPROBE")
@@ -220,6 +243,7 @@ async fn main() -> anyhow::Result<()> {
         provider,
         omdb,
         match_settings,
+        sign_in,
         artwork: artwork::ArtworkCache::new(data_dir.join("artwork")),
         transcoder,
         cache: data_dir.join("cache"),

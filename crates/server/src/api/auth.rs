@@ -8,13 +8,15 @@
 //! state, views, playlists and watch activity. A few reads need an admin too: keys, webhooks,
 //! users, the review queue, an item's event history, a file's probe and browsing
 //! the server's folders.
+//!
+//! Users who aren't active (waiting for approval) may do nothing but sign out.
 
 use axum::extract::{FromRequestParts, Request, State};
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, Method, Uri};
 use axum::middleware::Next;
 use axum::response::{IntoResponse, Response};
-use cabinet_core::accounts::User;
+use cabinet_core::accounts::{User, UserStatus};
 
 use super::ApiError;
 use crate::AppState;
@@ -33,6 +35,7 @@ fn is_public(path: &str) -> bool {
 
 const ADMIN_READS: &[&str] = &[
     "/api/api-keys",
+    "/api/auth-providers",
     "/api/webhooks",
     "/api/users",
     "/api/review",
@@ -42,7 +45,11 @@ const ADMIN_READS: &[&str] = &[
 
 /// Changes any signed-in user may make.
 fn is_own_change(path: &str) -> bool {
-    if path == "/api/me" || path.starts_with("/api/playlists") || path.starts_with("/api/play/") {
+    if path == "/api/me"
+        || path.starts_with("/api/me/")
+        || path.starts_with("/api/playlists")
+        || path.starts_with("/api/play/")
+    {
         return true;
     }
     if path == "/api/activity/mine/watch" {
@@ -130,6 +137,12 @@ pub async fn require_auth(
         }
         Err(e) => return e.into_response(),
     };
+    if let Caller::User(user) = &caller
+        && user.status != UserStatus::Active
+    {
+        return ApiError::ForbiddenBecause("Waiting for an admin to let you in.".into())
+            .into_response();
+    }
     let admin = match &caller {
         Caller::Key => true,
         Caller::User(user) => user.is_admin,
@@ -276,6 +289,15 @@ mod tests {
         assert!(!needs_admin(&Method::DELETE, "/api/play/abc"));
         assert!(!needs_admin(&Method::POST, "/api/playlists"));
         assert!(!needs_admin(&Method::PATCH, "/api/me"));
+        assert!(!needs_admin(&Method::DELETE, "/api/me/logins/3"));
+        assert!(needs_admin(&Method::GET, "/api/auth-providers"));
+        assert!(needs_admin(&Method::POST, "/api/auth-providers"));
+        assert!(needs_admin(&Method::POST, "/api/auth-providers/try"));
+        assert!(needs_admin(&Method::GET, "/api/auth-providers/tests/abc"));
+        assert!(needs_admin(&Method::PUT, "/api/auth-settings"));
+        assert!(needs_admin(&Method::PUT, "/api/users/2/status"));
+        assert!(is_public("/api/auth/oidc/authentik/callback"));
+        assert!(!is_public("/api/auth-providers"));
         assert!(needs_admin(&Method::PATCH, "/api/users/2"));
         assert!(!needs_admin(&Method::GET, "/api/activity"));
         assert!(!needs_admin(&Method::DELETE, "/api/activity/mine/watch"));

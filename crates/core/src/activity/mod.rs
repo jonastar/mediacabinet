@@ -24,7 +24,12 @@ pub const USER_CREATED: &str = "user_created";
 pub const USER_REMOVED: &str = "user_removed";
 /// Renamed, password reset, or made or no longer an admin, by an admin.
 pub const USER_CHANGED: &str = "user_changed";
+/// Approved, declined, turned off or back on.
+pub const USER_STATUS: &str = "user_status";
 pub const LOGIN: &str = "login";
+/// An account at a sign-in provider linked to a user, or unlinked.
+pub const LOGIN_LINKED: &str = "login_linked";
+pub const LOGIN_UNLINKED: &str = "login_unlinked";
 pub const LOGIN_FAILED: &str = "login_failed";
 pub const CONFIG_CHANGED: &str = "config_changed";
 pub const TASK_FINISHED: &str = "task_finished";

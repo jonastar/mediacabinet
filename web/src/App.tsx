@@ -14,7 +14,7 @@ import { SeriesPage } from './pages/SeriesPage'
 import { ShowsPage } from './pages/ShowsPage'
 import { match, usePath } from './lib/router'
 import { checkSession, useSession } from './lib/session'
-import { AuthPage } from './pages/AuthPage'
+import { AuthPage, PendingPage } from './pages/AuthPage'
 import { AccountPage } from './pages/AccountPage'
 import { PlayerPage } from './pages/PlayerPage'
 import { Failed } from './components/Status'
@@ -97,8 +97,16 @@ export default function App() {
   if (session.state === 'unreachable') {
     return <Failed error={session.error} onRetry={checkSession} />
   }
+  if (session.state === 'pending') {
+    return <PendingPage name={session.user.name} />
+  }
   if (session.state !== 'signedIn') {
-    return <AuthPage setup={session.state === 'setup'} />
+    return (
+      <AuthPage
+        setup={session.state === 'setup'}
+        options={session.state === 'signedOut' ? session.options : undefined}
+      />
+    )
   }
   const play = match('/play/:id', path)
   if (play && /^\d+$/.test(play.id)) {

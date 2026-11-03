@@ -1,3 +1,6 @@
+import { useEffect } from 'react'
+import { api } from '../../api/client'
+import { useApi } from '../../api/useApi'
 import { Link } from '../../components/Link'
 import { match } from '../../lib/router'
 import { LibrariesPage } from '../LibrariesPage'
@@ -8,13 +11,16 @@ import { ReviewPage } from '../ReviewPage'
 import { SettingsPage } from '../SettingsPage'
 import { WantedPage } from '../WantedPage'
 import { Overview } from './Overview'
+import { USERS_CHANGED_EVENT, UsersPage } from './UsersPage'
 import styles from './Manage.module.css'
+import usersStyles from './Users.module.css'
 
 const TABS = [
   { to: '/manage', label: 'Overview' },
   { to: '/manage/wanted', label: 'Wanted' },
   { to: '/manage/review', label: 'Review queue' },
   { to: '/manage/libraries', label: 'Libraries & roots' },
+  { to: '/manage/users', label: 'Users' },
   { to: '/manage/settings', label: 'Settings' },
 ]
 
@@ -31,6 +37,9 @@ function Section({ path }: { path: string }) {
   }
   if (path === '/manage/review') {
     return <ReviewPage />
+  }
+  if (path === '/manage/users') {
+    return <UsersPage />
   }
   if (path === '/manage/settings') {
     return <SettingsPage />
@@ -49,9 +58,21 @@ function Section({ path }: { path: string }) {
   return <NotFoundPage />
 }
 
+/** How many people are waiting to be let in. */
+function useWaiting() {
+  const users = useApi('users', api.users)
+  const { reload } = users
+  useEffect(() => {
+    window.addEventListener(USERS_CHANGED_EVENT, reload)
+    return () => window.removeEventListener(USERS_CHANGED_EVENT, reload)
+  }, [reload])
+  return users.data?.filter((u) => u.status === 'pending').length ?? 0
+}
+
 /** Everything admins look after, one tab per section; under `/manage`. */
 export function ManagePage({ path }: { path: string }) {
   const current = path.replace(/\/+$/, '') || '/manage'
+  const waiting = useWaiting()
   return (
     <>
       <nav aria-label="Manage" className={styles.tabs}>
@@ -63,6 +84,11 @@ export function ManagePage({ path }: { path: string }) {
             aria-current={isCurrent(t.to, current) ? 'page' : undefined}
           >
             {t.label}
+            {t.to === '/manage/users' && waiting > 0 && (
+              <span className={usersStyles.tabCount} title={`${waiting} waiting to be let in`}>
+                {waiting}
+              </span>
+            )}
           </Link>
         ))}
       </nav>

@@ -12,6 +12,15 @@ Details belong in the commit, docs or API reference.
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
+- Sign in with Authentik, Keycloak, Pocket ID or any OpenID Connect provider, set up in Manage → Users or with `CABINET_OIDC_*`; new people wait for an admin to let them in unless the provider is set to let them straight in.
+- Sign in with GitHub, Discord or any plain OAuth2 provider with a user endpoint, besides OpenID Connect.
+- Adding a sign-in provider starts by picking it from a list (Authentik, Keycloak, Google, Microsoft, Apple…), with setup steps for each; Sign in with Apple is supported.
+- Migration 0017 records which provider was picked, and Apple's Team ID and Key ID.
+- Migration 0016 adds a type to sign-in providers, with endpoints and user fields for plain OAuth2.
+- Sign-in providers can be tested before saving: Check settings flags unknown scopes and a wrong client secret, and Try signing in shows what the provider sends back and what would happen.
+- Users have an email address, can link and unlink accounts at sign-in providers from Account, and can be turned off instead of removed (`PUT /api/users/{id}/status`).
+- Users moved from Manage → Settings to their own Manage → Users tab.
+- Migration 0015 adds sign-in providers, linked accounts, and users' email and status.
 - A library's metadata can be fetched again in one go from its Metadata panel (`POST /api/libraries/{id}/refresh`), running as a task with progress.
 - Cast and crew on movie, series and episode pages (guest stars, directors, writers, creators), with a page per person listing everything they're in across the library.
 - Series show their network; movies and series show studios, a tagline and the age rating (`CABINET_TMDB_REGION` picks the country).

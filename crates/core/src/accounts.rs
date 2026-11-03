@@ -3,10 +3,13 @@
 //! Passwords are hashed with Argon2id. A session is a random token in an
 //! HttpOnly cookie; only its SHA-256 is stored. Sessions last 30 days from last
 //! use. The first run has one admin without a password: setup gives it one.
+//!
+//! Users who sign in with another account ([`crate::sign_in`]) may have no
+//! password, and may be pending until an admin lets them in.
 
 use argon2::Argon2;
 use argon2::password_hash::{PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use sqlx::SqlitePool;
 use utoipa::ToSchema;
@@ -21,8 +24,22 @@ pub enum AccountError {
     Invalid(String),
     #[error("Wrong name or password.")]
     BadLogin,
+    #[error("This account has been turned off. Ask an admin.")]
+    Disabled,
     #[error(transparent)]
     Db(#[from] sqlx::Error),
+}
+
+/// Whether a user may use the app.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema, sqlx::Type)]
+#[serde(rename_all = "snake_case")]
+#[sqlx(rename_all = "snake_case")]
+pub enum UserStatus {
+    Active,
+    /// Signed in with another account; waiting for an admin.
+    Pending,
+    /// Declined or turned off by an admin; can't sign in.
+    Disabled,
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema, sqlx::FromRow)]
@@ -33,9 +50,11 @@ pub struct User {
     pub created_at: i64,
     /// Hides what the user watches from other users, not from admins.
     pub incognito: bool,
+    pub email: Option<String>,
+    pub status: UserStatus,
 }
 
-const USER_COLUMNS: &str = "id, name, is_admin, created_at, incognito";
+const USER_COLUMNS: &str = "id, name, is_admin, created_at, incognito, email, status";
 
 fn hash_token(token: &str) -> String {
     hex::encode(Sha256::digest(token.as_bytes()))
@@ -72,6 +91,19 @@ async fn verify_password(password: String, hash: String) -> bool {
     })
     .await
     .unwrap_or(false)
+}
+
+fn check_email(email: &str) -> Result<Option<String>, AccountError> {
+    let email = email.trim();
+    if email.is_empty() {
+        return Ok(None);
+    }
+    if email.len() > 254 || !email.contains('@') {
+        return Err(AccountError::Invalid(
+            "That doesn't look like an email address.".into(),
+        ));
+    }
+    Ok(Some(email.to_string()))
 }
 
 fn check_name(name: &str) -> Result<String, AccountError> {
@@ -216,7 +248,7 @@ pub async fn set_incognito(pool: &SqlitePool, id: i64, on: bool) -> Result<User,
 }
 
 async fn admins(pool: &SqlitePool) -> Result<i64, sqlx::Error> {
-    sqlx::query_scalar("SELECT count(*) FROM app_user WHERE is_admin")
+    sqlx::query_scalar("SELECT count(*) FROM app_user WHERE is_admin AND status = 'active'")
         .fetch_one(pool)
         .await
 }
@@ -260,6 +292,16 @@ pub async fn login(
             return Err(AccountError::BadLogin);
         }
     };
+    open_session(pool, id).await
+}
+
+/// Opens a session for a user whose identity is already proven. Refused for
+/// disabled users. Returns the user and the session token for the cookie.
+pub async fn open_session(pool: &SqlitePool, id: i64) -> Result<(User, String), AccountError> {
+    let user = user(pool, id).await?;
+    if user.status == UserStatus::Disabled {
+        return Err(AccountError::Disabled);
+    }
     let token = crate::apikeys::random_secret().replacen("mc_", "", 1);
     sqlx::query(
         "INSERT INTO session (user_id, token_hash, expires_at) VALUES (?, ?, unixepoch() + ?)",
@@ -272,7 +314,7 @@ pub async fn login(
     sqlx::query("DELETE FROM session WHERE expires_at < unixepoch()")
         .execute(pool)
         .await?;
-    Ok((user(pool, id).await?, token))
+    Ok((user, token))
 }
 
 /// The user a session token belongs to, extending the session as it's used.
@@ -286,7 +328,10 @@ pub async fn session_user(pool: &SqlitePool, token: &str) -> Result<Option<User>
     .fetch_optional(pool)
     .await?;
     match id {
-        Some(id) => Ok(user(pool, id).await.ok()),
+        Some(id) => Ok(user(pool, id)
+            .await
+            .ok()
+            .filter(|u| u.status != UserStatus::Disabled)),
         None => Ok(None),
     }
 }
@@ -315,4 +360,136 @@ pub async fn check_password(
         Some(hash) => Ok(verify_password(password.to_string(), hash).await),
         None => Ok(false),
     }
+}
+
+/// Whether the user has a password, as well as or instead of linked accounts.
+pub async fn has_password(pool: &SqlitePool, id: i64) -> Result<bool, sqlx::Error> {
+    sqlx::query_scalar("SELECT password_hash IS NOT NULL FROM app_user WHERE id = ?")
+        .bind(id)
+        .fetch_optional(pool)
+        .await
+        .map(|v| v.unwrap_or(false))
+}
+
+/// Sets or clears a user's email address. Unique among users.
+pub async fn set_email(pool: &SqlitePool, id: i64, email: &str) -> Result<User, AccountError> {
+    let email = check_email(email)?;
+    sqlx::query("UPDATE app_user SET email = ? WHERE id = ?")
+        .bind(email)
+        .bind(id)
+        .execute(pool)
+        .await
+        .map_err(|e| match &e {
+            sqlx::Error::Database(d) if d.is_unique_violation() => {
+                AccountError::Invalid("Another account has that email address.".into())
+            }
+            _ => e.into(),
+        })?;
+    user(pool, id).await
+}
+
+/// The user with this email address, ignoring case.
+pub async fn by_email(pool: &SqlitePool, email: &str) -> Result<Option<User>, sqlx::Error> {
+    sqlx::query_as(sqlx::AssertSqlSafe(format!(
+        "SELECT {USER_COLUMNS} FROM app_user WHERE email = ? COLLATE NOCASE"
+    )))
+    .bind(email.trim())
+    .fetch_optional(pool)
+    .await
+}
+
+/// Approves, declines or turns off a user. Admins can't be turned off;
+/// turning someone off ends their sessions.
+pub async fn set_status(
+    pool: &SqlitePool,
+    id: i64,
+    status: UserStatus,
+) -> Result<User, AccountError> {
+    let current = user(pool, id).await?;
+    if status == UserStatus::Disabled && current.is_admin {
+        return Err(AccountError::Invalid(
+            "Admins can't be turned off. Make them a viewer first.".into(),
+        ));
+    }
+    sqlx::query("UPDATE app_user SET status = ? WHERE id = ?")
+        .bind(status)
+        .bind(id)
+        .execute(pool)
+        .await?;
+    if status == UserStatus::Disabled {
+        sqlx::query("DELETE FROM session WHERE user_id = ?")
+            .bind(id)
+            .execute(pool)
+            .await?;
+    }
+    user(pool, id).await
+}
+
+/// Makes a user an admin or not without the checks of [`update`], apart from
+/// keeping one admin. Returns false if that rule kept them an admin.
+pub async fn set_admin(pool: &SqlitePool, id: i64, admin: bool) -> Result<bool, AccountError> {
+    let current = user(pool, id).await?;
+    if current.is_admin == admin {
+        return Ok(true);
+    }
+    if !admin && current.status == UserStatus::Active && admins(pool).await? <= 1 {
+        return Ok(false);
+    }
+    sqlx::query("UPDATE app_user SET is_admin = ? WHERE id = ?")
+        .bind(admin)
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(true)
+}
+
+/// A user for someone who signed in with another account: no password, a
+/// name based on `name` (numbered if taken), and the email if no one has it.
+pub async fn create_external(
+    pool: &SqlitePool,
+    name: &str,
+    email: Option<&str>,
+    is_admin: bool,
+    status: UserStatus,
+) -> Result<User, AccountError> {
+    let base: String = name.trim().chars().take(60).collect();
+    let base = if base.is_empty() {
+        "user".to_string()
+    } else {
+        base
+    };
+    let email = match email {
+        Some(email) => match check_email(email) {
+            Ok(Some(email)) if by_email(pool, &email).await?.is_none() => Some(email),
+            _ => None,
+        },
+        None => None,
+    };
+    for n in 1.. {
+        let name = if n == 1 {
+            base.clone()
+        } else {
+            format!("{base}-{n}")
+        };
+        let taken: bool = sqlx::query_scalar(
+            "SELECT EXISTS (SELECT 1 FROM app_user WHERE name = ? COLLATE NOCASE)",
+        )
+        .bind(&name)
+        .fetch_one(pool)
+        .await?;
+        if taken {
+            continue;
+        }
+        let id: i64 = sqlx::query_scalar(
+            "INSERT INTO app_user (name, email, is_admin, status) VALUES (?, ?, ?, ?) RETURNING id",
+        )
+        .bind(&name)
+        .bind(&email)
+        .bind(is_admin)
+        .bind(status)
+        .fetch_one(pool)
+        .await?;
+        return user(pool, id).await;
+    }
+    unreachable!("some number is free")
 }

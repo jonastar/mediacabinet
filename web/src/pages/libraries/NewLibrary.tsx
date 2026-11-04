@@ -3,6 +3,12 @@ import { api, type Library, type LibraryKind } from '../../api/client'
 import { Segmented } from '../../components/Segmented'
 import styles from './Libraries.module.css'
 
+const PLACEHOLDERS: Record<LibraryKind, string> = {
+  tv: 'TV Shows',
+  movies: 'Movies',
+  folders: 'Home Videos',
+}
+
 export function NewLibrary({
   onCreated,
   onCancel,
@@ -35,7 +41,7 @@ export function NewLibrary({
           className={styles.input}
           style={{ fontFamily: 'inherit' }}
           value={name}
-          placeholder={kind === 'tv' ? 'TV Shows' : 'Movies'}
+          placeholder={PLACEHOLDERS[kind]}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && name && create()}
         />
@@ -48,8 +54,16 @@ export function NewLibrary({
         options={[
           { value: 'tv', label: 'TV shows' },
           { value: 'movies', label: 'Movies' },
+          { value: 'folders', label: 'Folders' },
         ]}
       />
+      {kind === 'folders' && (
+        <p className={styles.muted}>
+          For home videos, clips and anything else no database knows about. You browse your folders
+          as they are, with each video named after its file. No metadata is fetched, and nothing in
+          the folders is ever changed.
+        </p>
+      )}
       {error && (
         <p className={styles.error} role="alert">
           {error}

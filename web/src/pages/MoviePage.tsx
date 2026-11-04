@@ -12,17 +12,17 @@ import { hasAbout } from '../lib/people'
 import { Streams } from '../components/Streams'
 import { Failed, Loading } from '../components/Status'
 import { heroBackground } from '../lib/artwork'
-import { ago, bytes, filesSummary, matchSummary, resolution, seriesTone } from '../lib/format'
+import {
+  ago,
+  bytes,
+  filesSummary,
+  matchSummary,
+  resolution,
+  runtime,
+  seriesTone,
+} from '../lib/format'
 import { useMode } from '../lib/prefs'
 import styles from './SeriesPage.module.css'
-
-function runtime(seconds: number | null | undefined) {
-  if (!seconds) {
-    return null
-  }
-  const m = Math.round(seconds / 60)
-  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`
-}
 
 function versionLabel(f: LinkedFile) {
   return [
@@ -35,7 +35,8 @@ function versionLabel(f: LinkedFile) {
     .join(' · ')
 }
 
-export function MoviePage({ id }: { id: number }) {
+/** A movie, or with `folderVideo` a video of a folder library, which has no metadata. */
+export function MoviePage({ id, folderVideo = false }: { id: number; folderVideo?: boolean }) {
   const [mode] = useMode()
   const movie = useApi(`movie:${id}`, () => api.movieDetail(id))
   const about = useApi(`about:${id}`, () => api.about(id))
@@ -57,6 +58,7 @@ export function MoviePage({ id }: { id: number }) {
   )
   const meta = [m.year, m.genres[0], runtime(m.runtime_seconds)].filter(Boolean).join(' · ')
   const present = m.files.filter((f) => f.status === 'present')
+  const folder = m.files[0]?.relative_path.split('/').slice(0, -1).join('/') ?? ''
 
   const refresh = async () => {
     setNotice('Refreshing…')
@@ -80,6 +82,7 @@ export function MoviePage({ id }: { id: number }) {
           <LibraryBack
             libraryId={m.library_id}
             fallback={{ to: '/movies', label: 'Movies' }}
+            folder={folderVideo ? folder : undefined}
             className={styles.back}
           />
           <DetailsToggle />
@@ -128,9 +131,11 @@ export function MoviePage({ id }: { id: number }) {
                 <button type="button" onClick={() => setEditing(!editing)}>
                   Edit details
                 </button>
-                <button type="button" onClick={refresh}>
-                  Refresh metadata
-                </button>
+                {!folderVideo && (
+                  <button type="button" onClick={refresh}>
+                    Refresh metadata
+                  </button>
+                )}
               </div>
               {notice && (
                 <p className={styles.notice} role="status">
@@ -157,7 +162,7 @@ export function MoviePage({ id }: { id: number }) {
           />
         )}
         <div className={styles.toolbar}>
-          <h2>{manage ? 'Files' : 'Versions'}</h2>
+          <h2>{folderVideo ? 'File' : manage ? 'Files' : 'Versions'}</h2>
         </div>
         {m.files.length === 0 && <p className={styles.viewNote}>No files linked yet.</p>}
         <ul
@@ -183,7 +188,9 @@ export function MoviePage({ id }: { id: number }) {
                 border: '1px solid var(--border)',
               }}
             >
-              <b>{versionLabel(f) || 'Main version'}</b>
+              <b>
+                {folderVideo ? f.relative_path.split('/').pop() : versionLabel(f) || 'Main version'}
+              </b>
               <span
                 style={{
                   fontSize: 13.5,

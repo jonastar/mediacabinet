@@ -8,11 +8,17 @@ use utoipa::ToSchema;
 
 pub const DEFAULT_TV: &str = "{series}/Season {season:00}/{filename}";
 pub const DEFAULT_MOVIES: &str = "{movie} ({year})/{filename}";
+/// A folder library's only layout: it takes its folders as they are, so there's
+/// nothing to choose. Roots still store a template, so this stands in for one.
+pub const FOLDERS_TEMPLATE: &str = "{video}";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LibraryKind {
     Tv,
     Movies,
+    /// Shows its folders as they are: every video is its own item, with no
+    /// external metadata.
+    Folders,
 }
 
 impl LibraryKind {
@@ -20,6 +26,7 @@ impl LibraryKind {
         match s {
             "tv" => Some(LibraryKind::Tv),
             "movies" => Some(LibraryKind::Movies),
+            "folders" => Some(LibraryKind::Folders),
             _ => None,
         }
     }
@@ -29,6 +36,7 @@ impl LibraryKind {
         match self {
             LibraryKind::Tv => "series",
             LibraryKind::Movies => "movie",
+            LibraryKind::Folders => "video",
         }
     }
 
@@ -36,6 +44,7 @@ impl LibraryKind {
         match self {
             LibraryKind::Tv => DEFAULT_TV,
             LibraryKind::Movies => DEFAULT_MOVIES,
+            LibraryKind::Folders => FOLDERS_TEMPLATE,
         }
     }
 }
@@ -61,6 +70,7 @@ const TOKENS: &[(&str, Place)] = &[
     ("letter", Place::AboveFiles),
     ("series", Place::Item),
     ("movie", Place::Item),
+    ("video", Place::Item),
     ("season", Place::Below),
     ("episode", Place::Below),
     ("absolute", Place::Below),
@@ -179,6 +189,9 @@ impl Template {
         if source.is_empty() {
             return err("The template is empty.");
         }
+        if kind == LibraryKind::Folders && source != FOLDERS_TEMPLATE {
+            return err("A folder library has no layout to choose: it shows folders as they are.");
+        }
         let mut segments = Vec::new();
         for raw in source.split('/') {
             if raw.trim().is_empty() {
@@ -188,14 +201,12 @@ impl Template {
         }
 
         let item = kind.item_token();
-        let other_item = match kind {
-            LibraryKind::Tv => "movie",
-            LibraryKind::Movies => "series",
-        };
-        if segments.iter().any(|s| s.has(other_item)) {
-            return err(format!(
-                "{{{other_item}}} doesn't belong in this library; use {{{item}}}."
-            ));
+        for other_item in ["series", "movie", "video"] {
+            if other_item != item && segments.iter().any(|s| s.has(other_item)) {
+                return err(format!(
+                    "{{{other_item}}} doesn't belong in this library; use {{{item}}}."
+                ));
+            }
         }
         // The first level with the item token is the item folder; later uses
         // (e.g. in the file name) are just its name.

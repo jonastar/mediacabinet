@@ -1,4 +1,11 @@
-import type { Library, RefreshProgress, Root, ScanProgress, WritePolicy } from '../../api/client'
+import type {
+  Library,
+  LibraryKind,
+  RefreshProgress,
+  Root,
+  ScanProgress,
+  WritePolicy,
+} from '../../api/client'
 import { ago, dayTimeLabel, time } from '../../lib/format'
 
 export const POLICY_NOTES: Record<WritePolicy, string> = {
@@ -97,6 +104,6 @@ export function refreshStatus(library: Library): {
 /** What a library holds, in a line. */
 export function librarySummary(library: Library) {
   const files = library.roots.reduce((n, r) => n + r.files.present, 0)
-  const kind = library.kind === 'movies' ? 'Movies' : 'TV shows'
+  const kind = { movies: 'Movies', tv: 'TV shows', folders: 'Folders' }[library.kind as LibraryKind]
   return `${kind} · ${count(library.roots.length, 'folder')} · ${count(files, 'file')}`
 }

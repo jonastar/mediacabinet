@@ -1,6 +1,6 @@
 import { artworkUrl, type MovieSummary, type SeriesSummary } from '../api/client'
 import { CoverImage } from './Artwork'
-import { airWeekday, seriesTone } from '../lib/format'
+import { airWeekday, runtime, seriesTone } from '../lib/format'
 import type { Mode } from '../lib/prefs'
 import { itemPath } from '../lib/router'
 import { Link } from './Link'
@@ -48,14 +48,6 @@ export function Poster({ series: s, mode }: { series: SeriesSummary; mode: Mode 
       <span className={styles.line}>{line}</span>
     </Link>
   )
-}
-
-function runtime(seconds: number | null | undefined) {
-  if (!seconds) {
-    return null
-  }
-  const m = Math.round(seconds / 60)
-  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`
 }
 
 export function MoviePoster({ movie: m, mode }: { movie: MovieSummary; mode: Mode }) {

@@ -33,7 +33,7 @@ fn invalid<T>(message: impl Into<String>) -> Result<T, LibraryError> {
 pub struct Library {
     pub id: i64,
     pub name: String,
-    /// `tv` or `movies`.
+    /// `tv`, `movies` or `folders`.
     pub kind: String,
     pub roots: Vec<Root>,
     /// The last metadata refresh of the whole library.
@@ -128,6 +128,14 @@ async fn is_dir(path: &str) -> bool {
 
 fn kind_of(kind: &str) -> LibraryKind {
     LibraryKind::parse(kind).unwrap_or(LibraryKind::Tv)
+}
+
+/// A folder library only ever reads its folders: nothing is imported, renamed or moved.
+fn check_policy(kind: LibraryKind, policy: WritePolicy) -> Result<(), LibraryError> {
+    if kind == LibraryKind::Folders && policy != WritePolicy::ReadOnly {
+        return invalid("A folder library's folders are always read-only.");
+    }
+    Ok(())
 }
 
 pub async fn list(pool: &SqlitePool) -> Result<Vec<Library>, LibraryError> {
@@ -235,7 +243,7 @@ pub async fn create(pool: &SqlitePool, name: &str, kind: &str) -> Result<Library
         return invalid("Give the library a name.");
     }
     if LibraryKind::parse(kind).is_none() {
-        return invalid("A library holds either tv or movies.");
+        return invalid("A library holds tv, movies or folders.");
     }
     let mut tx = crate::db::begin_write(pool).await?;
     let id: i64 = sqlx::query_scalar("INSERT INTO library (name, kind) VALUES (?, ?) RETURNING id")
@@ -375,6 +383,7 @@ pub async fn add_root(
     let policy = WritePolicy::parse(new.write_policy).ok_or_else(|| {
         LibraryError::Invalid("Write policy is managed, adaptive or read_only.".into())
     })?;
+    check_policy(kind_of(&kind), policy)?;
     if new.is_import_target && policy == WritePolicy::ReadOnly {
         return invalid("A read-only folder can't be the import target.");
     }
@@ -443,6 +452,7 @@ pub async fn update_root(
         })?,
         None => WritePolicy::parse(&current.write_policy).unwrap_or(WritePolicy::Adaptive),
     };
+    check_policy(kind_of(&library.kind), policy)?;
     let import_target = changes.is_import_target.unwrap_or(current.is_import_target);
     if import_target && policy == WritePolicy::ReadOnly {
         return invalid("A read-only folder can't be the import target.");

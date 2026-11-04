@@ -13,8 +13,12 @@
 //!
 //! Samples, trailers and other extras, and files in ignored folders, are marked
 //! ignored. Existing links are never touched.
+//!
+//! Folder libraries skip all of this: they have nothing to identify (`folders`).
+//! So everything below handles them only to satisfy the match on `LibraryKind`.
 
 pub mod episodes;
+mod folders;
 pub mod review;
 pub mod score;
 
@@ -141,6 +145,10 @@ pub async fn match_root_with_progress(
             .fetch_all(pool)
             .await?;
 
+    if kind == LibraryKind::Folders {
+        return folders::link_videos(pool, root_id, files, &ignored_folders, progress).await;
+    }
+
     let mut folders: HashMap<String, Folder> = HashMap::new();
     for file in files {
         let name = file
@@ -149,10 +157,7 @@ pub async fn match_root_with_progress(
             .next()
             .unwrap_or(&file.relative_path);
         let parsed = parse(name);
-        let in_ignored_folder = ignored_folders
-            .iter()
-            .any(|f| file.relative_path == *f || file.relative_path.starts_with(&format!("{f}/")));
-        if parsed.extra.is_some() || in_ignored_folder {
+        if parsed.extra.is_some() || in_any_folder(&file.relative_path, &ignored_folders) {
             sqlx::query("UPDATE media_file SET status = 'ignored' WHERE id = ?")
                 .bind(file.id)
                 .execute(pool)
@@ -222,12 +227,18 @@ pub async fn match_root_with_progress(
         report.identified += 1;
         match kind {
             LibraryKind::Tv => link_episodes(pool, item, folder, settings, &mut report).await?,
-            LibraryKind::Movies => {
+            LibraryKind::Movies | LibraryKind::Folders => {
                 link_movie(pool, item, folder, confidence, source, &mut report).await?
             }
         }
     }
     Ok(report)
+}
+
+fn in_any_folder(path: &str, folders: &[String]) -> bool {
+    folders
+        .iter()
+        .any(|f| path == *f || path.starts_with(&format!("{f}/")))
 }
 
 async fn known_item(
@@ -246,7 +257,7 @@ async fn known_item(
             .fetch_optional(pool)
             .await
         }
-        LibraryKind::Movies => {
+        LibraryKind::Movies | LibraryKind::Folders => {
             // A movie folder is known once any file in it links to a movie.
             sqlx::query_scalar(
                 "SELECT l.item_id FROM file_link l JOIN media_file f ON f.id = l.file_id
@@ -274,7 +285,7 @@ async fn folder_nfo_ids(
 ) -> Vec<(String, String)> {
     let mut candidates: Vec<PathBuf> = match kind {
         LibraryKind::Tv => vec![root.join(path).join("tvshow.nfo")],
-        LibraryKind::Movies => vec![root.join(path).join("movie.nfo")],
+        LibraryKind::Movies | LibraryKind::Folders => vec![root.join(path).join("movie.nfo")],
     };
     if kind == LibraryKind::Movies {
         let sidecars: Vec<String> = sqlx::query_scalar(
@@ -413,7 +424,7 @@ async fn identify(
     );
     let want = match kind {
         LibraryKind::Tv => "series",
-        LibraryKind::Movies => "movie",
+        LibraryKind::Movies | LibraryKind::Folders => "movie",
     };
     for ((p, written), source) in explicit {
         let resolved = if p == provider.name() {
@@ -449,12 +460,14 @@ async fn identify(
     let year = folder.hints.year;
     let mut results = match kind {
         LibraryKind::Tv => provider.search_series(title, year).await?,
-        LibraryKind::Movies => provider.search_movies(title, year).await?,
+        LibraryKind::Movies | LibraryKind::Folders => provider.search_movies(title, year).await?,
     };
     if results.is_empty() && year.is_some() {
         results = match kind {
             LibraryKind::Tv => provider.search_series(title, None).await?,
-            LibraryKind::Movies => provider.search_movies(title, None).await?,
+            LibraryKind::Movies | LibraryKind::Folders => {
+                provider.search_movies(title, None).await?
+            }
         };
     }
     let mut scored: Vec<Identified> = results.iter().map(|r| score(r, title, year)).collect();
@@ -517,7 +530,7 @@ async fn import(
                 .map(|r| r.item_id)
                 .map_err(|e| e.to_string())
         }
-        LibraryKind::Movies => {
+        LibraryKind::Movies | LibraryKind::Folders => {
             let data = provider.movie(id).await.map_err(|e| e.to_string())?;
             import_movie(pool, library, &data)
                 .await

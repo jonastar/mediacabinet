@@ -52,7 +52,9 @@ export function LibrariesPage() {
         <ul className={styles.list}>
           {all.map((library) => {
             const noTarget =
-              library.roots.length > 0 && !library.roots.some((r) => r.is_import_target)
+              library.kind !== 'folders' &&
+              library.roots.length > 0 &&
+              !library.roots.some((r) => r.is_import_target)
             return (
               <li key={library.id} className={styles.libraryCard}>
                 <Link to={`/manage/libraries/${library.id}`} className={styles.libraryHead}>

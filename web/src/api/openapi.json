@@ -2831,6 +2831,55 @@
         }
       }
     },
+    "/api/libraries/{id}/browse": {
+      "get": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "One folder of a folder library: its subfolders and videos, with the viewer's\nwatch state. Folders with the same path on different roots show as one.",
+        "operationId": "browse_library",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "path",
+            "in": "query",
+            "description": "A folder relative to the library's roots; the top when left out.",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FolderPage"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/libraries/{id}/placement-example": {
       "get": {
         "tags": [
@@ -2902,6 +2951,15 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/RefreshStarted"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
                 }
               }
             }
@@ -5895,7 +5953,7 @@
         "properties": {
           "kind": {
             "type": "string",
-            "description": "`tv` or `movies`."
+            "description": "`tv`, `movies` or `folders`."
           },
           "template": {
             "type": "string"
@@ -6100,7 +6158,7 @@
         "properties": {
           "kind": {
             "type": "string",
-            "description": "`tv` or `movies`."
+            "description": "`tv`, `movies` or `folders`."
           },
           "name": {
             "type": "string"
@@ -6670,6 +6728,40 @@
           }
         }
       },
+      "FolderEntry": {
+        "type": "object",
+        "required": [
+          "name",
+          "path",
+          "videos",
+          "watched",
+          "missing"
+        ],
+        "properties": {
+          "missing": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Videos in it and below it whose file has gone missing."
+          },
+          "name": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string",
+            "description": "Relative to the library's roots; pass it to browse this folder."
+          },
+          "videos": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Videos present in it and everything below it."
+          },
+          "watched": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Of those, the ones the viewer has watched."
+          }
+        }
+      },
       "FolderListing": {
         "type": "object",
         "required": [
@@ -6692,6 +6784,37 @@
           },
           "path": {
             "type": "string"
+          }
+        }
+      },
+      "FolderPage": {
+        "type": "object",
+        "required": [
+          "library_id",
+          "path",
+          "folders",
+          "videos"
+        ],
+        "properties": {
+          "folders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FolderEntry"
+            }
+          },
+          "library_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "path": {
+            "type": "string",
+            "description": "This folder, relative to the library's roots. Empty at the top."
+          },
+          "videos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FolderVideo"
+            }
           }
         }
       },
@@ -6788,6 +6911,24 @@
             "type": "string"
           }
         }
+      },
+      "FolderVideo": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/MovieSummary"
+          },
+          {
+            "type": "object",
+            "required": [
+              "file_name"
+            ],
+            "properties": {
+              "file_name": {
+                "type": "string"
+              }
+            }
+          }
+        ]
       },
       "Health": {
         "type": "object",
@@ -7386,7 +7527,7 @@
           },
           "kind": {
             "type": "string",
-            "description": "`tv` or `movies`."
+            "description": "`tv`, `movies` or `folders`."
           },
           "last_refresh": {
             "oneOf": [
@@ -8882,7 +9023,7 @@
         "properties": {
           "kind": {
             "type": "string",
-            "description": "`tv` or `movies`."
+            "description": "`tv`, `movies` or `folders`."
           },
           "path": {
             "type": "string"

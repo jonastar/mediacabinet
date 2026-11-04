@@ -968,6 +968,26 @@ export interface paths {
         patch: operations["rename_library"];
         trace?: never;
     };
+    "/api/libraries/{id}/browse": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One folder of a folder library: its subfolders and videos, with the viewer's
+         *     watch state. Folders with the same path on different roots show as one.
+         */
+        get: operations["browse_library"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/libraries/{id}/placement-example": {
         parameters: {
             query?: never;
@@ -1958,7 +1978,7 @@ export interface components {
             scopes?: string | null;
         };
         CheckTemplate: {
-            /** @description `tv` or `movies`. */
+            /** @description `tv`, `movies` or `folders`. */
             kind: string;
             template: string;
         };
@@ -2035,7 +2055,7 @@ export interface components {
             name: string;
         };
         CreateLibrary: {
-            /** @description `tv` or `movies`. */
+            /** @description `tv`, `movies` or `folders`. */
             kind: string;
             name: string;
         };
@@ -2215,11 +2235,39 @@ export interface components {
             /** Format: int64 */
             root_id: number;
         };
+        FolderEntry: {
+            /**
+             * Format: int64
+             * @description Videos in it and below it whose file has gone missing.
+             */
+            missing: number;
+            name: string;
+            /** @description Relative to the library's roots; pass it to browse this folder. */
+            path: string;
+            /**
+             * Format: int64
+             * @description Videos present in it and everything below it.
+             */
+            videos: number;
+            /**
+             * Format: int64
+             * @description Of those, the ones the viewer has watched.
+             */
+            watched: number;
+        };
         FolderListing: {
             /** @description Subfolder names, hidden ones left out. */
             folders: string[];
             parent?: string | null;
             path: string;
+        };
+        FolderPage: {
+            folders: components["schemas"]["FolderEntry"][];
+            /** Format: int64 */
+            library_id: number;
+            /** @description This folder, relative to the library's roots. Empty at the top. */
+            path: string;
+            videos: components["schemas"]["FolderVideo"][];
         };
         FolderProposal: components["schemas"]["Proposal"] & {
             /** @description The folder, resolved. */
@@ -2244,6 +2292,9 @@ export interface components {
             /** Format: int64 */
             root_id: number;
             root_path: string;
+        };
+        FolderVideo: components["schemas"]["MovieSummary"] & {
+            file_name: string;
         };
         Health: {
             status: string;
@@ -2416,7 +2467,7 @@ export interface components {
         Library: {
             /** Format: int64 */
             id: number;
-            /** @description `tv` or `movies`. */
+            /** @description `tv`, `movies` or `folders`. */
             kind: string;
             last_refresh?: components["schemas"]["ScanRun"] | null;
             name: string;
@@ -2841,7 +2892,7 @@ export interface components {
             template: string;
         };
         ProposeTemplate: {
-            /** @description `tv` or `movies`. */
+            /** @description `tv`, `movies` or `folders`. */
             kind: string;
             path: string;
         };
@@ -5573,6 +5624,38 @@ export interface operations {
             };
         };
     };
+    browse_library: {
+        parameters: {
+            query?: {
+                /** @description A folder relative to the library's roots; the top when left out. */
+                path?: string;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FolderPage"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     placement_example: {
         parameters: {
             query?: never;
@@ -5619,6 +5702,14 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RefreshStarted"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
                 };
             };
             404: {

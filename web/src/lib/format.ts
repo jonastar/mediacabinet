@@ -195,3 +195,15 @@ function hash(s: string): number {
 export const seriesTone = (title: string) => TONES[hash(title) % TONES.length]
 export const episodeTone = (itemId: number) => EPISODE_TONES[itemId % EPISODE_TONES.length]
 export const EMPTY_TONE = '#1A1D24'
+
+/** A length for display, e.g. `1 h 42 min`. Null when it isn't known. */
+export function runtime(seconds: number | null | undefined) {
+  if (!seconds) {
+    return null
+  }
+  const m = Math.round(seconds / 60)
+  if (m === 0) {
+    return 'Under 1 min'
+  }
+  return m >= 60 ? `${Math.floor(m / 60)} h ${m % 60} min` : `${m} min`
+}

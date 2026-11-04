@@ -50,6 +50,7 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Large-library test: scan time and memory for ~50k files (`docs/benchmarks.md`)
 - [x] UI: Libraries and roots (write policy, coloured template, offline state, "where would a new file go")
 - [x] UI: scan progress and results
+- [x] Folder libraries: browse folders as they are, no metadata (`docs/folder-libraries.md`)
 
 ## Phase 4 — Metadata and matching
 

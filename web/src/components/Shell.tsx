@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { api, type Library } from '../api/client'
+import { api, type Library, type LibraryKind } from '../api/client'
 import { useApi } from '../api/useApi'
 import { useLiveEvents } from '../lib/live'
 import { usePath } from '../lib/router'
@@ -9,6 +9,7 @@ import { signOut, useUser } from '../lib/session'
 import {
   ActivityIcon,
   CalendarIcon,
+  FolderIcon,
   HomeIcon,
   MoviesIcon,
   SettingsIcon,
@@ -31,11 +32,17 @@ const WATCH_NAV: NavItem[] = [
 
 const MANAGE: NavItem = { to: '/manage', label: 'Manage', icon: <SettingsIcon /> }
 
+const LIBRARY_ICONS: Record<LibraryKind, ReactNode> = {
+  tv: <TvIcon />,
+  movies: <MoviesIcon />,
+  folders: <FolderIcon />,
+}
+
 function libraryItem(library: Library): NavItem {
   return {
     to: `/library/${library.id}`,
     label: library.name,
-    icon: library.kind === 'movies' ? <MoviesIcon /> : <TvIcon />,
+    icon: LIBRARY_ICONS[library.kind as LibraryKind],
   }
 }
 

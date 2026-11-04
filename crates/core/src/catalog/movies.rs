@@ -65,7 +65,7 @@ struct EpisodeHitRow {
 }
 
 #[derive(sqlx::FromRow)]
-struct MovieRow {
+pub(super) struct MovieRow {
     id: i64,
     library_id: Option<i64>,
     title: String,
@@ -81,7 +81,7 @@ struct MovieRow {
     last_played_at: Option<i64>,
 }
 
-const MOVIE_SELECT: &str =
+pub(super) const MOVIE_SELECT: &str =
     "SELECT i.id, i.library_id, i.title, i.year, i.runtime_seconds, i.airs_at,
         (SELECT count(*) FROM file_link l JOIN media_file f ON f.id = l.file_id
          WHERE l.item_id = i.id AND f.status = 'present') AS present,
@@ -93,7 +93,10 @@ const MOVIE_SELECT: &str =
      LEFT JOIN user_item_state s ON s.item_id = i.id AND s.user_id = ?1
      WHERE i.kind = 'movie'";
 
-async fn summary(conn: &mut SqliteConnection, row: MovieRow) -> Result<MovieSummary, sqlx::Error> {
+pub(super) async fn summary(
+    conn: &mut SqliteConnection,
+    row: MovieRow,
+) -> Result<MovieSummary, sqlx::Error> {
     let (genres, artwork) = super::genres_and_artwork(conn, row.id).await?;
     let availability = Availability::parse(&row.availability);
     let monitored = row.monitored;
@@ -118,7 +121,8 @@ async fn summary(conn: &mut SqliteConnection, row: MovieRow) -> Result<MovieSumm
     })
 }
 
-/// Movies by title, all or those in `library`.
+/// Movies by title: those in `library`, or all of them. A folder library's videos
+/// aren't movies to anyone browsing, so only asking for that library lists them.
 pub async fn list_movies(
     pool: &SqlitePool,
     user: Option<i64>,
@@ -126,7 +130,9 @@ pub async fn list_movies(
 ) -> Result<Vec<MovieSummary>, CatalogError> {
     let mut conn = pool.acquire().await?;
     let rows: Vec<MovieRow> = sqlx::query_as(sqlx::AssertSqlSafe(format!(
-        "{MOVIE_SELECT} AND (?2 IS NULL OR i.library_id = ?2)
+        "{MOVIE_SELECT}
+           AND (i.library_id = ?2
+                OR (?2 IS NULL AND i.library_id IN (SELECT id FROM library WHERE kind = 'movies')))
          ORDER BY coalesce(i.sort_title, i.title) COLLATE NOCASE, i.id"
     )))
     .bind(user)

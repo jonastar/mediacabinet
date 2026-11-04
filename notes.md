@@ -65,3 +65,22 @@ On subtitles i imagine we can use a pretty standard library to detect language, 
 for audio, it's a bit worse
 
 # Library permission model
+
+# Thumbnail extractor task
+
+A task that extracts a frame from each video with ffmpeg and uses it as the item's artwork. Folder libraries need this most, since their rows have no artwork and no provider to get it from. It could also fill in episodes and movies that have no provider art.
+
+- Run per library, on request and after a scan finds new files. Like the metadata refresh task, it should skip finished items so it can carry on after a restart.
+- Store thumbnails in the data dir, never next to the media: folder library roots are read-only.
+- Extract again when the file changes, and leave items with provider or user-chosen art alone.
+- Keep one bad file from failing the whole run: count it and list it in the task outcome.
+
+Open questions:
+
+- Which frame? A fixed percentage in avoids black intros and credits, but maybe skip dark frames too?
+- Which sizes and format, and can it share anything with trickplay generation?
+- Should this be one task looping over the library, or a task per item? (Same question as under the task system above.)
+
+# Poor subtitle handling
+
+On one pace they're pretty hella weird

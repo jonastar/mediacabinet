@@ -1,0 +1,91 @@
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.crumbs a {
+  color: var(--text-muted);
+  text-decoration: none;
+}
+
+.crumbs a:hover {
+  color: var(--text);
+}
+
+.crumb {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+}
+
+.icon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: var(--text-muted);
+}
+
+.play:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+.name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 600;
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+a.name:hover {
+  text-decoration: underline;
+}
+
+.meta {
+  flex: none;
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 640px) {
+  .row {
+    flex-wrap: wrap;
+  }
+
+  .meta {
+    flex-basis: 100%;
+    padding-left: 44px;
+  }
+}

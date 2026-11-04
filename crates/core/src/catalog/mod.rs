@@ -2,6 +2,7 @@
 //! the home screen. Derived state is computed here from links, file status and
 //! dates (see `rules`), never stored.
 
+pub mod folders;
 pub mod movies;
 pub mod people;
 pub mod rules;

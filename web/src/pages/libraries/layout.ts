@@ -4,6 +4,7 @@ import type { LibraryKind } from '../../api/client'
 export const DEFAULT_ABOVE: Record<LibraryKind, string> = {
   tv: '{series}',
   movies: '{movie} ({year})',
+  folders: '{video}',
 }
 
 /**

@@ -29,6 +29,15 @@ pub struct Proposal {
 
 /// `paths` are relative video paths under the root.
 pub fn propose(paths: &[String], kind: LibraryKind) -> Proposal {
+    if kind == LibraryKind::Folders {
+        return Proposal {
+            template: kind.default_template().to_string(),
+            reason: "Folders are shown as they are, and nothing here is ever changed.".into(),
+            files: paths.len(),
+            grouped: paths.len(),
+            examples: Vec::new(),
+        };
+    }
     if paths.is_empty() {
         return finish(
             kind.default_template().to_string(),
@@ -133,10 +142,7 @@ pub fn propose(paths: &[String], kind: LibraryKind) -> Proposal {
     }
     segments.push("{filename}".into());
 
-    let noun = match kind {
-        LibraryKind::Tv => "series",
-        LibraryKind::Movies => "movie",
-    };
+    let noun = kind.item_token();
     let levels = |n: usize| {
         if n == 1 {
             "1 level".to_string()

@@ -80,7 +80,9 @@ export type Credit = Schemas['Credit']
 export type Rating = Schemas['Rating']
 export type PersonDetail = Schemas['PersonDetail']
 export type PersonCredit = Schemas['PersonCredit']
-export type LibraryKind = 'tv' | 'movies'
+export type LibraryKind = 'tv' | 'movies' | 'folders'
+export type FolderPage = Schemas['FolderPage']
+export type FolderVideo = Schemas['FolderVideo']
 
 export interface PlayChoice {
   file_id?: number
@@ -207,6 +209,8 @@ export const api = {
     request<void>('PUT', `/api/items/${itemId}/monitor`, { monitored }),
 
   libraries: () => request<Library[]>('GET', '/api/libraries'),
+  browseLibrary: (id: number, path: string) =>
+    request<FolderPage>('GET', `/api/libraries/${id}/browse?path=${encodeURIComponent(path)}`),
   createLibrary: (name: string, kind: LibraryKind) =>
     request<Library>('POST', '/api/libraries', { name, kind }),
   renameLibrary: (id: number, name: string) =>

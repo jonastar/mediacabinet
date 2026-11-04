@@ -89,69 +89,73 @@ function Folder({
         </div>
       </section>
 
-      <section aria-labelledby="root-policy" className={styles.panel}>
-        <h2 id="root-policy">Write policy</h2>
-        <PolicyPicker
-          name={`policy-${root.id}`}
-          value={policy}
-          disabled={busy}
-          onChange={(value) => act(() => api.updateRoot(root.id, { write_policy: value }))}
-        />
-        <div className={styles.pathLine}>
-          {root.is_import_target ? (
-            <span className={styles.tag}>Import target</span>
-          ) : policy !== 'read_only' ? (
-            <button
-              type="button"
-              className={`${styles.button} ${styles.small}`}
+      {kind !== 'folders' && (
+        <>
+          <section aria-labelledby="root-policy" className={styles.panel}>
+            <h2 id="root-policy">Write policy</h2>
+            <PolicyPicker
+              name={`policy-${root.id}`}
+              value={policy}
               disabled={busy}
-              onClick={() => act(() => api.updateRoot(root.id, { is_import_target: true }))}
-            >
-              Make import target
-            </button>
-          ) : null}
-          <span className={styles.muted}>
-            {root.is_import_target
-              ? `New ${kind === 'movies' ? 'movies' : 'series'} of ${library.name} land in this folder.`
-              : `The import target is where new ${kind === 'movies' ? 'movies' : 'series'} of ${library.name} land.`}
-          </span>
-        </div>
-      </section>
+              onChange={(value) => act(() => api.updateRoot(root.id, { write_policy: value }))}
+            />
+            <div className={styles.pathLine}>
+              {root.is_import_target ? (
+                <span className={styles.tag}>Import target</span>
+              ) : policy !== 'read_only' ? (
+                <button
+                  type="button"
+                  className={`${styles.button} ${styles.small}`}
+                  disabled={busy}
+                  onClick={() => act(() => api.updateRoot(root.id, { is_import_target: true }))}
+                >
+                  Make import target
+                </button>
+              ) : null}
+              <span className={styles.muted}>
+                {root.is_import_target
+                  ? `New ${kind === 'movies' ? 'movies' : 'series'} of ${library.name} land in this folder.`
+                  : `The import target is where new ${kind === 'movies' ? 'movies' : 'series'} of ${library.name} land.`}
+              </span>
+            </div>
+          </section>
 
-      <section aria-labelledby="root-template" className={styles.panel}>
-        <h2 id="root-template">Folder layout</h2>
-        <FolderLayout
-          // Remounted on cancel, so the checkbox follows the saved template again.
-          key={resets}
-          id={`template-${root.id}`}
-          kind={kind}
-          policy={policy}
-          value={draft.value}
-          onChange={(value, valid) => setDraft({ value, valid })}
-        />
-        {templateChanged && (
-          <div className={styles.actions}>
-            <button
-              type="button"
-              className={`${styles.button} ${styles.small} ${styles.primary}`}
-              disabled={busy || !draft.valid}
-              onClick={saveTemplate}
-            >
-              Save layout
-            </button>
-            <button
-              type="button"
-              className={`${styles.button} ${styles.small}`}
-              onClick={() => {
-                setDraft({ value: root.layout_template, valid: true })
-                setResets((n) => n + 1)
-              }}
-            >
-              Cancel
-            </button>
-          </div>
-        )}
-      </section>
+          <section aria-labelledby="root-template" className={styles.panel}>
+            <h2 id="root-template">Folder layout</h2>
+            <FolderLayout
+              // Remounted on cancel, so the checkbox follows the saved template again.
+              key={resets}
+              id={`template-${root.id}`}
+              kind={kind}
+              policy={policy}
+              value={draft.value}
+              onChange={(value, valid) => setDraft({ value, valid })}
+            />
+            {templateChanged && (
+              <div className={styles.actions}>
+                <button
+                  type="button"
+                  className={`${styles.button} ${styles.small} ${styles.primary}`}
+                  disabled={busy || !draft.valid}
+                  onClick={saveTemplate}
+                >
+                  Save layout
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.button} ${styles.small}`}
+                  onClick={() => {
+                    setDraft({ value: root.layout_template, valid: true })
+                    setResets((n) => n + 1)
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </section>
+        </>
+      )}
 
       <section aria-labelledby="root-remove" className={styles.panel}>
         <h2 id="root-remove">Remove</h2>

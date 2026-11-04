@@ -3,7 +3,8 @@
 //! An episode or movie counts as added when it gets its first file link ever;
 //! later links (upgrades, a second version) aren't news. Additions to the same
 //! series or movie close together in time, as one scan or import makes them,
-//! grow one entry instead of adding more.
+//! grow one entry instead of adding more. A folder library's videos aren't
+//! announced: its first scan could add thousands of unrelated clips, one entry each.
 
 use std::collections::{BTreeMap, btree_map};
 
@@ -101,15 +102,17 @@ async fn add(
     if !first_link {
         return Ok(());
     }
-    let row: Option<(String, Option<i64>, i64)> =
-        sqlx::query_as("SELECT kind, parent_id, library_id FROM item WHERE id = ?")
-            .bind(item)
-            .fetch_optional(&mut *conn)
-            .await?;
+    let row: Option<(String, Option<i64>, i64)> = sqlx::query_as(
+        "SELECT i.kind, i.parent_id, i.library_id FROM item i
+         JOIN library l ON l.id = i.library_id WHERE i.id = ? AND l.kind <> 'folders'",
+    )
+    .bind(item)
+    .fetch_optional(&mut *conn)
+    .await?;
     let (owner, library) = match row {
         Some((kind, Some(series), library)) if kind == "episode" => (series, library),
         Some((kind, None, library)) if kind == "movie" => (item, library),
-        // Gone since, or not something people watch.
+        // Gone since, in a folder library, or not something people watch.
         _ => return Ok(()),
     };
     let group = match groups.entry(owner) {

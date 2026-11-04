@@ -78,6 +78,7 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(library::check_template))
         .routes(routes!(library::list_folders))
         .routes(routes!(library::placement_example))
+        .routes(routes!(library::browse_library))
         .routes(routes!(library::file_probe))
         .routes(routes!(review::queue))
         .routes(routes!(review::accept))

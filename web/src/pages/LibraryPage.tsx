@@ -1,13 +1,14 @@
 import { api } from '../api/client'
 import { useApi } from '../api/useApi'
 import { Failed, Loading } from '../components/Status'
+import { FolderLibraryPage } from './FolderLibraryPage'
 import { MoviePage } from './MoviePage'
 import { MoviesPage } from './MoviesPage'
 import { NotFoundPage } from './NotFoundPage'
 import { SeriesPage } from './SeriesPage'
 import { ShowsPage } from './ShowsPage'
 
-/** One library's movies or shows, as linked from the sidebar. */
+/** One library's movies, shows or folders, as linked from the sidebar. */
 export function LibraryPage({ id }: { id: number }) {
   const libraries = useApi('libraries', api.libraries)
   if (libraries.error) {
@@ -22,6 +23,9 @@ export function LibraryPage({ id }: { id: number }) {
   }
   if (library.kind === 'movies') {
     return <MoviesPage library={library} />
+  }
+  if (library.kind === 'folders') {
+    return <FolderLibraryPage library={library} />
   }
   return <ShowsPage library={library} />
 }
@@ -41,6 +45,9 @@ export function LibraryItemPage({ libraryId, id }: { libraryId: number; id: numb
   }
   if (library.kind === 'movies') {
     return <MoviePage key={id} id={id} />
+  }
+  if (library.kind === 'folders') {
+    return <MoviePage key={id} id={id} folderVideo />
   }
   return <SeriesPage key={id} id={id} />
 }

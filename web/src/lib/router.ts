@@ -47,6 +47,11 @@ export function itemPath(kind: 'series' | 'movie', id: number, libraryId?: numbe
   return kind === 'series' ? `/tv/${id}` : `/movies/${id}`
 }
 
+/** A folder of a folder library; an empty `path` is the library's top. */
+export function folderPath(libraryId: number, path: string) {
+  return path ? `/library/${libraryId}?path=${encodeURIComponent(path)}` : `/library/${libraryId}`
+}
+
 /** Where an episode's page is: under its series' page. */
 export function episodePath(seriesId: number, episodeId: number, libraryId?: number | null) {
   return `${itemPath('series', seriesId, libraryId)}/${episodeId}`

@@ -180,6 +180,8 @@ export function LibraryDetail({ id }: { id: number }) {
   if (!library) {
     return <NotFoundPage />
   }
+  // A folder library fetches no metadata and never places files.
+  const isFolders = library.kind === 'folders'
   // Changes to roots change the placement example; refetch it when they do.
   const version = library.roots
     .map((r) => `${r.id}:${r.write_policy}:${r.layout_template}`)
@@ -197,9 +199,9 @@ export function LibraryDetail({ id }: { id: number }) {
           <p className={styles.lead}>{librarySummary(library)}</p>
         </div>
 
-        {library.roots.length > 0 && !library.roots.some((r) => r.is_import_target) && (
-          <NoImportTarget library={library} />
-        )}
+        {!isFolders &&
+          library.roots.length > 0 &&
+          !library.roots.some((r) => r.is_import_target) && <NoImportTarget library={library} />}
 
         <section aria-labelledby="library-folders" className={styles.section}>
           <h2 id="library-folders" className={styles.sectionTitle}>
@@ -235,10 +237,10 @@ export function LibraryDetail({ id }: { id: number }) {
           )}
         </section>
 
-        <Metadata library={library} onChanged={libraries.reload} />
+        {!isFolders && <Metadata library={library} onChanged={libraries.reload} />}
         {/* Keyed so a rename elsewhere resets the field. */}
         <Settings key={library.name} library={library} onChanged={libraries.reload} />
-        <PlacementPanel libraryId={library.id} version={version} />
+        {!isFolders && <PlacementPanel libraryId={library.id} version={version} />}
       </div>
     </div>
   )

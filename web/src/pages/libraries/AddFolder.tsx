@@ -44,11 +44,12 @@ function Fit({ proposal }: { proposal: FolderProposal }) {
 /** Pick a folder, see the proposed template, confirm it with a write policy. */
 export function AddFolder({ library, onAdded, onCancel }: Props) {
   const kind = library.kind as LibraryKind
+  const isFolders = kind === 'folders'
   const [path, setPath] = useState('')
   const [browser, setBrowser] = useState<FolderListing | null>(null)
   const [proposal, setProposal] = useState<FolderProposal | null>(null)
   const [template, setTemplate] = useState({ value: '', valid: false })
-  const [policy, setPolicy] = useState<WritePolicy>('adaptive')
+  const [policy, setPolicy] = useState<WritePolicy>(isFolders ? 'read_only' : 'adaptive')
   const [importTarget, setImportTarget] = useState(!library.roots.some((r) => r.is_import_target))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -166,7 +167,14 @@ export function AddFolder({ library, onAdded, onCancel }: Props) {
         </div>
       )}
 
-      {proposal && (
+      {proposal && isFolders && (
+        <p className={styles.muted} role="status">
+          {proposal.files.toLocaleString()} video{proposal.files === 1 ? '' : 's'} found.{' '}
+          {proposal.reason}
+        </p>
+      )}
+
+      {proposal && !isFolders && (
         <>
           <Fit proposal={proposal} />
           <div className={styles.block}>
@@ -216,7 +224,9 @@ export function AddFolder({ library, onAdded, onCancel }: Props) {
         </button>
         {!proposal && !busy && (
           <span className={styles.muted}>
-            Pick a folder, then Look at folder to see how it’s laid out.
+            {isFolders
+              ? 'Pick a folder, then Look at folder to see what’s in it.'
+              : 'Pick a folder, then Look at folder to see how it’s laid out.'}
           </span>
         )}
       </div>

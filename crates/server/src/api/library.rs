@@ -3,6 +3,7 @@
 use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
+use cabinet_core::catalog::folders::{self, FolderPage};
 use cabinet_core::layout::{LibraryKind, Proposal, Template, TemplatePiece};
 use cabinet_core::library::{
     self, FolderListing, Library, NewRoot, PlacementExample, Root, RootChanges,
@@ -15,7 +16,7 @@ use utoipa::{IntoParams, ToSchema};
 
 use super::ApiError;
 use super::activity::config_changed;
-use super::auth::ActingUser;
+use super::auth::{ActingUser, Viewer};
 use super::error::ErrorBody;
 use crate::AppState;
 
@@ -38,7 +39,8 @@ fn refreshing(state: &AppState, library: i64) -> Option<RefreshProgress> {
 }
 
 fn kind(kind: &str) -> Result<LibraryKind, ApiError> {
-    LibraryKind::parse(kind).ok_or_else(|| ApiError::BadRequest("kind is tv or movies".into()))
+    LibraryKind::parse(kind)
+        .ok_or_else(|| ApiError::BadRequest("kind is tv, movies or folders".into()))
 }
 
 /// Every library with its roots, file counts and scan state.
@@ -48,10 +50,37 @@ pub async fn list_libraries(State(state): State<AppState>) -> Result<Json<Vec<Li
     Ok(Json(with_progress(&state, libraries)))
 }
 
+#[derive(Deserialize, IntoParams)]
+pub struct BrowseQuery {
+    /// A folder relative to the library's roots; the top when left out.
+    #[serde(default)]
+    path: String,
+}
+
+/// One folder of a folder library: its subfolders and videos, with the viewer's
+/// watch state. Folders with the same path on different roots show as one.
+#[utoipa::path(
+    get,
+    path = "/libraries/{id}/browse",
+    tag = "libraries",
+    params(("id" = i64, Path), BrowseQuery),
+    responses((status = 200, body = FolderPage), (status = 404, body = ErrorBody))
+)]
+pub async fn browse_library(
+    State(state): State<AppState>,
+    viewer: Viewer,
+    Path(id): Path<i64>,
+    Query(query): Query<BrowseQuery>,
+) -> Result<Json<FolderPage>, ApiError> {
+    Ok(Json(
+        folders::browse(&state.db, id, &query.path, Some(viewer.0)).await?,
+    ))
+}
+
 #[derive(Deserialize, ToSchema)]
 pub struct CreateLibrary {
     name: String,
-    /// `tv` or `movies`.
+    /// `tv`, `movies` or `folders`.
     kind: String,
 }
 
@@ -292,6 +321,7 @@ pub struct RefreshStarted {
     params(("id" = i64, Path)),
     responses(
         (status = 202, body = RefreshStarted),
+        (status = 400, body = ErrorBody),
         (status = 404, body = ErrorBody),
         (status = 503, body = ErrorBody)
     )
@@ -300,7 +330,12 @@ pub async fn refresh_library(
     State(state): State<AppState>,
     Path(id): Path<i64>,
 ) -> Result<(StatusCode, Json<RefreshStarted>), ApiError> {
-    library::get(&state.db, id).await?;
+    let library = library::get(&state.db, id).await?;
+    if library.kind == "folders" {
+        return Err(ApiError::BadRequest(
+            "A folder library has no metadata to refresh.".into(),
+        ));
+    }
     if !state.provider.is_configured() {
         return Err(ApiError::Unavailable(
             cabinet_core::metadata::MetadataError::NotConfigured.to_string(),
@@ -316,7 +351,7 @@ pub async fn refresh_library(
 #[derive(Deserialize, ToSchema)]
 pub struct ProposeTemplate {
     path: String,
-    /// `tv` or `movies`.
+    /// `tv`, `movies` or `folders`.
     kind: String,
 }
 
@@ -363,7 +398,7 @@ pub async fn propose_template(
 #[derive(Deserialize, ToSchema)]
 pub struct CheckTemplate {
     template: String,
-    /// `tv` or `movies`.
+    /// `tv`, `movies` or `folders`.
     kind: String,
 }
 

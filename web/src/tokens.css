@@ -1,0 +1,47 @@
+/* Generated from design/tokens.json by scripts/generate-tokens.mjs. Do not edit. */
+:root {
+  --bg: #0f1115;
+  --surface: #171a21;
+  --surface-raised: #1f232c;
+  --border: #262a33;
+  --border-control: #2e333d;
+  --text: #e8e6e1;
+  --text-secondary: #b5bac3;
+  --text-muted: #9aa0aa;
+  --accent: #2bb5a6;
+  --accent-hover: #5fd0c3;
+  --accent-ink: #04201d;
+  --accent-soft-text: #8fdcd2;
+  --state-available: #4cc38a;
+  --state-available-text: #6fd6a3;
+  --state-missing: #f07a5a;
+  --state-missing-text: #f59c84;
+  --state-upcoming: #6ea8fe;
+  --state-upcoming-text: #8dbbff;
+  --state-attention: #f2b544;
+  --state-attention-text: #f5d08a;
+  --state-neutral: #b5bac3;
+  --state-neutral-bg: #22262e;
+  --brand-cabinet: #0f7a71;
+  --brand-play: #2bb5a6;
+  --brand-cream: #f2eee6;
+
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-card-tv: 20px;
+  --radius-pill: 999px;
+  --space-4: 4px;
+  --space-8: 8px;
+  --space-12: 12px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-48: 48px;
+  --type-hero: 76px;
+  --type-page: 30px;
+  --type-section: 22px;
+  --type-body: 15px;
+  --type-meta: 13px;
+  --type-small: 12px;
+  --duration-focus: 150ms;
+}

@@ -1,8 +1,13 @@
 //! Who is calling, and what they may do.
 //!
-//! Every `/api` request needs a session cookie (the web UI) or an API key
-//! (`X-Api-Key: <key>` or `?apikey=<key>`, for tools), except health, the
-//! login endpoints and the OpenAPI document. API keys act as an admin.
+//! Every `/api` request needs a session cookie (the web UI), a device token
+//! (`Authorization: Bearer <token>`, for TVs and apps) or an API key
+//! (`X-Api-Key: <key>` or `?apikey=<key>`, for tools), except health, server
+//! info, the login endpoints and the OpenAPI document. API keys act as an admin.
+//!
+//! Requests that can't send a header (`<img>`, `<video>`) may use a media token
+//! (`?media_token=<token>`) instead, to read artwork, streams and subtitles and
+//! nothing else.
 //!
 //! Changes need an admin, apart from a user's own things: their account, watch
 //! state, views, playlists and watch activity. A few reads need an admin too: keys, webhooks,
@@ -12,6 +17,7 @@
 //! Users who aren't active (waiting for approval) may do nothing but sign out.
 
 use axum::extract::{FromRequestParts, Request, State};
+use axum::http::header::AUTHORIZATION;
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, Method, Uri};
 use axum::middleware::Next;
@@ -30,7 +36,30 @@ pub enum Caller {
 }
 
 fn is_public(path: &str) -> bool {
-    path == "/api/health" || path == "/api/openapi.json" || path.starts_with("/api/auth/")
+    path == "/api/health"
+        || path == "/api/server-info"
+        || path == "/api/openapi.json"
+        || path.starts_with("/api/auth/")
+}
+
+/// What a media token may read.
+fn is_media_read(method: &Method, path: &str) -> bool {
+    if method != Method::GET && method != Method::HEAD {
+        return false;
+    }
+    let Some(path) = path.strip_prefix("/api/") else {
+        return false;
+    };
+    let parts: Vec<&str> = path.split('/').collect();
+    matches!(
+        parts.as_slice(),
+        ["artwork", _, _]
+            | ["people", _, "photo"]
+            | ["files", _, "stream"]
+            | ["files", _, "subtitles", _]
+            | ["play", _, _]
+            | ["sidecars", _, "subtitles"]
+    )
 }
 
 const ADMIN_READS: &[&str] = &[
@@ -85,6 +114,18 @@ pub fn cookie(headers: &HeaderMap, name: &str) -> Option<String> {
         })
 }
 
+/// The token of the session this request claims: a device's bearer token, or
+/// else the session cookie.
+pub fn session_token(headers: &HeaderMap) -> Option<String> {
+    let bearer = headers
+        .get(AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.split_once(' '))
+        .filter(|(scheme, _)| scheme.eq_ignore_ascii_case("bearer"))
+        .map(|(_, token)| token.trim().to_string());
+    bearer.or_else(|| cookie(headers, SESSION_COOKIE))
+}
+
 fn api_key(headers: &HeaderMap, uri: &Uri) -> Option<String> {
     let header = headers
         .get("x-api-key")
@@ -98,10 +139,11 @@ fn api_key(headers: &HeaderMap, uri: &Uri) -> Option<String> {
 
 async fn identify(
     state: &AppState,
+    method: &Method,
     headers: &HeaderMap,
     uri: &Uri,
 ) -> Result<Option<Caller>, ApiError> {
-    if let Some(token) = cookie(headers, SESSION_COOKIE)
+    if let Some(token) = session_token(headers)
         && let Some(user) = cabinet_core::accounts::session_user(&state.db, &token).await?
     {
         return Ok(Some(Caller::User(user)));
@@ -114,6 +156,12 @@ async fn identify(
             return Ok(Some(Caller::Key));
         }
         return Err(ApiError::Unauthorized("That API key isn't valid.".into()));
+    }
+    if is_media_read(method, uri.path())
+        && let Some(token) = uri.query().and_then(|q| url_param(q, "media_token"))
+        && let Some(user) = cabinet_core::accounts::media_token_user(&state.db, &token).await?
+    {
+        return Ok(Some(Caller::User(user)));
     }
     Ok(None)
 }
@@ -128,13 +176,11 @@ pub async fn require_auth(
     if !path.starts_with("/api/") || is_public(&path) {
         return next.run(request).await;
     }
-    let caller = match identify(&state, request.headers(), request.uri()).await {
+    let caller = match identify(&state, request.method(), request.headers(), request.uri()).await {
         Ok(Some(caller)) => caller,
         Ok(None) => {
-            return ApiError::Unauthorized(
-                "Log in, or send an API key in the X-Api-Key header.".into(),
-            )
-            .into_response();
+            return ApiError::Unauthorized("Log in, or send a device token or an API key.".into())
+                .into_response();
         }
         Err(e) => return e.into_response(),
     };
@@ -308,5 +354,87 @@ mod tests {
         assert!(needs_admin(&Method::POST, "/api/tasks/3/cancel"));
         assert!(needs_admin(&Method::POST, "/api/libraries/3/thumbnails"));
         assert!(!needs_admin(&Method::GET, "/api/artwork/3/thumbnail"));
+        assert!(!needs_admin(&Method::GET, "/api/me/devices"));
+        assert!(!needs_admin(&Method::DELETE, "/api/me/devices/3"));
+        assert!(!needs_admin(&Method::POST, "/api/me/pair"));
+        assert!(!needs_admin(&Method::POST, "/api/me/media-token"));
+        assert!(is_public("/api/server-info"));
+        assert!(is_public("/api/auth/pair"));
+        assert!(is_public("/api/auth/pair/poll"));
+        assert!(!is_public("/api/me/pair"));
+    }
+
+    #[test]
+    fn media_tokens_reach_media_only() {
+        for path in [
+            "/api/artwork/3/poster",
+            "/api/people/3/photo",
+            "/api/files/3/stream",
+            "/api/files/3/subtitles/2",
+            "/api/play/abc/index.m3u8",
+            "/api/sidecars/3/subtitles",
+        ] {
+            assert!(is_media_read(&Method::GET, path), "{path}");
+            assert!(is_media_read(&Method::HEAD, path), "{path}");
+            assert!(!is_media_read(&Method::POST, path), "{path}");
+            assert!(!is_media_read(&Method::DELETE, path), "{path}");
+        }
+        for path in [
+            "/api/me",
+            "/api/me/media-token",
+            "/api/me/devices",
+            "/api/home",
+            "/api/users",
+            "/api/api-keys",
+            // A stream's stats tell admins the ffmpeg command, and DELETE stops it.
+            "/api/play/abc",
+            "/api/files/3/probe",
+            "/api/files/3/stream/extra",
+            "/api/artwork/3",
+            "/artwork/3/poster",
+        ] {
+            assert!(!is_media_read(&Method::GET, path), "{path}");
+        }
+    }
+
+    #[test]
+    fn session_tokens_come_from_the_header_or_the_cookie() {
+        let headers = |pairs: &[(&'static str, &'static str)]| {
+            let mut map = HeaderMap::new();
+            for (name, value) in pairs {
+                map.insert(*name, value.parse().unwrap());
+            }
+            map
+        };
+        assert_eq!(session_token(&headers(&[])), None);
+        assert_eq!(
+            session_token(&headers(&[("authorization", "Bearer abc")])).as_deref(),
+            Some("abc")
+        );
+        assert_eq!(
+            session_token(&headers(&[("authorization", "bearer abc")])).as_deref(),
+            Some("abc")
+        );
+        assert_eq!(
+            session_token(&headers(&[("cookie", "mc_session=def")])).as_deref(),
+            Some("def")
+        );
+        assert_eq!(
+            session_token(&headers(&[
+                ("authorization", "Bearer abc"),
+                ("cookie", "mc_session=def")
+            ]))
+            .as_deref(),
+            Some("abc")
+        );
+        // Another scheme, such as a proxy's own password, isn't a device token.
+        assert_eq!(
+            session_token(&headers(&[
+                ("authorization", "Basic abc"),
+                ("cookie", "mc_session=def")
+            ]))
+            .as_deref(),
+            Some("def")
+        );
     }
 }

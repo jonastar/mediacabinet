@@ -80,7 +80,7 @@ pub async fn status(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Result<Json<AuthStatus>, ApiError> {
-    let user = match auth::cookie(&headers, SESSION_COOKIE) {
+    let user = match auth::session_token(&headers) {
         Some(token) => accounts::session_user(&state.db, &token).await?,
         None => None,
     };
@@ -126,34 +126,36 @@ pub async fn login(
 ) -> Result<Response, ApiError> {
     match accounts::login(&state.db, &body.name, &body.password).await {
         Ok((user, token)) => {
-            let mut entry = NewEntry::admins(
-                activity::LOGIN,
-                now(),
-                Some(user.id),
-                json!({ "via": "password" }),
-            );
-            entry.subject = Some(user.id);
-            activity::record_or_warn(&state.db, entry).await;
+            record_login(&state, user.id, json!({ "via": "password" })).await;
             Ok(signed_in(&headers, user, &token))
         }
         Err(AccountError::BadLogin) => {
-            let name: String = body.name.trim().chars().take(64).collect();
-            let entry =
-                NewEntry::admins(activity::LOGIN_FAILED, now(), None, json!({ "name": name }));
-            activity::record_or_warn(&state.db, entry).await;
+            record_failed_login(&state, &body.name).await;
             Err(AccountError::BadLogin.into())
         }
         Err(e) => Err(e.into()),
     }
 }
 
-/// Ends this session.
+pub(super) async fn record_login(state: &AppState, user: i64, details: serde_json::Value) {
+    let mut entry = NewEntry::admins(activity::LOGIN, now(), Some(user), details);
+    entry.subject = Some(user);
+    activity::record_or_warn(&state.db, entry).await;
+}
+
+pub(super) async fn record_failed_login(state: &AppState, name: &str) {
+    let name: String = name.trim().chars().take(64).collect();
+    let entry = NewEntry::admins(activity::LOGIN_FAILED, now(), None, json!({ "name": name }));
+    activity::record_or_warn(&state.db, entry).await;
+}
+
+/// Ends this session, or for a device, signs it out.
 #[utoipa::path(post, path = "/auth/logout", tag = "accounts", responses((status = 204)))]
 pub async fn logout(
     State(state): State<AppState>,
     headers: HeaderMap,
 ) -> Result<Response, ApiError> {
-    if let Some(token) = auth::cookie(&headers, SESSION_COOKIE) {
+    if let Some(token) = auth::session_token(&headers) {
         accounts::logout(&state.db, &token).await?;
     }
     let cookie = session_cookie(&headers, "", 0);

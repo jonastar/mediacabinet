@@ -4,6 +4,11 @@
 //! HttpOnly cookie; only its SHA-256 is stored. Sessions last 30 days from last
 //! use. The first run has one admin without a password: setup gives it one.
 //!
+//! A device (TV or app) has a session too, with a name: its token is sent as
+//! `Authorization: Bearer` and lasts a year from last use, since a TV can sit
+//! unused for months. For requests that can't send a header, such as `<img>`
+//! and `<video>`, a session can get a short-lived media token.
+//!
 //! Users who sign in with another account ([`crate::sign_in`]) may have no
 //! password, and may be pending until an admin lets them in.
 
@@ -15,6 +20,8 @@ use sqlx::SqlitePool;
 use utoipa::ToSchema;
 
 pub const SESSION_DAYS: i64 = 30;
+pub const DEVICE_SESSION_DAYS: i64 = 365;
+pub const MEDIA_TOKEN_SECONDS: i64 = 86400;
 
 #[derive(Debug, thiserror::Error)]
 pub enum AccountError {
@@ -274,6 +281,24 @@ pub async fn login(
     name: &str,
     password: &str,
 ) -> Result<(User, String), AccountError> {
+    let id = check_login(pool, name, password).await?;
+    open_session(pool, id).await
+}
+
+/// Checks a name and password and opens a session for a device. Returns the
+/// user and the device's token.
+pub async fn login_device(
+    pool: &SqlitePool,
+    name: &str,
+    password: &str,
+    device_name: &str,
+) -> Result<(User, String), AccountError> {
+    let device_name = check_device_name(device_name)?;
+    let id = check_login(pool, name, password).await?;
+    open_device_session(pool, id, &device_name).await
+}
+
+async fn check_login(pool: &SqlitePool, name: &str, password: &str) -> Result<i64, AccountError> {
     let row: Option<(i64, Option<String>)> =
         sqlx::query_as("SELECT id, password_hash FROM app_user WHERE name = ? COLLATE NOCASE")
             .bind(name.trim())
@@ -292,23 +317,56 @@ pub async fn login(
             return Err(AccountError::BadLogin);
         }
     };
-    open_session(pool, id).await
+    Ok(id)
 }
 
 /// Opens a session for a user whose identity is already proven. Refused for
 /// disabled users. Returns the user and the session token for the cookie.
 pub async fn open_session(pool: &SqlitePool, id: i64) -> Result<(User, String), AccountError> {
+    open(pool, id, None, SESSION_DAYS).await
+}
+
+/// Opens a session for a device whose user is already proven. Refused for
+/// disabled users. Returns the user and the device's token.
+pub async fn open_device_session(
+    pool: &SqlitePool,
+    id: i64,
+    device_name: &str,
+) -> Result<(User, String), AccountError> {
+    let device_name = check_device_name(device_name)?;
+    open(pool, id, Some(&device_name), DEVICE_SESSION_DAYS).await
+}
+
+pub(crate) fn check_device_name(name: &str) -> Result<String, AccountError> {
+    let name: String = name.chars().filter(|c| !c.is_control()).collect();
+    let name = name.trim();
+    if name.is_empty() || name.chars().count() > 64 {
+        return Err(AccountError::Invalid(
+            "Choose a device name of 1 to 64 characters.".into(),
+        ));
+    }
+    Ok(name.to_string())
+}
+
+async fn open(
+    pool: &SqlitePool,
+    id: i64,
+    device_name: Option<&str>,
+    days: i64,
+) -> Result<(User, String), AccountError> {
     let user = user(pool, id).await?;
     if user.status == UserStatus::Disabled {
         return Err(AccountError::Disabled);
     }
     let token = crate::apikeys::random_secret().replacen("mc_", "", 1);
     sqlx::query(
-        "INSERT INTO session (user_id, token_hash, expires_at) VALUES (?, ?, unixepoch() + ?)",
+        "INSERT INTO session (user_id, token_hash, device_name, expires_at)
+         VALUES (?, ?, ?, unixepoch() + ?)",
     )
     .bind(id)
     .bind(hash_token(&token))
-    .bind(SESSION_DAYS * 86400)
+    .bind(device_name)
+    .bind(days * 86400)
     .execute(pool)
     .await?;
     sqlx::query("DELETE FROM session WHERE expires_at < unixepoch()")
@@ -320,10 +378,12 @@ pub async fn open_session(pool: &SqlitePool, id: i64) -> Result<(User, String), 
 /// The user a session token belongs to, extending the session as it's used.
 pub async fn session_user(pool: &SqlitePool, token: &str) -> Result<Option<User>, sqlx::Error> {
     let id: Option<i64> = sqlx::query_scalar(
-        "UPDATE session SET last_seen_at = unixepoch(), expires_at = unixepoch() + ?
+        "UPDATE session SET last_seen_at = unixepoch(),
+             expires_at = unixepoch() + 86400 * CASE WHEN device_name IS NULL THEN ? ELSE ? END
          WHERE token_hash = ? AND expires_at > unixepoch() RETURNING user_id",
     )
-    .bind(SESSION_DAYS * 86400)
+    .bind(SESSION_DAYS)
+    .bind(DEVICE_SESSION_DAYS)
     .bind(hash_token(token))
     .fetch_optional(pool)
     .await?;
@@ -342,6 +402,95 @@ pub async fn logout(pool: &SqlitePool, token: &str) -> Result<(), sqlx::Error> {
         .execute(pool)
         .await?;
     Ok(())
+}
+
+/// A TV or app signed in to an account.
+#[derive(Debug, Clone, Serialize, ToSchema, sqlx::FromRow)]
+pub struct Device {
+    pub id: i64,
+    pub name: String,
+    pub signed_in_at: i64,
+    pub last_seen_at: i64,
+}
+
+/// The user's signed-in devices, most recently used first.
+pub async fn devices(pool: &SqlitePool, user: i64) -> Result<Vec<Device>, sqlx::Error> {
+    sqlx::query_as(
+        "SELECT id, device_name AS name, created_at AS signed_in_at, last_seen_at FROM session
+         WHERE user_id = ? AND device_name IS NOT NULL AND expires_at > unixepoch()
+         ORDER BY last_seen_at DESC, id DESC",
+    )
+    .bind(user)
+    .fetch_all(pool)
+    .await
+}
+
+/// Signs out one of the user's devices. False if they have no such device.
+pub async fn sign_out_device(pool: &SqlitePool, user: i64, id: i64) -> Result<bool, sqlx::Error> {
+    let done =
+        sqlx::query("DELETE FROM session WHERE id = ? AND user_id = ? AND device_name IS NOT NULL")
+            .bind(id)
+            .bind(user)
+            .execute(pool)
+            .await?;
+    Ok(done.rows_affected() > 0)
+}
+
+/// A token for media requests, which can't send a header.
+#[derive(Debug, Clone, Serialize, ToSchema)]
+pub struct MediaToken {
+    /// Sent as `?media_token=` on artwork, streams and subtitles only.
+    pub token: String,
+    pub expires_at: i64,
+}
+
+/// Creates a media token under a session, given that session's token. None if
+/// the session has ended. It ends with the session, or after a day.
+pub async fn create_media_token(
+    pool: &SqlitePool,
+    session_token: &str,
+) -> Result<Option<MediaToken>, sqlx::Error> {
+    let session: Option<i64> = sqlx::query_scalar(
+        "SELECT id FROM session WHERE token_hash = ? AND expires_at > unixepoch()",
+    )
+    .bind(hash_token(session_token))
+    .fetch_optional(pool)
+    .await?;
+    let Some(session) = session else {
+        return Ok(None);
+    };
+    sqlx::query("DELETE FROM media_token WHERE expires_at < unixepoch()")
+        .execute(pool)
+        .await?;
+    let token = crate::apikeys::random_secret().replacen("mc_", "", 1);
+    let expires_at: i64 = sqlx::query_scalar(
+        "INSERT INTO media_token (session_id, token_hash, expires_at)
+         VALUES (?, ?, unixepoch() + ?) RETURNING expires_at",
+    )
+    .bind(session)
+    .bind(hash_token(&token))
+    .bind(MEDIA_TOKEN_SECONDS)
+    .fetch_one(pool)
+    .await?;
+    Ok(Some(MediaToken { token, expires_at }))
+}
+
+/// The user a media token belongs to. Using one doesn't extend anything.
+pub async fn media_token_user(pool: &SqlitePool, token: &str) -> Result<Option<User>, sqlx::Error> {
+    let id: Option<i64> = sqlx::query_scalar(
+        "SELECT s.user_id FROM media_token m JOIN session s ON s.id = m.session_id
+         WHERE m.token_hash = ? AND m.expires_at > unixepoch() AND s.expires_at > unixepoch()",
+    )
+    .bind(hash_token(token))
+    .fetch_optional(pool)
+    .await?;
+    match id {
+        Some(id) => Ok(user(pool, id)
+            .await
+            .ok()
+            .filter(|u| u.status != UserStatus::Disabled)),
+        None => Ok(None),
+    }
 }
 
 /// Whether `password` is the user's current one.

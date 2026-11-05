@@ -35,8 +35,26 @@ pub struct ClientCaps {
     #[serde(default)]
     pub audio_codecs: Vec<String>,
     /// The screen shows HDR (PQ/HLG). Otherwise HDR video is tone-mapped.
+    /// Ignored when `hdr_formats` lists any.
     #[serde(default)]
     pub hdr: bool,
+    /// HDR formats the screen shows: `hdr10`, `hlg`, `dolby_vision`. Other HDR
+    /// video is tone-mapped.
+    #[serde(default)]
+    pub hdr_formats: Vec<String>,
+    /// Audio with more channels than this is converted to stereo. No limit if unset.
+    #[serde(default)]
+    pub max_audio_channels: Option<i64>,
+}
+
+impl ClientCaps {
+    fn shows_hdr(&self, format: &str) -> bool {
+        if self.hdr_formats.is_empty() {
+            self.hdr
+        } else {
+            has(&self.hdr_formats, format)
+        }
+    }
 }
 
 /// The parts of a request that shape the decision.
@@ -325,7 +343,7 @@ pub fn decide(version: &Version, choice: &Choice, caps: &ClientCaps) -> Decision
     let mut copy_video = version.video_stream.is_some();
     let mut tonemap = false;
     if !has(&caps.video_codecs, codec) {
-        reasons.push(format!("This browser can't play {} video.", upper(codec)));
+        reasons.push(format!("This player can't play {} video.", upper(codec)));
         copy_video = false;
     } else if !HLS_VIDEO.contains(&codec)
         && !has(&caps.containers, version.container.as_deref().unwrap_or(""))
@@ -336,7 +354,11 @@ pub fn decide(version: &Version, choice: &Choice, caps: &ClientCaps) -> Decision
         ));
         copy_video = false;
     }
-    if version.hdr_format.is_some() && !caps.hdr {
+    if version
+        .hdr_format
+        .as_deref()
+        .is_some_and(|format| !caps.shows_hdr(format))
+    {
         reasons.push("HDR is tone-mapped for this screen.".into());
         copy_video = false;
         tonemap = true;
@@ -383,6 +405,13 @@ pub fn decide(version: &Version, choice: &Choice, caps: &ClientCaps) -> Decision
         if !has(&caps.audio_codecs, codec) || !HLS_AUDIO.contains(&codec) {
             reasons.push(format!("{} audio is converted to AAC.", upper(codec)));
             convert_audio = true;
+        } else if let (Some(max), Some(channels)) = (caps.max_audio_channels, track.channels)
+            && channels > max
+        {
+            reasons.push(format!(
+                "{channels}-channel audio is converted to stereo AAC."
+            ));
+            convert_audio = true;
         }
     }
 
@@ -395,7 +424,7 @@ pub fn decide(version: &Version, choice: &Choice, caps: &ClientCaps) -> Decision
     } else if !container_ok || convert_audio || other_audio {
         if !container_ok {
             reasons.push(format!(
-                "The {container} container is repackaged for this browser."
+                "The {container} container is repackaged for this player."
             ));
         }
         if other_audio && !convert_audio {
@@ -844,7 +873,7 @@ mod tests {
             containers: vec!["mp4".into(), "webm".into()],
             video_codecs: vec!["h264".into(), "vp9".into(), "av1".into()],
             audio_codecs: vec!["aac".into(), "mp3".into(), "opus".into(), "flac".into()],
-            hdr: false,
+            ..ClientCaps::default()
         }
     }
 
@@ -874,6 +903,79 @@ mod tests {
             subtitles: Vec::new(),
             path: "/media/f.mkv".into(),
         }
+    }
+
+    #[test]
+    fn remuxing_honours_audio_codecs() {
+        // Opus can go in HLS, but this client (say, AVPlayer) can't play it.
+        let caps = ClientCaps {
+            containers: vec!["mp4".into()],
+            video_codecs: vec!["hevc".into()],
+            audio_codecs: vec!["aac".into(), "ac3".into()],
+            ..ClientCaps::default()
+        };
+        let d = decide(
+            &version("mkv", "hevc", &["opus"]),
+            &Choice::default(),
+            &caps,
+        );
+        assert_eq!(d.mode, Mode::Remux);
+        assert_eq!(d.video, VideoPlan::Copy);
+        assert_eq!(d.audio, Some((1, true)));
+        assert!(d.reasons.iter().any(|r| r.contains("OPUS audio")));
+        // AC-3 it can play, so that's copied as it is.
+        let d = decide(&version("mkv", "hevc", &["ac3"]), &Choice::default(), &caps);
+        assert_eq!(d.audio, Some((1, false)));
+    }
+
+    #[test]
+    fn audio_over_the_channel_limit_becomes_stereo() {
+        let mut file = version("mp4", "h264", &["aac"]);
+        file.audio[0].channels = Some(6);
+        let mut caps = chrome();
+        assert_eq!(
+            decide(&file, &Choice::default(), &caps).mode,
+            Mode::Direct,
+            "no limit, plays as it is"
+        );
+        caps.max_audio_channels = Some(6);
+        assert_eq!(decide(&file, &Choice::default(), &caps).mode, Mode::Direct);
+        caps.max_audio_channels = Some(2);
+        let d = decide(&file, &Choice::default(), &caps);
+        assert_eq!(d.mode, Mode::Remux);
+        assert_eq!(d.audio, Some((1, true)));
+        assert_eq!(d.reasons, ["6-channel audio is converted to stereo AAC."]);
+    }
+
+    #[test]
+    fn hdr_formats_are_checked_one_by_one() {
+        let mut file = version("mp4", "hevc", &["aac"]);
+        file.hdr_format = Some("dolby_vision".into());
+        let mut caps = ClientCaps {
+            containers: vec!["mp4".into()],
+            video_codecs: vec!["hevc".into()],
+            audio_codecs: vec!["aac".into()],
+            hdr_formats: vec!["hdr10".into(), "hlg".into()],
+            ..ClientCaps::default()
+        };
+        let tonemapped = decide(&file, &Choice::default(), &caps);
+        assert_eq!(tonemapped.mode, Mode::Transcode);
+        assert!(matches!(
+            tonemapped.video,
+            VideoPlan::Encode { tonemap: true, .. }
+        ));
+        file.hdr_format = Some("hdr10".into());
+        assert_eq!(decide(&file, &Choice::default(), &caps).mode, Mode::Direct);
+        // The formats win over the older yes or no, in either direction.
+        caps.hdr = true;
+        file.hdr_format = Some("dolby_vision".into());
+        assert_eq!(
+            decide(&file, &Choice::default(), &caps).mode,
+            Mode::Transcode
+        );
+        // Without formats, the yes or no is all there is, as the web sends it.
+        caps.hdr_formats.clear();
+        assert_eq!(decide(&file, &Choice::default(), &caps).mode, Mode::Direct);
     }
 
     #[test]
@@ -957,7 +1059,7 @@ mod tests {
             &chrome(),
         );
         assert_eq!(d.mode, Mode::Transcode);
-        assert_eq!(d.reasons[0], "This browser can't play HEVC video.");
+        assert_eq!(d.reasons[0], "This player can't play HEVC video.");
 
         let mut hdr = version("mp4", "hevc", &["aac"]);
         hdr.hdr_format = Some("hdr10".into());

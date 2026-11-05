@@ -1,6 +1,6 @@
 # Core
 
-Plain TypeScript shared by the web UI and the TV app in `players/web`. Not started: this code is still in `api/`, `lib/`, `pages/PlayerPage.tsx` and `pages/player/useSource.ts`. The plan is in `docs/clients.md`.
+Plain TypeScript shared by the web UI and the TV app in `players/web`. So far it has `fallback.ts`, what to rule out when playback fails. The rest is still in `api/`, `lib/`, `pages/PlayerPage.tsx` and `pages/player/useSource.ts`. The plan is in `docs/clients.md`. Tests sit beside the code and run with `pnpm test`.
 
 ## Planned contents
 

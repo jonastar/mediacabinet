@@ -5,7 +5,8 @@ Self-hosted media library manager and streaming server. Rust backend (`crates/`)
 ## Commands
 
 - Backend: `cargo run -p media-cabinet` (port 8420), `cargo test`, `cargo clippy --all-targets`
-- Web: `cd web && pnpm dev` (proxies `/api` to 8420), `pnpm build`, `pnpm lint`
+- Web: `cd web && pnpm dev` (proxies `/api` to 8420), `pnpm build`, `pnpm lint`, `pnpm test`
+- After changing `design/tokens.json`: `cd web && pnpm tokens`
 - After changing API handlers: `cd web && pnpm api:types`
 - Format before committing: `cargo fmt` and `cd web && pnpm format`
 
@@ -17,6 +18,7 @@ Self-hosted media library manager and streaming server. Rust backend (`crates/`)
 ## API
 
 - Auth is deny-by-default in one place, `crates/server/src/api/auth.rs`. A new write endpoint is admin-only unless `is_own_change` lists it, and admin-only reads go in `ADMIN_READS`. Per-user handlers take the `Viewer` extractor, never "the default user".
+- Changes are additive, because apps stay in use for months: removing or changing what an app uses waits for a raised minimum version (`docs/releasing.md`).
 
 ## Web UI conventions
 

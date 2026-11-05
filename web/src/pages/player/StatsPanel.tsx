@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import type { PlayPlan } from '../../api/client'
 import { bytes } from '../../lib/format'
-import { clientCaps } from '../../lib/caps'
+import { describeFailure } from '../../core/fallback'
+import { clientCaps, forgetFailures, rememberedFailures } from '../../lib/caps'
 import { audioLabel, channelLayout, clock, codecName } from './labels'
 import type { Step } from './meter'
 import type { Snapshot } from './useStats'
@@ -239,6 +240,7 @@ function sections(plan: PlayPlan, s: Snapshot): Section[] {
       ['Audio codecs', (caps.audio_codecs ?? []).join(', ') || 'None'],
       ['Containers', (caps.containers ?? []).join(', ') || 'None'],
       ['HDR', caps.hdr ? 'Yes' : 'No'],
+      ['Found not to play', rememberedFailures().map(describeFailure).join(', ') || 'Nothing'],
       ['User agent', navigator.userAgent],
     ],
   })
@@ -268,6 +270,7 @@ export function StatsPanel({
   onClose: () => void
 }) {
   const [copied, setCopied] = useState(false)
+  const [, setForgotten] = useState(0)
   if (!snapshot) {
     return null
   }
@@ -288,6 +291,19 @@ export function StatsPanel({
         >
           {copied ? 'Copied' : 'Copy'}
         </button>
+        {rememberedFailures().length > 0 && (
+          <button
+            type="button"
+            className={styles.statsButton}
+            title="Try everything this browser says it can play again"
+            onClick={() => {
+              forgetFailures()
+              setForgotten((n) => n + 1)
+            }}
+          >
+            Forget failures
+          </button>
+        )}
         <button type="button" className={styles.statsButton} onClick={onClose}>
           Close
         </button>

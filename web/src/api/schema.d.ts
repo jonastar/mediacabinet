@@ -300,6 +300,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/device": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Signs a device in with a name and password. Returns its token; no cookie. */
+        post: operations["device_login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -326,7 +343,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ends this session. */
+        /** Ends this session, or for a device, signs it out. */
         post: operations["logout"];
         delete?: never;
         options?: never;
@@ -404,6 +421,43 @@ export interface paths {
         get: operations["start"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/pair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Starts pairing a device. Someone signed in on the web approves the code, and
+         *     the device polls until then. Rate limited.
+         */
+        post: operations["start_pairing"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/pair/poll": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** How a pairing is going, for the device that started it. */
+        post: operations["poll_pairing"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1087,6 +1141,40 @@ export interface paths {
         patch: operations["update_me"];
         trace?: never;
     };
+    "/api/me/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** TVs and apps signed in to your account. */
+        get: operations["my_devices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/devices/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Signs out one of your devices. */
+        delete: operations["sign_out_device"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me/logins/{id}": {
         parameters: {
             query?: never;
@@ -1099,6 +1187,48 @@ export interface paths {
         post?: never;
         /** Unlinks one of your accounts, if you still have another way in. */
         delete: operations["unlink_mine"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/media-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A token for requests that can't send a header, such as `<img>` and `<video>`:
+         *     add `?media_token=` to artwork, stream and subtitle URLs. It lasts a day, or
+         *     until this session ends. Never put the device token itself in a URL.
+         */
+        post: operations["media_token"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/me/pair": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The device waiting behind a code, to check before approving it. Wrong codes
+         *     are limited per user.
+         */
+        get: operations["pairing"];
+        put?: never;
+        /** Signs the device behind a code in to your account, or turns it away. */
+        post: operations["answer_pairing"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1651,6 +1781,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/server-info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What an app shows on its connect screen. Public. */
+        get: operations["server_info"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/sidecars/{id}/subtitles": {
         parameters: {
             query?: never;
@@ -2092,8 +2239,21 @@ export interface components {
         ClientCaps: {
             audio_codecs?: string[];
             containers?: string[];
-            /** @description The screen shows HDR (PQ/HLG). Otherwise HDR video is tone-mapped. */
+            /**
+             * @description The screen shows HDR (PQ/HLG). Otherwise HDR video is tone-mapped.
+             *     Ignored when `hdr_formats` lists any.
+             */
             hdr?: boolean;
+            /**
+             * @description HDR formats the screen shows: `hdr10`, `hlg`, `dolby_vision`. Other HDR
+             *     video is tone-mapped.
+             */
+            hdr_formats?: string[];
+            /**
+             * Format: int64
+             * @description Audio with more channels than this is converted to stereo. No limit if unset.
+             */
+            max_audio_channels?: number | null;
             video_codecs?: string[];
         };
         ComingUp: {
@@ -2156,6 +2316,27 @@ export interface components {
             person_id: number;
             /** @description The character for cast and guests, the job for crew. */
             role?: string | null;
+        };
+        /** @description A TV or app signed in to an account. */
+        Device: {
+            /** Format: int64 */
+            id: number;
+            /** Format: int64 */
+            last_seen_at: number;
+            name: string;
+            /** Format: int64 */
+            signed_in_at: number;
+        };
+        DeviceCredentials: {
+            /** @description Shown in Account, where it can be signed out. */
+            device_name: string;
+            name: string;
+            password: string;
+        };
+        DeviceSession: {
+            /** @description Send as `Authorization: Bearer`. Lasts a year from last use. */
+            token: string;
+            user: components["schemas"]["User"];
         };
         DryRun: {
             dry_run?: boolean;
@@ -2644,6 +2825,13 @@ export interface components {
             /** @description A new password; needs `current_password` if there is one. */
             password?: string | null;
         };
+        /** @description A token for media requests, which can't send a header. */
+        MediaToken: {
+            /** Format: int64 */
+            expires_at: number;
+            /** @description Sent as `?media_token=` on artwork, streams and subtitles only. */
+            token: string;
+        };
         /** @enum {string} */
         Mode: "direct" | "remux" | "transcode";
         /** @description Monitoring settings. Leave a field out to keep it; send null to clear it. */
@@ -2744,6 +2932,41 @@ export interface components {
             ordering: string;
             /** Format: int64 */
             season?: number | null;
+        };
+        PairingAnswer: {
+            approve: boolean;
+            code: string;
+        };
+        PairingPoll: {
+            secret: string;
+        };
+        PairingRequest: {
+            device_name: string;
+        };
+        PairingStart: {
+            /** @description Shown to the person approving, and in Account afterwards. */
+            device_name: string;
+        };
+        PairingStarted: {
+            /** @description For the person to enter, as `XXXX-XXXX`. */
+            code: string;
+            /** Format: int64 */
+            expires_in_seconds: number;
+            /**
+             * @description Where to send the person on this server, with the code filled in. Open
+             *     it in the system browser, or show it as text and a QR code.
+             */
+            path: string;
+            /** Format: int64 */
+            poll_every_seconds: number;
+            /** @description For this device alone, to poll with. */
+            secret: string;
+        };
+        /** @enum {string} */
+        PairingState: "waiting" | "approved" | "declined" | "expired";
+        PairingStatus: {
+            session?: components["schemas"]["DeviceSession"] | null;
+            state: components["schemas"]["PairingState"];
         };
         Parsed: {
             /** @description Absolute numbers, when the name has no season (typical for anime). */
@@ -3237,6 +3460,13 @@ export interface components {
             title: string;
             /** Format: int64 */
             year?: number | null;
+        };
+        ServerInfo: {
+            /** @description Apps older than this should ask to be updated. */
+            min_app_version: string;
+            /** @description What to call this server; `CABINET_SERVER_NAME`, or "Media Cabinet". */
+            name: string;
+            version: string;
         };
         SetMonitor: {
             /** @description `null` inherits from the parent (an episode from its series). */
@@ -4319,6 +4549,45 @@ export interface operations {
             };
         };
     };
+    device_login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceCredentials"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSession"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     login: {
         parameters: {
             query?: never;
@@ -4533,6 +4802,76 @@ export interface operations {
                 content?: never;
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    start_pairing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PairingStart"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairingStarted"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    poll_pairing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PairingPoll"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairingStatus"];
+                };
+            };
+            401: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5989,6 +6328,52 @@ export interface operations {
             };
         };
     };
+    my_devices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device"][];
+                };
+            };
+        };
+    };
+    sign_out_device: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     unlink_mine: {
         parameters: {
             query?: never;
@@ -6015,6 +6400,109 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    media_token: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MediaToken"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    pairing: {
+        parameters: {
+            query: {
+                code: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairingRequest"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    answer_pairing: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PairingAnswer"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PairingRequest"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            429: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -7234,6 +7722,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    server_info: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ServerInfo"];
                 };
             };
         };

@@ -50,6 +50,8 @@ export type ManagedUser = Schemas['ManagedUser']
 export type Login = Schemas['Login']
 export type MySignIn = Schemas['MySignIn']
 export type ProviderButton = Schemas['ProviderButton']
+export type Device = Schemas['Device']
+export type PairingRequest = Schemas['PairingRequest']
 export type ProviderView = Schemas['ProviderView']
 export type ProviderInput = Schemas['ProviderInput']
 export type ProviderKind = Schemas['Kind']
@@ -342,6 +344,12 @@ export const api = {
   }) => request<User>('PATCH', '/api/me', changes),
   mySignIn: () => request<MySignIn>('GET', '/api/me/sign-in'),
   unlinkMine: (loginId: number) => request<void>('DELETE', `/api/me/logins/${loginId}`),
+  myDevices: () => request<Device[]>('GET', '/api/me/devices'),
+  signOutDevice: (id: number) => request<void>('DELETE', `/api/me/devices/${id}`),
+  pairingRequest: (code: string) =>
+    request<PairingRequest>('GET', `/api/me/pair?${query({ code })}`),
+  answerPairing: (code: string, approve: boolean) =>
+    request<PairingRequest>('POST', '/api/me/pair', { code, approve }),
   users: () => request<ManagedUser[]>('GET', '/api/users'),
   createUser: (name: string, password: string, isAdmin: boolean) =>
     request<User>('POST', '/api/users', { name, password, is_admin: isAdmin }),

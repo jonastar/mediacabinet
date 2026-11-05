@@ -1,4 +1,5 @@
 import type { ClientCaps } from '../api/client'
+import { without, worthRemembering, type Failure } from '../core/fallback'
 
 /** Codec names as the server knows them, with a MIME type to test each. */
 const VIDEO: [string, string][] = [
@@ -59,4 +60,45 @@ export function clientCaps(): ClientCaps {
     hdr: hdrScreen && (videoCodecs.includes('hevc') || videoCodecs.includes('av1')),
   }
   return cached
+}
+
+const FAILURES_KEY = 'mc-playback-failures'
+
+/** What's been found not to play here, despite what the browser says. */
+export function rememberedFailures(): Failure[] {
+  try {
+    const stored: unknown = JSON.parse(localStorage.getItem(FAILURES_KEY) ?? '[]')
+    return Array.isArray(stored) ? (stored as Failure[]) : []
+  } catch {
+    return []
+  }
+}
+
+/** Keeps failures for next time, so another file skips the failed attempt. */
+export function rememberFailures(failures: Failure[]) {
+  const known = rememberedFailures()
+  const fresh = failures
+    .filter(worthRemembering)
+    .filter((f) => !known.some((k) => k.kind === f.kind && k.value === f.value))
+  if (fresh.length === 0) {
+    return
+  }
+  try {
+    localStorage.setItem(FAILURES_KEY, JSON.stringify([...known, ...fresh]))
+  } catch {
+    // Without storage, the next file fails over again by itself.
+  }
+}
+
+export function forgetFailures() {
+  try {
+    localStorage.removeItem(FAILURES_KEY)
+  } catch {
+    // Nothing to forget without storage.
+  }
+}
+
+/** What to ask the server for: what this browser says, less what's failed here. */
+export function playbackCaps(): ClientCaps {
+  return rememberedFailures().reduce(without, clientCaps())
 }

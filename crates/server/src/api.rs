@@ -14,6 +14,7 @@ mod accounts;
 mod activity;
 mod auth;
 mod catalog;
+mod devices;
 mod error;
 mod events;
 mod integration;
@@ -31,6 +32,10 @@ mod watch;
 
 pub use error::ApiError;
 
+/// The oldest app version this server still works with. Raise it only when
+/// removing or changing something old apps use (see `docs/releasing.md`).
+const MIN_APP_VERSION: &str = "0.0.0";
+
 #[derive(OpenApi)]
 #[openapi(info(title = "Media Cabinet API"))]
 struct ApiDoc;
@@ -38,6 +43,7 @@ struct ApiDoc;
 fn routes() -> OpenApiRouter<AppState> {
     let api = OpenApiRouter::new()
         .routes(routes!(health))
+        .routes(routes!(devices::server_info))
         .routes(routes!(accounts::status))
         .routes(routes!(accounts::setup))
         .routes(routes!(accounts::login))
@@ -49,6 +55,13 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(accounts::my_sign_in))
         .routes(routes!(accounts::unlink_mine))
         .routes(routes!(accounts::unlink_user))
+        .routes(routes!(devices::device_login))
+        .routes(routes!(devices::start_pairing))
+        .routes(routes!(devices::poll_pairing))
+        .routes(routes!(devices::pairing, devices::answer_pairing))
+        .routes(routes!(devices::my_devices))
+        .routes(routes!(devices::sign_out_device))
+        .routes(routes!(devices::media_token))
         .routes(routes!(sign_in::start))
         .routes(routes!(sign_in::callback, sign_in::posted_callback))
         .routes(routes!(sign_in::confirmation, sign_in::confirm))
@@ -160,6 +173,7 @@ pub fn router(state: AppState) -> Router {
         .with_state(state)
         .split_for_parts();
     api.route("/api/openapi.json", get(move || async move { Json(spec) }))
+        .layer(devices::cors())
 }
 
 /// The OpenAPI document, for generating clients without running the server.

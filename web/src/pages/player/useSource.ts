@@ -20,13 +20,14 @@ export function preloadHls() {
  * (loaded only when needed). hls.js is used wherever Media Source exists, even
  * where the browser claims HLS itself: Chrome's own HLS can't read these
  * streams. Native HLS is the fallback for iPhones without Media Source.
- * `onFatal` is called when the stream breaks, for the player to start over.
+ * `onFatal` is called when the stream breaks, saying whether it couldn't be
+ * fetched (`network`) or couldn't be played (`decode`), for the player to recover.
  * hls.js reports its segment downloads to `meter`.
  */
 export function useSource(
   video: RefObject<HTMLVideoElement | null>,
   plan: PlayPlan | null,
-  onFatal: (message: string) => void,
+  onFatal: (message: string, cause: 'network' | 'decode') => void,
   meter: Meter,
 ) {
   useEffect(() => {
@@ -65,7 +66,7 @@ export function useSource(
             player.recoverMediaError()
             return
           }
-          onFatal(data.details)
+          onFatal(data.details, data.type === Hls.ErrorTypes.NETWORK_ERROR ? 'network' : 'decode')
         })
         player.loadSource(plan.url)
         player.attachMedia(el)

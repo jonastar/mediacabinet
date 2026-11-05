@@ -174,25 +174,25 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 - [x] Decide: one small Preact app for all Samsung and LG TVs, which is also the reference for Android TV and tvOS
 - [x] Folders with READMEs: `players/` (with `players/web`, the shared TV app), `design/`, `web/src/core/`
 - [ ] Choose a licence with the App Store in mind (same item as Phase 0)
-- [ ] Device tokens: `Authorization: Bearer`, device names, a year from last use
-- [ ] Pairing: start and poll from the app, approve on the web at `/pair`, for passwords and every provider
-- [ ] UI: signed-in devices in Account, with sign out
-- [ ] Capabilities: HDR formats and audio channels; remuxing honours `audio_codecs`
-- [ ] Play reasons worded for any client, not just browsers
-- [ ] `GET /api/server-info`: name, version, minimum app version
-- [ ] Rule for API changes: additive, removals wait for a minimum version
+- [x] Device tokens: `Authorization: Bearer`, device names, a year from last use
+- [x] Pairing: start and poll from the app, approve on the web at `/pair`, for passwords and every provider
+- [x] UI: signed-in devices in Account, with sign out
+- [x] Capabilities: HDR formats and audio channels; remuxing honours `audio_codecs`
+- [x] Play reasons worded for any client, not just browsers
+- [x] `GET /api/server-info`: name, version, minimum app version
+- [x] Rule for API changes: additive, removals wait for a minimum version
 - [ ] Generate Swift and Kotlin API clients from the OpenAPI spec
 - [ ] Git remote and macOS CI: build, sign, upload to TestFlight
 - [ ] Spike on a rented Mac: AVPlayer plays direct, remuxed and transcoded streams with the cookie, on an iPhone and an Apple TV
 - [ ] Spike: Media3 plays the same streams on an Android phone and TV
 - [ ] Register as a seller with Samsung and LG, and find out which TVs a new app can reach; this sets the store floor
 - [ ] Spike: an ES5 build with `@vitejs/plugin-legacy` plays a stream using Preact, the playback session and hls.js, on the oldest TV available (goal: Samsung 2017, LG 2016); sets how far back the app runs
-- [ ] Spike: a packaged app on a Samsung and an LG TV reaches a plain HTTP server and plays direct, remuxed and transcoded streams, with HDR on newer models; compare `<video>` and AVPlay on Samsung
+- [ ] Spike: a packaged app on a Samsung and an LG TV reaches a plain HTTP server and plays direct, remuxed and transcoded streams, with HDR on newer models; compare `<video>` and AVPlay on Samsung; note what `Origin` each sends, and narrow the CORS list to that
 - [ ] Read Samsung's and LG's store requirements, including apps that need a person's own server
-- [ ] CORS on `/api` without credentials, for packaged TV apps
-- [ ] Media tokens: short-lived, read-only, media paths only
-- [ ] Fall back when playback fails: ask again without what failed, down to H.264 and AAC, and remember it per device
-- [ ] Design tokens: `design/tokens.json`, generated CSS, Swift and Kotlin (`docs/design-language.md`)
+- [x] CORS on `/api` without credentials, for packaged TV apps
+- [x] Media tokens: short-lived, read-only, media paths only
+- [x] Fall back when playback fails: ask again without what failed, down to H.264 and AAC, and remember it per device
+- [x] Design tokens: `design/tokens.json`, generated CSS, Swift and Kotlin (`docs/design-language.md`)
 
 ### Samsung and LG TVs
 

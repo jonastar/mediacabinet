@@ -73,6 +73,8 @@ Set these in the environment, or in a `.env` file in the working directory (giti
 | `CABINET_FFPROBE` | `ffprobe` | ffprobe to run |
 | `CABINET_FFMPEG` | `ffmpeg` | ffmpeg to run, for streams that aren't played directly and for subtitles |
 | `CABINET_HWACCEL` | `none` | Hardware video encoding: `vaapi` (or `vaapi:/dev/dri/renderD129`), `nvenc` or `qsv`. Checked at startup; falls back to software if it doesn't work |
+| `CABINET_SERVER_NAME` | `Media Cabinet` | What apps call this server on their connect screen |
+| `CABINET_CORS_ORIGINS` | none | More origins allowed to call `/api` across sites, separated by commas, such as a TV app's dev server. Packaged TV apps are already allowed |
 | `CABINET_TMDB_KEY` | none | TMDB API key (v3) or read access token (v4); needed to identify new folders |
 | `CABINET_TMDB_REGION` | `US` | Country whose age ratings to show (PG-13, FSK 12…), falling back to the US |
 | `CABINET_OMDB_KEY` | none | OMDb API key (free at omdbapi.com) for IMDb, Rotten Tomatoes and Metacritic ratings |

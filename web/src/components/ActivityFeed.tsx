@@ -149,8 +149,11 @@ function describe(entry: ActivityEntry, me: number): ReactNode {
     case 'user_removed':
       return `${who} removed the account ${String(p.name)}`
     case 'login': {
-      const via = p.via && p.via !== 'password' ? ` with ${String(p.via)}` : ''
-      return `${entry.subject?.id === me ? 'You' : (entry.subject?.name ?? 'Someone')} signed in${via}`
+      let how = p.via && p.via !== 'password' ? ` with ${String(p.via)}` : ''
+      if (p.device) {
+        how = ` on ${String(p.device)}`
+      }
+      return `${entry.subject?.id === me ? 'You' : (entry.subject?.name ?? 'Someone')} signed in${how}`
     }
     case 'login_failed':
       if (p.via) {

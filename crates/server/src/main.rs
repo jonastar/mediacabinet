@@ -23,6 +23,8 @@ pub struct AppState {
     pub match_settings: cabinet_core::matcher::MatchSettings,
     /// Signing in with other accounts: sign-ins in progress, env providers.
     pub sign_in: cabinet_core::sign_in::SignIn,
+    /// Devices pairing through a browser.
+    pub pairings: cabinet_core::pairing::Pairings,
     pub artwork: artwork::ArtworkCache,
     pub transcoder: transcode::Transcoder,
     /// Where extracted frames are kept.
@@ -258,6 +260,7 @@ async fn main() -> anyhow::Result<()> {
         omdb,
         match_settings,
         sign_in,
+        pairings: cabinet_core::pairing::Pairings::default(),
         artwork: artwork::ArtworkCache::new(data_dir.join("artwork")),
         transcoder,
         thumbnailer,

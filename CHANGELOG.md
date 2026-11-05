@@ -12,6 +12,12 @@ Details belong in the commit, docs or API reference.
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
+- TVs and apps can sign in with a code approved at `/pair`, for any kind of account, or with a password (`POST /api/auth/pair`, `POST /api/auth/device`); they stay signed in for a year from last use, and Account lists them with sign out (`GET /api/me/devices`).
+- The API accepts `Authorization: Bearer` device tokens, `?media_token=` for artwork, streams and subtitles (`POST /api/me/media-token`), and cross-site requests from packaged TV apps (`CABINET_CORS_ORIGINS` adds origins).
+- `GET /api/server-info` gives the server's name (`CABINET_SERVER_NAME`), version and minimum app version.
+- Clients can report `hdr_formats` and `max_audio_channels` when asking to play; reasons for converting now say "this player".
+- If a video won't play, the player tries again in a simpler form instead of stopping, and remembers what this browser couldn't play; the stats panel shows it and can forget it.
+- Migration 0021 adds device names to sessions, and media tokens.
 - Movies and folder videos with no artwork show a frame from the video, made after a scan or with Generate thumbnails on the library page (`POST /api/libraries/{id}/thumbnails`); it pauses while a converted stream is playing.
 - A Tasks tab in Manage shows what's running and what ran, with progress, failures and logs for each task, and can stop one (`GET /api/tasks`, `GET /api/tasks/{id}`, `POST /api/tasks/{id}/cancel`).
 - Migrations 0019 and 0020 add thumbnails and task logs.

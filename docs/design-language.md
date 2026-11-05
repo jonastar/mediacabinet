@@ -2,7 +2,7 @@
 
 Nov 5, 2026 · Jonas
 
-How Media Cabinet looks and behaves on every screen: the web UI and the players in `docs/clients.md`. Status: plan. `index.css` holds today's values. The logo, icons and animations are in `docs/brand/`.
+How Media Cabinet looks and behaves on every screen: the web UI and the players in `docs/clients.md`. Status: plan, apart from the tokens. The logo, icons and animations are in `docs/brand/`.
 
 **The aim:** someone moving from the web UI to their TV or phone recognises the product and its words straight away, and each platform still feels at home. Identity is shared, platform conventions are not.
 
@@ -32,13 +32,13 @@ How Media Cabinet looks and behaves on every screen: the web UI and the players 
 
 ## Tokens
 
-`design/tokens.json` becomes the one source for shared values. A small script generates `web/src/tokens.css`, fixed values for the Samsung and LG screens (older TVs have no CSS variables), a Swift file and a Kotlin file. The generated files are committed, and CI checks they're current.
+`design/tokens.json` is the one source for shared values. A small script generates `web/src/tokens.css`, fixed values for the Samsung and LG screens (older TVs have no CSS variables), a Swift file and a Kotlin file. The generated files are committed, and the pre-commit hook checks they're current. See `design/README.md`.
 
 Only values used on more than one platform go in: colour, state colours, radii, spacing, type sizes, durations. `--template-*` and `--bg-sidebar` stay in `index.css`, because only the web has those screens.
 
 ### Colour
 
-Dark only, using today's values from `index.css`:
+Dark only:
 
 | Role | Value |
 | --- | --- |

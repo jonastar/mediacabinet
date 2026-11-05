@@ -9,6 +9,8 @@ cargo fmt --manifest-path "$root/Cargo.toml" --all --check || {
     exit 1
 }
 
+node "$root/scripts/generate-tokens.mjs" --check
+
 cd "$root/web"
 pnpm format:check && pnpm lint || {
     echo "pre-commit: run 'pnpm format' in web/" >&2

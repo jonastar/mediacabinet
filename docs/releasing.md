@@ -35,3 +35,10 @@ tests don't need one. Keep entries to one line about what changed for the user.
 2. Release as above on the branch: `1.0.1`, tag `v1.0.1`, then `1.0.2-dev`.
 3. Copy the `1.0.1` changelog section to `main` too, below the section being
    worked on, so `main`'s changelog has every release.
+
+## API changes
+
+Apps stay in use for months after an update, so the API only grows:
+
+- Adding endpoints, optional request fields and response fields is always fine. Apps ignore what they don't know.
+- Removing or changing anything an app uses waits until no supported app needs it. Raise `MIN_APP_VERSION` in `crates/server/src/api.rs`, which `GET /api/server-info` reports and which tells older apps to ask for an update, and give the removal its own changelog line.

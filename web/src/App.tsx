@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Shell } from './components/Shell'
 import { ActivityPage } from './pages/ActivityPage'
 import { CalendarPage } from './pages/CalendarPage'
@@ -12,10 +13,12 @@ import { NotFoundPage } from './pages/NotFoundPage'
 import { PersonPage } from './pages/PersonPage'
 import { SeriesPage } from './pages/SeriesPage'
 import { ShowsPage } from './pages/ShowsPage'
-import { match, usePath } from './lib/router'
+import { holdPairCode, takeHeldPairPath } from './lib/pairCode'
+import { match, navigate, usePath } from './lib/router'
 import { checkSession, useSession } from './lib/session'
 import { AuthPage, PendingPage } from './pages/AuthPage'
 import { AccountPage } from './pages/AccountPage'
+import { PairPage } from './pages/PairPage'
 import { PlayerPage } from './pages/PlayerPage'
 import { Failed } from './components/Status'
 import { BootScreen } from './components/Brand'
@@ -27,6 +30,9 @@ function Page({ path, admin }: { path: string; admin: boolean }) {
   }
   if (path === '/account') {
     return <AccountPage />
+  }
+  if (path === '/pair') {
+    return <PairPage />
   }
   if (path === '/') {
     return <HomePage />
@@ -91,6 +97,16 @@ checkSession()
 export default function App() {
   const path = usePath()
   const session = useSession()
+  const signedIn = session.state === 'signedIn'
+  // A pairing link survives a round trip to a sign-in provider, which lands elsewhere.
+  useEffect(() => {
+    if (signedIn) {
+      const held = takeHeldPairPath()
+      if (held) {
+        navigate(held, { replace: true })
+      }
+    }
+  }, [signedIn])
   if (session.state === 'checking') {
     return <BootScreen />
   }
@@ -101,6 +117,7 @@ export default function App() {
     return <PendingPage name={session.user.name} />
   }
   if (session.state !== 'signedIn') {
+    holdPairCode()
     return (
       <AuthPage
         setup={session.state === 'setup'}

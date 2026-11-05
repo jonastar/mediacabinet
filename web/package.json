@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint --deny-warnings",
+    "test": "node --test 'src/**/*.test.ts'",
     "preview": "vite preview",
     "api:types": "cargo run -q -p media-cabinet -- openapi > src/api/openapi.json && openapi-typescript src/api/openapi.json -o src/api/schema.d.ts",
+    "tokens": "node ../scripts/generate-tokens.mjs",
     "format": "oxlint --fix && oxfmt",
     "format:check": "oxfmt --check"
   },

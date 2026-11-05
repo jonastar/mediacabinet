@@ -22,6 +22,7 @@ pub enum ApiError {
     /// Signed in, but not allowed, for this reason.
     ForbiddenBecause(String),
     Conflict(String),
+    TooManyRequests(String),
     /// A dependency such as the metadata provider is unavailable.
     Unavailable(String),
     Internal(String),
@@ -39,6 +40,7 @@ impl IntoResponse for ApiError {
             ),
             ApiError::ForbiddenBecause(message) => (StatusCode::FORBIDDEN, message),
             ApiError::Conflict(message) => (StatusCode::CONFLICT, message),
+            ApiError::TooManyRequests(message) => (StatusCode::TOO_MANY_REQUESTS, message),
             ApiError::Unavailable(message) => (StatusCode::SERVICE_UNAVAILABLE, message),
             ApiError::Internal(message) => {
                 tracing::error!(error = message, "request failed");
@@ -88,6 +90,18 @@ impl From<cabinet_core::accounts::AccountError> for ApiError {
             AccountError::BadLogin => ApiError::Unauthorized(err.to_string()),
             AccountError::Disabled => ApiError::Unauthorized(err.to_string()),
             AccountError::Db(e) => ApiError::Internal(e.to_string()),
+        }
+    }
+}
+
+impl From<cabinet_core::pairing::PairError> for ApiError {
+    fn from(err: cabinet_core::pairing::PairError) -> Self {
+        use cabinet_core::pairing::PairError;
+        match err {
+            PairError::BadName | PairError::UnknownCode => ApiError::BadRequest(err.to_string()),
+            PairError::TooManyStarts | PairError::TooManyMisses => {
+                ApiError::TooManyRequests(err.to_string())
+            }
         }
     }
 }

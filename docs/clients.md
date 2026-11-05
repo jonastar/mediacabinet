@@ -2,7 +2,7 @@
 
 Nov 4, 2026 · Jonas (updated Nov 5: Samsung and LG TVs, `players/`, design language)
 
-Apps for Android, iOS, Android TV, Apple TV, Samsung TVs (Tizen) and LG TVs (webOS). Status: plan, not built. The checklist is in `docs/roadmap.md`, the shared look and behaviour in `docs/design-language.md`.
+Apps for Android, iOS, Android TV, Apple TV, Samsung TVs (Tizen) and LG TVs (webOS). Status: the server pre-work below is built, the apps aren't. The checklist is in `docs/roadmap.md`, the shared look and behaviour in `docs/design-language.md`.
 
 ## Scope
 
@@ -69,9 +69,9 @@ The cost is that UI fixes reach people through store updates, not server updates
 ### What packaging needs from the server and web code
 
 - **Bearer tokens, not cookies.** A packaged app is cross-site to the server. `SameSite=Lax` cookies aren't sent, and `SameSite=None` requires `Secure`, which rules out plain HTTP on a home network. TVs use the device tokens below.
-- **CORS on `/api`**, without credentials. Find out what `Origin` each platform sends from a packaged app, then allow only what's needed. No cookies are involved, so this doesn't expose web sessions.
+- **CORS on `/api`**, without credentials. No cookies are involved, so this doesn't expose web sessions. Allowed for now: `null` and `file://`, what packaged apps are expected to send, plus any in `CABINET_CORS_ORIGINS`. The TV spike finds out what each platform really sends, and the list narrows to that. Sign-in endpoints are opt-in (only status, logout and pairing): above all, CORS must not reach `/api/auth/setup`, or any page someone visits could claim a new server on their network.
 - **A configurable server address.** `api/client.ts`, `lib/live.ts`, artwork and play plan URLs are all relative. They go through one base URL, which stays empty on the web.
-- **Short-lived media tokens.** `<img>`, CSS backgrounds and `<video src>` can't send headers. `POST /api/me/media-token` returns a token that lasts a day, passed as `?media_token=`. It only works for GETs on artwork, `/api/files/*/stream`, `/api/play/*` and `/api/sidecars/*`. The device token itself never goes in a URL: it lasts a year, and URLs end up in proxy logs. hls.js sends the bearer header for playlists and segments through `xhrSetup`, and fetches subtitles the same way.
+- **Short-lived media tokens.** `<img>`, CSS backgrounds and `<video src>` can't send headers. `POST /api/me/media-token` returns a token that lasts a day, passed as `?media_token=`. It only works for GETs on artwork, people's photos, streams, HLS files and subtitles, and ends with its session. The device token itself never goes in a URL: it lasts a year, and URLs end up in proxy logs. hls.js sends the bearer header for playlists and segments through `xhrSetup`, and fetches subtitles the same way.
 - **No live updates at first.** `EventSource` can't send headers either. TV screens refetch when they're shown again.
 
 ### TV screens
@@ -180,9 +180,10 @@ The playback API already suits device players: `POST /items/{id}/play` takes a c
   2. The TV shows the code and a URL or QR code. A phone opens the system browser at that URL directly.
   3. The person signs in on the web as usual (password or any provider) and approves the named device at `/pair`. Approving goes through `POST /api/me/pair`, because `/api/auth/` is public and `/api/me/` needs a signed-in user.
   4. The app polls with its secret and receives its token.
-- **Phones can also use a password** directly, which avoids a browser round trip for local accounts.
+- **Phones can also use a password** directly through `POST /api/auth/device`, which avoids a browser round trip for local accounts.
 - **Providers stay in the browser.** The app never sees an ID token, so the signature verification that `docs/sign-in.md` requires for browser-delivered tokens isn't needed.
-- **Pairing endpoints are rate limited**, since the code is short and starting a pairing is public.
+- **Pairing endpoints are rate limited**, since the code is short and starting a pairing is public: 30 starts a minute overall, and 10 wrong codes per user in ten minutes. Polling isn't limited, because the secret can't be guessed.
+- **A QR code or link carries the code** (`path` in the response, `/pair?code=…`), and it survives a round trip to a sign-in provider.
 
 ### Authenticating media requests
 
@@ -201,12 +202,17 @@ Devices sometimes claim to play things they can't, and a dead-end error is the u
 3. Repeat until the plan is H.264 and AAC in HLS, the safest thing the server can send. Only then show an error.
 4. Remember what failed on this device, so the next file skips the failed attempt. The player's stats say what happened.
 
-The play API already takes capabilities on each call, so this needs no server change.
+The play API already takes capabilities on each call, so this needs no server change. The steps are in `web/src/core/fallback.ts`, and the web player uses them, cheapest first: the container, then the audio, then HDR, then the video codec. Two details matter for other players:
 
-- `ClientCaps.hdr` is a yes or no. Clients need to report formats (`hdr10`, `hlg`, `dolby_vision`) and maximum audio channels. Keep `hdr` working for the web.
-- Check that remuxing honours `audio_codecs`. `HLS_AUDIO` includes Opus and FLAC, which AVPlayer may not play in HLS.
-- Check Dolby Vision files on real devices, particularly profiles without an HDR10 base layer.
-- Reasons say "This browser can't play…". Change them to wording that fits any client.
+- **Only a step that worked is remembered.** A broken file fails every step, so it teaches nothing about the device. Neither does a failure partway through a file. H.264 and AAC can be ruled out for one file, which forces 10-bit H.264 through the encoder, but are never remembered.
+- **"No frames" means data is there and nothing plays:** not paused, at least 2 seconds buffered and nothing played for 8 seconds. A slow network or a blocked autoplay isn't a failure.
+
+Capabilities a client reports:
+
+- `hdr_formats` lists formats (`hdr10`, `hlg`, `dolby_vision`), and others are tone-mapped. It wins over `hdr`, the older yes or no the web still sends.
+- `max_audio_channels` converts audio with more channels to stereo AAC. Without a limit, surround is copied if `audio_codecs` lists its codec.
+- Remuxing honours `audio_codecs`, so a client just leaves out what it can't play in HLS, as AVPlayer may with Opus and FLAC.
+- Still to do: check Dolby Vision files on real devices, particularly profiles without an HDR10 base layer. The scan records `dolby_vision` without a profile, so a client that lists it claims all of them.
 
 ### Timeline and sessions
 
@@ -224,8 +230,8 @@ The play API already takes capabilities on each call, so this needs no server ch
 
 Old app versions will keep calling the API, sometimes for months.
 
-- **API changes are additive.** Removing or changing a field used by an app waits for a declared minimum version.
-- **`GET /api/server-info` (public).** Returns the server's name, version and the minimum app version it supports. Apps use it on the connect screen, and it can tell people when to update.
+- **API changes are additive.** Removing or changing a field used by an app waits for a declared minimum version (`docs/releasing.md`).
+- **`GET /api/server-info` (public).** Returns the server's name (`CABINET_SERVER_NAME`), version and the minimum app version it supports. Apps use it on the connect screen, and it can tell people when to update.
 - **Generated API clients.** Swift and Kotlin types come from `/api/openapi.json`, as the web's do.
 
 ### Reaching a server

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { api } from '../api/client'
 import { useApi } from '../api/useApi'
 import { Loading } from '../components/Status'
+import { Link } from '../components/Link'
 import { ago } from '../lib/format'
 import { signedIn, useUser } from '../lib/session'
 import styles from './Settings.module.css'
@@ -18,7 +19,7 @@ function takeLinkResult(): { ok: boolean; text: string } | null {
   return error ? { ok: false, text: error } : { ok: true, text: 'Linked.' }
 }
 
-/** Your own name, email, password, linked accounts and privacy. */
+/** Your own name, email, password, linked accounts, devices and privacy. */
 export function AccountPage() {
   const user = useUser()
   const [name, setName] = useState(user.name)
@@ -28,6 +29,7 @@ export function AccountPage() {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(takeLinkResult)
   const signIn = useApi('my-sign-in', api.mySignIn)
   const hasPassword = signIn.data?.has_password ?? true
+  const devices = useApi('my-devices', api.myDevices)
 
   const save = async (e: FormEvent, changes: Parameters<typeof api.updateMe>[0], done: string) => {
     e.preventDefault()
@@ -51,6 +53,19 @@ export function AccountPage() {
     try {
       await api.unlinkMine(id)
       signIn.reload()
+    } catch (err) {
+      setMessage({ ok: false, text: (err as Error).message })
+    }
+  }
+
+  const signOutDevice = async (id: number, device: string) => {
+    if (!window.confirm(`Sign out ${device}? It'll need signing in again to use it.`)) {
+      return
+    }
+    setMessage(null)
+    try {
+      await api.signOutDevice(id)
+      devices.reload()
     } catch (err) {
       setMessage({ ok: false, text: (err as Error).message })
     }
@@ -248,6 +263,41 @@ export function AccountPage() {
             </button>
           </div>
         </form>
+        <section className={styles.panel} aria-labelledby="devices">
+          <h2 id="devices">Devices</h2>
+          {!devices.data && <Loading />}
+          {devices.data && (
+            <>
+              <p className={styles.muted}>
+                {devices.data.length
+                  ? 'TVs and apps signed in to your account.'
+                  : 'No TVs or apps are signed in.'}{' '}
+                If one is showing a code, <Link to="/pair">enter it here</Link>.
+              </p>
+              {devices.data.length > 0 && (
+                <ul className={styles.list}>
+                  {devices.data.map((d) => (
+                    <li key={d.id} className={styles.item}>
+                      <span className={styles.itemText}>
+                        <b>{d.name}</b>
+                        <span className={styles.muted}>
+                          signed in {ago(d.signed_in_at)} · used {ago(d.last_seen_at)}
+                        </span>
+                      </span>
+                      <button
+                        type="button"
+                        className={styles.button}
+                        onClick={() => signOutDevice(d.id, d.name)}
+                      >
+                        Sign out
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </>
+          )}
+        </section>
         <section className={styles.panel} aria-labelledby="privacy">
           <h2 id="privacy">Privacy</h2>
           <label className={styles.check}>

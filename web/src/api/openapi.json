@@ -795,6 +795,54 @@
         }
       }
     },
+    "/api/auth/device": {
+      "post": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Signs a device in with a name and password. Returns its token; no cookie.",
+        "operationId": "device_login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceCredentials"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/login": {
       "post": {
         "tags": [
@@ -839,7 +887,7 @@
         "tags": [
           "accounts"
         ],
-        "summary": "Ends this session.",
+        "summary": "Ends this session, or for a device, signs it out.",
         "operationId": "logout",
         "responses": {
           "204": {}
@@ -1090,6 +1138,93 @@
             "description": "To the provider"
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/pair": {
+      "post": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Starts pairing a device. Someone signed in on the web approves the code, and\nthe device polls until then. Rate limited.",
+        "operationId": "start_pairing",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairingStart"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingStarted"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/pair/poll": {
+      "post": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "How a pairing is going, for the device that started it.",
+        "operationId": "poll_pairing",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairingPoll"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingStatus"
+                }
+              }
+            }
+          },
+          "401": {
             "content": {
               "application/json": {
                 "schema": {
@@ -3141,6 +3276,61 @@
         }
       }
     },
+    "/api/me/devices": {
+      "get": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "TVs and apps signed in to your account.",
+        "operationId": "my_devices",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Device"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/devices/{id}": {
+      "delete": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Signs out one of your devices.",
+        "operationId": "sign_out_device",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/me/logins/{id}": {
       "delete": {
         "tags": [
@@ -3171,6 +3361,129 @@
             }
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/media-token": {
+      "post": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "A token for requests that can't send a header, such as `<img>` and `<video>`:\nadd `?media_token=` to artwork, stream and subtitle URLs. It lasts a day, or\nuntil this session ends. Never put the device token itself in a URL.",
+        "operationId": "media_token",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaToken"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/me/pair": {
+      "get": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "The device waiting behind a code, to check before approving it. Wrong codes\nare limited per user.",
+        "operationId": "pairing",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Signs the device behind a code in to your account, or turns it away.",
+        "operationId": "answer_pairing",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PairingAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PairingRequest"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "429": {
             "content": {
               "application/json": {
                 "schema": {
@@ -4797,6 +5110,26 @@
         }
       }
     },
+    "/api/server-info": {
+      "get": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "What an app shows on its connect screen. Public.",
+        "operationId": "server_info",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServerInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sidecars/{id}/subtitles": {
       "get": {
         "tags": [
@@ -6217,7 +6550,22 @@
           },
           "hdr": {
             "type": "boolean",
-            "description": "The screen shows HDR (PQ/HLG). Otherwise HDR video is tone-mapped."
+            "description": "The screen shows HDR (PQ/HLG). Otherwise HDR video is tone-mapped.\nIgnored when `hdr_formats` lists any."
+          },
+          "hdr_formats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "HDR formats the screen shows: `hdr10`, `hlg`, `dolby_vision`. Other HDR\nvideo is tone-mapped."
+          },
+          "max_audio_channels": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Audio with more channels than this is converted to stereo. No limit if unset."
           },
           "video_codecs": {
             "type": "array",
@@ -6409,6 +6757,69 @@
               "null"
             ],
             "description": "The character for cast and guests, the job for crew."
+          }
+        }
+      },
+      "Device": {
+        "type": "object",
+        "description": "A TV or app signed in to an account.",
+        "required": [
+          "id",
+          "name",
+          "signed_in_at",
+          "last_seen_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "last_seen_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "name": {
+            "type": "string"
+          },
+          "signed_in_at": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "DeviceCredentials": {
+        "type": "object",
+        "required": [
+          "name",
+          "password",
+          "device_name"
+        ],
+        "properties": {
+          "device_name": {
+            "type": "string",
+            "description": "Shown in Account, where it can be signed out."
+          },
+          "name": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "DeviceSession": {
+        "type": "object",
+        "required": [
+          "token",
+          "user"
+        ],
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Send as `Authorization: Bearer`. Lasts a year from last use."
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
           }
         }
       },
@@ -8050,6 +8461,24 @@
           }
         }
       },
+      "MediaToken": {
+        "type": "object",
+        "description": "A token for media requests, which can't send a header.",
+        "required": [
+          "token",
+          "expires_at"
+        ],
+        "properties": {
+          "expires_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "token": {
+            "type": "string",
+            "description": "Sent as `?media_token=` on artwork, streams and subtitles only."
+          }
+        }
+      },
       "Mode": {
         "type": "string",
         "enum": [
@@ -8406,6 +8835,119 @@
               "null"
             ],
             "format": "int64"
+          }
+        }
+      },
+      "PairingAnswer": {
+        "type": "object",
+        "required": [
+          "code",
+          "approve"
+        ],
+        "properties": {
+          "approve": {
+            "type": "boolean"
+          },
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "PairingPoll": {
+        "type": "object",
+        "required": [
+          "secret"
+        ],
+        "properties": {
+          "secret": {
+            "type": "string"
+          }
+        }
+      },
+      "PairingRequest": {
+        "type": "object",
+        "required": [
+          "device_name"
+        ],
+        "properties": {
+          "device_name": {
+            "type": "string"
+          }
+        }
+      },
+      "PairingStart": {
+        "type": "object",
+        "required": [
+          "device_name"
+        ],
+        "properties": {
+          "device_name": {
+            "type": "string",
+            "description": "Shown to the person approving, and in Account afterwards."
+          }
+        }
+      },
+      "PairingStarted": {
+        "type": "object",
+        "required": [
+          "code",
+          "secret",
+          "path",
+          "expires_in_seconds",
+          "poll_every_seconds"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "For the person to enter, as `XXXX-XXXX`."
+          },
+          "expires_in_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "path": {
+            "type": "string",
+            "description": "Where to send the person on this server, with the code filled in. Open\nit in the system browser, or show it as text and a QR code."
+          },
+          "poll_every_seconds": {
+            "type": "integer",
+            "format": "int64",
+            "minimum": 0
+          },
+          "secret": {
+            "type": "string",
+            "description": "For this device alone, to poll with."
+          }
+        }
+      },
+      "PairingState": {
+        "type": "string",
+        "enum": [
+          "waiting",
+          "approved",
+          "declined",
+          "expired"
+        ]
+      },
+      "PairingStatus": {
+        "type": "object",
+        "required": [
+          "state"
+        ],
+        "properties": {
+          "session": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/DeviceSession"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "$ref": "#/components/schemas/PairingState"
           }
         }
       },
@@ -10141,6 +10683,27 @@
               "null"
             ],
             "format": "int64"
+          }
+        }
+      },
+      "ServerInfo": {
+        "type": "object",
+        "required": [
+          "name",
+          "version",
+          "min_app_version"
+        ],
+        "properties": {
+          "min_app_version": {
+            "type": "string",
+            "description": "Apps older than this should ask to be updated."
+          },
+          "name": {
+            "type": "string",
+            "description": "What to call this server; `CABINET_SERVER_NAME`, or \"Media Cabinet\"."
+          },
+          "version": {
+            "type": "string"
           }
         }
       },

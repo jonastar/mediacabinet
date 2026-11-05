@@ -17,6 +17,7 @@ pub mod metadata;
 pub mod oauth2;
 pub mod oidc;
 pub mod organize;
+pub mod pairing;
 pub mod parse;
 pub mod playback;
 pub mod playlists;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, type PlayChoice, type PlayPlan } from '../api/client'
+import { api, type ClientCaps, type PlayChoice, type PlayPlan } from '../api/client'
 import { useApi } from '../api/useApi'
 import {
   BackIcon,
@@ -11,13 +11,14 @@ import {
   TracksIcon,
   VolumeIcon,
 } from '../components/Icons'
-import { clientCaps } from '../lib/caps'
+import { playbackCaps } from '../lib/caps'
 import { episodeLabel } from '../lib/format'
 import { navigate, useQueryParam } from '../lib/router'
 import { clock } from './player/labels'
 import { Meter } from './player/meter'
 import { StatsPanel } from './player/StatsPanel'
 import { TracksMenu } from './player/TracksMenu'
+import { useFallback } from './player/useFallback'
 import { preloadHls, useSource } from './player/useSource'
 import { useStats } from './player/useStats'
 import styles from './player/Player.module.css'
@@ -91,6 +92,7 @@ export function PlayerPage({ id }: { id: number }) {
   const positionRef = useRef(0)
   const requestRef = useRef(0)
   const retriesRef = useRef(0)
+  const capsRef = useRef(playbackCaps())
   /** A seek waiting to restart the stream, and where it goes. */
   const restartTimer = useRef<number | undefined>(undefined)
   const restartTarget = useRef<number | null>(null)
@@ -99,7 +101,7 @@ export function PlayerPage({ id }: { id: number }) {
     (next: PlayChoice, at?: number) => {
       const request = ++requestRef.current
       meter.begin()
-      return api.play(id, next, clientCaps(), at).then(
+      return api.play(id, next, capsRef.current, at).then(
         (p) => {
           if (request !== requestRef.current) {
             // Overtaken by a later request.
@@ -181,18 +183,39 @@ export function PlayerPage({ id }: { id: number }) {
     return () => window.clearInterval(timer)
   }, [playing, report])
 
+  const restart = useCallback(() => {
+    setRestartingAt(positionRef.current)
+    load(choiceRef.current, positionRef.current)
+  }, [load])
+  const currentCaps = useCallback(() => capsRef.current, [])
+  const restartWith = useCallback(
+    (caps: ClientCaps) => {
+      capsRef.current = caps
+      restart()
+    },
+    [restart],
+  )
+  const giveUp = useCallback((message: string) => {
+    setError(`Playback stopped: ${message}`)
+  }, [])
+  const fallback = useFallback(videoRef, plan, currentCaps, restartWith, giveUp)
+  const { decodeFailed } = fallback
+
   const onFatal = useCallback(
-    (message: string) => {
+    (message: string, cause: 'network' | 'decode') => {
+      if (cause === 'decode') {
+        decodeFailed(message)
+        return
+      }
       // A stream that ended on the server (idle too long) restarts where it was.
       if (retriesRef.current < 2) {
         retriesRef.current += 1
-        setRestartingAt(positionRef.current)
-        load(choiceRef.current, positionRef.current)
+        restart()
       } else {
-        setError(`Playback stopped: ${message}`)
+        giveUp(message)
       }
     },
-    [load],
+    [decodeFailed, restart, giveUp],
   )
   useSource(videoRef, plan, onFatal, meter)
   const snapshot = useStats(videoRef, plan, meter, statsOpen)
@@ -429,7 +452,12 @@ export function PlayerPage({ id }: { id: number }) {
             setCountdown(UP_NEXT_SECONDS)
           }
         }}
-        onError={() => plan?.mode === 'direct' && onFatal('the browser could not read the file')}
+        onError={(e) => {
+          if (plan?.mode === 'direct') {
+            const network = e.currentTarget.error?.code === MediaError.MEDIA_ERR_NETWORK
+            onFatal('the browser could not read the file', network ? 'network' : 'decode')
+          }
+        }}
       >
         {subtitle?.url && (
           <track
@@ -456,6 +484,8 @@ export function PlayerPage({ id }: { id: number }) {
               className={styles.pill}
               onClick={() => {
                 retriesRef.current = 0
+                capsRef.current = playbackCaps()
+                fallback.reset()
                 setError(null)
                 load(choiceRef.current, positionRef.current)
               }}

@@ -318,6 +318,7 @@ pub(crate) async fn run_task(task: &Handle, root_id: i64) -> Result<Finished, sq
                     problem.get_or_insert_with(|| format!("Files scanned; matching failed: {e}"));
                 }
             }
+            request_thumbnails(task, root_id).await;
             Finished {
                 state: Ended::Ok,
                 outcome: Some(report),
@@ -347,6 +348,28 @@ pub(crate) async fn run_task(task: &Handle, root_id: i64) -> Result<Finished, sq
         },
     };
     Ok(finished)
+}
+
+/// Asks for thumbnails if the scan left files in the root's library without one.
+/// A problem here is no problem for the scan.
+async fn request_thumbnails(task: &Handle, root_id: i64) {
+    if task.services().thumbnailer.is_none() {
+        return;
+    }
+    let requested = async {
+        let library: i64 = sqlx::query_scalar("SELECT library_id FROM library_root WHERE id = ?")
+            .bind(root_id)
+            .fetch_one(task.pool())
+            .await?;
+        if crate::thumbnails::has_work(task.pool(), library).await? {
+            task.request(Kind::Thumbnails, Scope::Library(library), Trigger::Added)
+                .await?;
+        }
+        Ok::<(), sqlx::Error>(())
+    };
+    if let Err(e) = requested.await {
+        tracing::warn!(root_id, error = %e, "can't request thumbnails");
+    }
 }
 
 /// Records the end of a scan, in the same transaction as its task.

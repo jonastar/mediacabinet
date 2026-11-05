@@ -3,8 +3,8 @@
 
 use axum::Json;
 use axum::extract::{Path, Query, State};
-use axum::http::StatusCode;
-use axum::response::Response;
+use axum::http::{StatusCode, header};
+use axum::response::{IntoResponse, Response};
 use cabinet_core::catalog::movies::{self, MovieDetail, MovieSummary, SearchResults};
 use cabinet_core::catalog::{self, ViewRef};
 use cabinet_core::items::{self, ItemEdit, ItemError};
@@ -98,7 +98,8 @@ pub async fn search(
     ))
 }
 
-/// An item's artwork (poster, backdrop or still), cached locally after first use.
+/// An item's artwork (poster, backdrop or still), cached locally after first use,
+/// or `thumbnail`: a frame from its video.
 #[utoipa::path(
     get,
     path = "/artwork/{id}/{kind}",
@@ -110,6 +111,9 @@ pub async fn artwork(
     State(state): State<AppState>,
     Path((id, kind)): Path<(i64, String)>,
 ) -> Result<Response, ApiError> {
+    if kind == "thumbnail" {
+        return thumbnail(&state, id).await;
+    }
     let row: Option<(String, String)> =
         sqlx::query_as("SELECT provider, path FROM item_artwork WHERE item_id = ? AND kind = ?")
             .bind(id)
@@ -118,6 +122,24 @@ pub async fn artwork(
             .await?;
     let (provider, path) = row.ok_or(ApiError::NotFound)?;
     state.artwork.get(&provider, &kind, &path).await
+}
+
+/// A frame from the item's video, for items with no provider art.
+async fn thumbnail(state: &AppState, item: i64) -> Result<Response, ApiError> {
+    let file = cabinet_core::thumbnails::for_item(&state.db, item)
+        .await?
+        .ok_or(ApiError::NotFound)?;
+    let bytes = tokio::fs::read(state.thumbnailer.path(file))
+        .await
+        .map_err(|_| ApiError::NotFound)?;
+    Ok((
+        [
+            (header::CONTENT_TYPE, "image/webp"),
+            (header::CACHE_CONTROL, "private, max-age=3600"),
+        ],
+        bytes,
+    )
+        .into_response())
 }
 
 /// Edits a series', episode's or movie's details, optionally locking them against refresh.

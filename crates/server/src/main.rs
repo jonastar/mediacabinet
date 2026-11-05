@@ -4,6 +4,8 @@ use std::time::Duration;
 
 use anyhow::Context;
 use tracing_subscriber::EnvFilter;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 mod api;
 mod artwork;
@@ -23,6 +25,8 @@ pub struct AppState {
     pub sign_in: cabinet_core::sign_in::SignIn,
     pub artwork: artwork::ArtworkCache,
     pub transcoder: transcode::Transcoder,
+    /// Where extracted frames are kept.
+    pub thumbnailer: cabinet_core::thumbnails::Thumbnailer,
     /// Derived files that can be rebuilt, such as subtitles as WebVTT.
     pub cache: PathBuf,
     /// Turns true when the server starts shutting down, so endless streams can end.
@@ -132,8 +136,11 @@ async fn main() -> anyhow::Result<()> {
     // Local development settings; real environment variables win.
     let env_file = dotenvy::dotenv().ok();
 
-    tracing_subscriber::fmt()
-        .with_env_filter(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
+    let (task_log, task_log_lines) = cabinet_core::tasks::log::layer();
+    tracing_subscriber::registry()
+        .with(EnvFilter::try_from_default_env().unwrap_or_else(|_| "info".into()))
+        .with(tracing_subscriber::fmt::layer())
+        .with(task_log)
         .init();
 
     if let Some(path) = env_file {
@@ -177,6 +184,21 @@ async fn main() -> anyhow::Result<()> {
             Err(_) => cabinet_core::matcher::MatchSettings::default().accept,
         },
     };
+    let hwaccel = std::env::var("CABINET_HWACCEL").unwrap_or_default();
+    let hwaccel = cabinet_core::playback::HwAccel::parse(&hwaccel)
+        .context("CABINET_HWACCEL must be none, vaapi, vaapi:<device>, nvenc or qsv")?;
+    let ffmpeg: PathBuf = std::env::var("CABINET_FFMPEG")
+        .unwrap_or_else(|_| "ffmpeg".into())
+        .into();
+    let transcoder =
+        transcode::Transcoder::new(data_dir.join("transcode"), ffmpeg.clone(), hwaccel).await;
+    transcoder.spawn_reaper();
+
+    let thumbnailer = cabinet_core::thumbnails::Thumbnailer {
+        ffmpeg,
+        dir: data_dir.join("thumbnails"),
+    };
+    cabinet_core::tasks::log::spawn_writer(db.clone(), task_log_lines);
     let omdb = omdb();
     let tasks = cabinet_core::tasks::Tasks::new(
         db.clone(),
@@ -185,6 +207,11 @@ async fn main() -> anyhow::Result<()> {
             provider: provider.clone(),
             match_settings,
             omdb: omdb.clone(),
+            thumbnailer: Some(thumbnailer.clone()),
+            transcoding: {
+                let transcoder = transcoder.clone();
+                std::sync::Arc::new(move || transcoder.active())
+            },
         },
     );
     tasks.resume().await?;
@@ -214,19 +241,6 @@ async fn main() -> anyhow::Result<()> {
         );
     }
 
-    let hwaccel = std::env::var("CABINET_HWACCEL").unwrap_or_default();
-    let hwaccel = cabinet_core::playback::HwAccel::parse(&hwaccel)
-        .context("CABINET_HWACCEL must be none, vaapi, vaapi:<device>, nvenc or qsv")?;
-    let transcoder = transcode::Transcoder::new(
-        data_dir.join("transcode"),
-        std::env::var("CABINET_FFMPEG")
-            .unwrap_or_else(|_| "ffmpeg".into())
-            .into(),
-        hwaccel,
-    )
-    .await;
-    transcoder.spawn_reaper();
-
     let (stop, shutdown) = tokio::sync::watch::channel(false);
     tokio::spawn(async move {
         stop_signal().await;
@@ -246,6 +260,7 @@ async fn main() -> anyhow::Result<()> {
         sign_in,
         artwork: artwork::ArtworkCache::new(data_dir.join("artwork")),
         transcoder,
+        thumbnailer,
         cache: data_dir.join("cache"),
         shutdown: shutdown.clone(),
     })

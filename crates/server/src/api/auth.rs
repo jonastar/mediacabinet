@@ -6,8 +6,8 @@
 //!
 //! Changes need an admin, apart from a user's own things: their account, watch
 //! state, views, playlists and watch activity. A few reads need an admin too: keys, webhooks,
-//! users, the review queue, an item's event history, a file's probe and browsing
-//! the server's folders.
+//! users, the review queue, tasks, an item's event history, a file's probe and
+//! browsing the server's folders.
 //!
 //! Users who aren't active (waiting for approval) may do nothing but sign out.
 
@@ -41,6 +41,7 @@ const ADMIN_READS: &[&str] = &[
     "/api/review",
     "/api/folders",
     "/api/metadata/",
+    "/api/tasks",
 ];
 
 /// Changes any signed-in user may make.
@@ -302,5 +303,10 @@ mod tests {
         assert!(!needs_admin(&Method::GET, "/api/activity"));
         assert!(!needs_admin(&Method::DELETE, "/api/activity/mine/watch"));
         assert!(needs_admin(&Method::DELETE, "/api/activity/3"));
+        assert!(needs_admin(&Method::GET, "/api/tasks"));
+        assert!(needs_admin(&Method::GET, "/api/tasks/3"));
+        assert!(needs_admin(&Method::POST, "/api/tasks/3/cancel"));
+        assert!(needs_admin(&Method::POST, "/api/libraries/3/thumbnails"));
+        assert!(!needs_admin(&Method::GET, "/api/artwork/3/thumbnail"));
     }
 }

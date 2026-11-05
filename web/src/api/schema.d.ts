@@ -138,7 +138,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** An item's artwork (poster, backdrop or still), cached locally after first use. */
+        /**
+         * An item's artwork (poster, backdrop or still), cached locally after first use,
+         *     or `thumbnail`: a frame from its video.
+         */
         get: operations["artwork"];
         put?: never;
         post?: never;
@@ -1043,6 +1046,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/libraries/{id}/thumbnails": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Extracts a frame from each movie and folder video with no artwork and no
+         *     thumbnail yet, and tries again those that failed before. Runs as a task, one
+         *     heavy task at a time, and waits while anything is being transcoded.
+         */
+        post: operations["generate_thumbnails"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -1638,6 +1662,60 @@ export interface paths {
         get: operations["sidecar_subtitles"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What's queued and running, and the latest finished tasks. */
+        get: operations["list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One task, with its outcome and log. */
+        get: operations["detail"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/tasks/{id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stops a task: one that hasn't started won't, and one running stops at its next
+         *     item. A running scan can't be stopped.
+         */
+        post: operations["cancel"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2601,6 +2679,10 @@ export interface components {
             refreshed_at?: number | null;
         };
         MovieSummary: {
+            /**
+             * @description Artwork kinds available from `/api/artwork/{id}/{kind}`: poster, backdrop,
+             *     and `thumbnail`, a frame from the video.
+             */
             artwork: string[];
             availability: components["schemas"]["Availability"];
             genres: string[];
@@ -3379,6 +3461,62 @@ export interface components {
             source: string;
             tags: string[];
         };
+        TaskDetail: components["schemas"]["TaskSummary"] & {
+            log: components["schemas"]["TaskLogLine"][];
+            /** @description What it did, per kind. `failures` lists what went wrong, when there's a list. */
+            outcome?: Record<string, never> | null;
+        };
+        TaskLogLine: {
+            /** Format: int64 */
+            at: number;
+            fields?: Record<string, never> | null;
+            /** @description `info`, `warn` or `error`. */
+            level: string;
+            message: string;
+        };
+        TaskPage: {
+            /** @description Newest first. */
+            finished: components["schemas"]["TaskSummary"][];
+            /** @description There are more finished tasks than `limit`. */
+            has_more: boolean;
+            /** @description Queued and running, newest first. */
+            open: components["schemas"]["TaskSummary"][];
+        };
+        TaskProgress: {
+            /** @description Asked to stop, and will at the next item. */
+            cancelling: boolean;
+            done: number;
+            /** @description The kind's own step name; empty before the first update. */
+            phase: string;
+            /** @description Zero while unknown. */
+            total: number;
+        };
+        TaskSummary: {
+            cancellable: boolean;
+            error?: string | null;
+            /** Format: int64 */
+            finished_at?: number | null;
+            /** Format: int64 */
+            id: number;
+            /** @description `scan`, `metadata_refresh` or `thumbnails`. */
+            kind: string;
+            /** Format: int64 */
+            library_id?: number | null;
+            /** @description The library it works on, or its root's. */
+            library_name?: string | null;
+            progress?: components["schemas"]["TaskProgress"] | null;
+            /** Format: int64 */
+            requested_at: number;
+            /** Format: int64 */
+            root_id?: number | null;
+            root_path?: string | null;
+            /** Format: int64 */
+            started_at?: number | null;
+            /** @description `queued`, `running`, `ok`, `failed` or `cancelled`. */
+            state: string;
+            /** @description What asked for it: `added`, `manual`, `scheduled` or `watch`. */
+            trigger: string;
+        };
         TemplateCheck: {
             /** @description What's wrong, when it isn't valid. */
             error?: string | null;
@@ -3424,6 +3562,10 @@ export interface components {
         TestStarted: {
             /** @description Open this in a new window; it ends by handing over the report's token. */
             url: string;
+        };
+        ThumbnailsStarted: {
+            /** @description False when it has to wait: another of this library's is running or queued. */
+            started: boolean;
         };
         /** @enum {string} */
         TransferMode: "hardlink" | "copy" | "move";
@@ -5779,6 +5921,43 @@ export interface operations {
             };
         };
     };
+    generate_thumbnails: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ThumbnailsStarted"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     update_me: {
         parameters: {
             query?: never;
@@ -7082,6 +7261,96 @@ export interface operations {
                 };
             };
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list: {
+        parameters: {
+            query?: {
+                /** @description `scan`, `metadata_refresh` or `thumbnails`. */
+                kind?: string | null;
+                /** @description For finished tasks: `ok`, `failed` or `cancelled`. */
+                state?: string | null;
+                /** @description Finished tasks to return: 50 unless asked, 1000 at most. */
+                limit?: number | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskPage"];
+                };
+            };
+        };
+    };
+    detail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetail"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    cancel: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

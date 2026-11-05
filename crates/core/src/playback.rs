@@ -614,7 +614,7 @@ fn bitrate_for(height: i64) -> u32 {
 }
 
 /// Software tone mapping from PQ or HLG to SDR BT.709.
-const TONEMAP: &str = "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv";
+pub(crate) const TONEMAP: &str = "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv";
 
 /// The ffmpeg arguments (without the program) that write an HLS stream into
 /// `out_dir`, starting `start` seconds in.

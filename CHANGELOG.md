@@ -12,6 +12,9 @@ Details belong in the commit, docs or API reference.
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
+- Movies and folder videos with no artwork show a frame from the video, made after a scan or with Generate thumbnails on the library page (`POST /api/libraries/{id}/thumbnails`); it pauses while a converted stream is playing.
+- A Tasks tab in Manage shows what's running and what ran, with progress, failures and logs for each task, and can stop one (`GET /api/tasks`, `GET /api/tasks/{id}`, `POST /api/tasks/{id}/cancel`).
+- Migrations 0019 and 0020 add thumbnails and task logs.
 - New Folders library type: browse and play videos in your folders as they are, with no metadata fetched and nothing on disk changed.
 - Converted streams start sooner: the first seconds are sent in 1-second segments, HDR is scaled down before it's tone-mapped, and the player loads its streaming code while the server starts.
 - The quality menu shows the resolution of Original.

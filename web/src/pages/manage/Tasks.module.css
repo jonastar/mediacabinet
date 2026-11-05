@@ -1,0 +1,300 @@
+.columns {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.section h1,
+.inspectorHead h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.section h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.muted {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.historyHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.select {
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border-control);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.row {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+}
+
+.row:hover {
+  border-color: var(--border-control);
+  background: var(--surface-raised);
+  color: inherit;
+}
+
+.rowMain {
+  flex: 1 1 320px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rowTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.scope {
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.detail {
+  font-size: 13.5px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.when {
+  font-size: 13.5px;
+  color: var(--text-muted);
+}
+
+/* Along the bottom edge of the row. */
+.bar {
+  position: absolute;
+  inset: auto 0 0;
+}
+
+.more {
+  align-self: flex-start;
+}
+
+.badge {
+  flex: none;
+  padding: 2px 9px;
+  border-radius: var(--radius-pill);
+  background: var(--state-neutral-bg);
+  color: var(--state-neutral);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.running {
+  background: color-mix(in srgb, var(--state-upcoming) 16%, transparent);
+  color: var(--state-upcoming-text);
+}
+
+.ok {
+  background: color-mix(in srgb, var(--state-available) 14%, transparent);
+  color: var(--state-available-text);
+}
+
+.problem {
+  background: color-mix(in srgb, var(--state-attention) 16%, transparent);
+  color: var(--state-attention-text);
+}
+
+.failed {
+  background: color-mix(in srgb, var(--state-missing) 16%, transparent);
+  color: var(--state-missing-text);
+}
+
+.inspectorHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+}
+
+.taskId {
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.cancel {
+  margin-left: auto;
+}
+
+.facts {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+.facts dt {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.facts dd {
+  margin: 2px 0 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.errorBox {
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--state-missing) 40%, transparent);
+  background: color-mix(in srgb, var(--state-missing) 8%, transparent);
+  color: var(--state-missing-text);
+  overflow-wrap: anywhere;
+}
+
+.failures {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.failures li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  overflow-wrap: anywhere;
+}
+
+.failures li + li {
+  border-top: 1px solid var(--border);
+}
+
+.failures code {
+  font-size: 13.5px;
+}
+
+.failures span {
+  font-size: 13.5px;
+  color: var(--state-missing-text);
+}
+
+.log {
+  list-style: none;
+  margin: 0;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 480px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+
+.log li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 10px;
+  color: var(--text-secondary);
+}
+
+.logTime {
+  flex: none;
+  color: var(--text-muted);
+}
+
+.logLevel {
+  flex: none;
+  width: 5ch;
+}
+
+.logMessage {
+  flex: 1 1 320px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.logFields {
+  color: var(--text-muted);
+}
+
+.log_warn .logLevel,
+.log_warn .logMessage {
+  color: var(--state-attention-text);
+}
+
+.log_error .logLevel,
+.log_error .logMessage {
+  color: var(--state-missing-text);
+}
+
+.outcome summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.outcome pre {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  max-height: 480px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  font-size: 12.5px;
+}

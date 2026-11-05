@@ -217,7 +217,12 @@ pub(crate) async fn run_task(task: &Handle, library: i64) -> Result<Finished, sq
     let mut failed = 0;
     let mut omdb = services.omdb.as_ref();
     let mut problem = None;
+    let mut cancelled = false;
     for (done, (item, title)) in items.iter().enumerate() {
+        if task.cancelled() {
+            cancelled = true;
+            break;
+        }
         match refresh_item(pool, provider, *item).await {
             Ok(_) => refreshed += 1,
             Err(RefreshError::Provider(MetadataError::Unreachable(e))) => {
@@ -263,6 +268,8 @@ pub(crate) async fn run_task(task: &Handle, library: i64) -> Result<Finished, sq
     Ok(Finished {
         state: if problem.is_some() {
             Ended::Failed
+        } else if cancelled {
+            Ended::Cancelled
         } else {
             Ended::Ok
         },

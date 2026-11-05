@@ -19,6 +19,6 @@ A library of kind `folders` is for videos no metadata provider knows about: home
 
 ## Not built yet
 
-- Artwork: rows show no image. Local images next to a video are already scanned as sidecars, but not served; thumbnails from a video frame need the thumbnail task in `notes.md`.
+- Local artwork: images next to a video are already scanned as sidecars, but not served. Rows show a frame from the video instead (see Thumbnails in `tasks.md`).
 - Playing the next video in the folder automatically.
 - A keep-watching row on Home: Home only has one for series, so videos resume from where you left them but aren't surfaced there. The same goes for movies.

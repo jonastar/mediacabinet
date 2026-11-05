@@ -11,6 +11,7 @@ type Payload = Record<string, unknown>
 const TASK_KINDS: Record<string, string> = {
   scan: 'Scan task',
   metadata_refresh: 'Metadata refresh task',
+  thumbnails: 'Thumbnails task',
 }
 
 const TARGETS: Record<string, string> = {

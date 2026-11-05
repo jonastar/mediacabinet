@@ -24,6 +24,8 @@ pub struct MovieSummary {
     pub versions: i64,
     pub watch: Option<WatchState>,
     pub genres: Vec<String>,
+    /// Artwork kinds available from `/api/artwork/{id}/{kind}`: poster, backdrop,
+    /// and `thumbnail`, a frame from the video.
     pub artwork: Vec<String>,
 }
 

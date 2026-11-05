@@ -139,11 +139,11 @@ Designs: `docs/tasks.md`, `docs/activity.md`.
 - [x] Task runner extracted from the scan service; scans become the first task kind (`scan_run` → `task`)
 - [x] Metadata refresh of a whole library on request, as a task (`metadata_refresh`, library scope)
 - [ ] Metadata refresh as a scheduled task
-- [ ] Task outcomes and task-scoped logs (tracing span per task)
-- [ ] Heavy lane: one task at a time, waits while transcodes run
-- [ ] Thumbnails task
+- [x] Task outcomes and task-scoped logs (tracing span per task)
+- [x] Heavy lane: one task at a time, waits while transcodes run
+- [x] Thumbnails task
 - [ ] Trickplay task
-- [ ] UI: Tasks tab in Manage and task inspector
+- [x] UI: Tasks tab in Manage and task inspector
 - [x] Activity: table, per-viewer audience filter, library additions from the event outbox
 - [x] Play sessions and watch activity; incognito setting
 - [x] Activity for users, logins, configuration changes and task results (admins)
@@ -162,7 +162,77 @@ Design: `docs/sign-in.md`.
 - [x] GitHub, Discord and other plain OAuth2 providers
 - [x] A list of known providers with setup steps for each, Sign in with Apple included
 - [ ] Library access from groups (waits for per-user library scoping)
-- [ ] Sign-in for native and TV clients (device code or quick connect)
+
+## Device players
+
+Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watching. Designs: `docs/clients.md`, `docs/design-language.md`.
+
+### Pre-work
+
+- [ ] Decide: the apps ship with v1 or follow it as 1.x
+- [ ] Choose a licence with the App Store in mind (same item as Phase 0)
+- [ ] Device tokens: `Authorization: Bearer`, device names, a year from last use
+- [ ] Pairing: start and poll from the app, approve on the web at `/pair`, for passwords and every provider
+- [ ] UI: signed-in devices in Account, with sign out
+- [ ] Capabilities: HDR formats and audio channels; remuxing honours `audio_codecs`
+- [ ] Play reasons worded for any client, not just browsers
+- [ ] `GET /api/server-info`: name, version, minimum app version
+- [ ] Rule for API changes: additive, removals wait for a minimum version
+- [ ] Generate Swift and Kotlin API clients from the OpenAPI spec
+- [ ] Git remote and macOS CI: build, sign, upload to TestFlight
+- [ ] Spike on a rented Mac: AVPlayer plays direct, remuxed and transcoded streams with the cookie, on an iPhone and an Apple TV
+- [ ] Spike: Media3 plays the same streams on an Android phone and TV
+- [ ] Spike: a packaged app on a Samsung and an LG TV reaches a plain HTTP server, runs React and hls.js on the oldest engine available, and plays direct, remuxed and transcoded streams, with HDR; compare `<video>` and AVPlay on Samsung
+- [ ] Read Samsung's and LG's store requirements, including hosted apps and apps that need a person's own server
+- [ ] CORS on `/api` without credentials, for packaged TV apps
+- [ ] Media tokens: short-lived, read-only, media paths only
+- [ ] Fall back when playback fails: ask again without what failed, down to H.264 and AAC, and remember it per device
+- [ ] Design tokens: `design/tokens.json`, generated CSS, Swift and Kotlin (`docs/design-language.md`)
+
+### Samsung and LG TVs
+
+- [ ] Web: a configurable server address behind one base URL
+- [ ] Web: `tv.html` entry and `pnpm build:tv` for older engines
+- [ ] Web: split `PlayerPage` into shared session logic and separate controls
+- [ ] Spatial focus navigation and remote keys
+- [ ] TV: connect to a server, pairing by code or QR code
+- [ ] TV: home, shows, movies, series and episode pages, search
+- [ ] TV: player with versions, tracks, subtitles, resume, next episode
+- [ ] `players/webos`: manifest, icons, platform adapter (capabilities, HDR, keys), packaging
+- [ ] `players/tizen`: manifest, icons, platform adapter (capabilities, HDR, keys), packaging
+
+### Android and Android TV
+
+- [ ] Project in `players/android`: API client, data layer, playback logic
+- [ ] Connect to a server, including plain HTTP on a home network
+- [ ] Sign in: password, pairing through the browser
+- [ ] Phone: home, shows, movies, series and episode pages, search
+- [ ] Phone: player with custom controls, versions, tracks, subtitles, resume, next episode
+- [ ] Recover from ended sessions and lost connections
+- [ ] TV: pairing by code or QR code
+- [ ] TV: the same screens with D-pad focus and scrubbing
+
+### iOS and Apple TV
+
+- [ ] Project in `players/apple`: API client, data layer, playback logic
+- [ ] Connect to a server: home network, Tailscale, HTTPS
+- [ ] Sign in: password, pairing through the browser
+- [ ] iPhone and iPad: home, shows, movies, series and episode pages, search
+- [ ] iPhone and iPad: player with custom controls, versions, tracks, subtitles drawn by the app, resume, next episode
+- [ ] AirPlay, picture in picture, background audio
+- [ ] Recover from ended sessions and lost connections
+- [ ] Apple TV: pairing by code or QR code
+- [ ] Apple TV: the same screens with focus and Siri Remote scrubbing
+
+### Testing and stores
+
+- [ ] Playback test on real devices: codecs, HDR, surround, subtitles, long pauses, lost connections
+- [ ] Remote access test through a reverse proxy
+- [ ] Public demo server with openly licensed films, for store review
+- [ ] App icons, screenshots and store listings (`docs/brand/`)
+- [ ] Google Play: closed test with 12 testers for 14 days, then production
+- [ ] App Store: TestFlight beta, then review for iOS and tvOS
+- [ ] Samsung and LG: seller registration, then store review
 
 ## Phase 9 — Release
 
@@ -195,7 +265,7 @@ Design: `docs/people.md`.
 
 ## After v1
 
-- Native and TV clients; Jellyfin-compatible API so existing apps work
+- Jellyfin-compatible API so existing apps work
 - Optional AI matching (embeddings for fuzzy titles, a local LLM as tie-breaker)
 - Light theme
 - Music and books

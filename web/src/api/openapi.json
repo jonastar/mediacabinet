@@ -325,7 +325,7 @@
         "tags": [
           "catalog"
         ],
-        "summary": "An item's artwork (poster, backdrop or still), cached locally after first use.",
+        "summary": "An item's artwork (poster, backdrop or still), cached locally after first use,\nor `thumbnail`: a frame from its video.",
         "operationId": "artwork",
         "parameters": [
           {
@@ -3053,6 +3053,55 @@
         }
       }
     },
+    "/api/libraries/{id}/thumbnails": {
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Extracts a frame from each movie and folder video with no artwork and no\nthumbnail yet, and tries again those that failed before. Runs as a task, one\nheavy task at a time, and waits while anything is being transcoded.",
+        "operationId": "generate_thumbnails",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ThumbnailsStarted"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/me": {
       "patch": {
         "tags": [
@@ -4783,6 +4832,146 @@
             }
           },
           "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "What's queued and running, and the latest finished tasks.",
+        "operationId": "list",
+        "parameters": [
+          {
+            "name": "kind",
+            "in": "query",
+            "description": "`scan`, `metadata_refresh` or `thumbnails`.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "description": "For finished tasks: `ok`, `failed` or `cancelled`.",
+            "required": false,
+            "schema": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Finished tasks to return: 50 unless asked, 1000 at most.",
+            "required": false,
+            "schema": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}": {
+      "get": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "One task, with its outcome and log.",
+        "operationId": "detail",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TaskDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tasks/{id}/cancel": {
+      "post": {
+        "tags": [
+          "tasks"
+        ],
+        "summary": "Stops a task: one that hasn't started won't, and one running stops at its next\nitem. A running scan can't be stopped.",
+        "operationId": "cancel",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "204": {},
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
             "content": {
               "application/json": {
                 "schema": {
@@ -8014,7 +8203,8 @@
             "type": "array",
             "items": {
               "type": "string"
-            }
+            },
+            "description": "Artwork kinds available from `/api/artwork/{id}/{kind}`: poster, backdrop,\nand `thumbnail`, a frame from the video."
           },
           "availability": {
             "$ref": "#/components/schemas/Availability"
@@ -10582,6 +10772,211 @@
           }
         }
       },
+      "TaskDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/TaskSummary"
+          },
+          {
+            "type": "object",
+            "required": [
+              "log"
+            ],
+            "properties": {
+              "log": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TaskLogLine"
+                }
+              },
+              "outcome": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "description": "What it did, per kind. `failures` lists what went wrong, when there's a list."
+              }
+            }
+          }
+        ]
+      },
+      "TaskLogLine": {
+        "type": "object",
+        "required": [
+          "at",
+          "level",
+          "message"
+        ],
+        "properties": {
+          "at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "fields": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "level": {
+            "type": "string",
+            "description": "`info`, `warn` or `error`."
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "TaskPage": {
+        "type": "object",
+        "required": [
+          "open",
+          "finished",
+          "has_more"
+        ],
+        "properties": {
+          "finished": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskSummary"
+            },
+            "description": "Newest first."
+          },
+          "has_more": {
+            "type": "boolean",
+            "description": "There are more finished tasks than `limit`."
+          },
+          "open": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TaskSummary"
+            },
+            "description": "Queued and running, newest first."
+          }
+        }
+      },
+      "TaskProgress": {
+        "type": "object",
+        "required": [
+          "phase",
+          "done",
+          "total",
+          "cancelling"
+        ],
+        "properties": {
+          "cancelling": {
+            "type": "boolean",
+            "description": "Asked to stop, and will at the next item."
+          },
+          "done": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "phase": {
+            "type": "string",
+            "description": "The kind's own step name; empty before the first update."
+          },
+          "total": {
+            "type": "integer",
+            "description": "Zero while unknown.",
+            "minimum": 0
+          }
+        }
+      },
+      "TaskSummary": {
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "trigger",
+          "state",
+          "requested_at",
+          "cancellable"
+        ],
+        "properties": {
+          "cancellable": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "finished_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`scan`, `metadata_refresh` or `thumbnails`."
+          },
+          "library_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "library_name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The library it works on, or its root's."
+          },
+          "progress": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/TaskProgress",
+                "description": "While it has a place in the runner, including while it waits for its turn."
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "requested_at": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "root_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "root_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "started_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          },
+          "state": {
+            "type": "string",
+            "description": "`queued`, `running`, `ok`, `failed` or `cancelled`."
+          },
+          "trigger": {
+            "type": "string",
+            "description": "What asked for it: `added`, `manual`, `scheduled` or `watch`."
+          }
+        }
+      },
       "TemplateCheck": {
         "type": "object",
         "required": [
@@ -10744,6 +11139,18 @@
           "url": {
             "type": "string",
             "description": "Open this in a new window; it ends by handing over the report's token."
+          }
+        }
+      },
+      "ThumbnailsStarted": {
+        "type": "object",
+        "required": [
+          "started"
+        ],
+        "properties": {
+          "started": {
+            "type": "boolean",
+            "description": "False when it has to wait: another of this library's is running or queued."
           }
         }
       },

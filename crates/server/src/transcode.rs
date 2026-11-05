@@ -443,6 +443,11 @@ impl Transcoder {
         });
     }
 
+    /// Whether any stream is being remuxed or transcoded.
+    pub fn active(&self) -> bool {
+        !self.sessions.lock().unwrap().is_empty()
+    }
+
     pub fn hardware(&self) -> &HwAccel {
         &self.hw
     }

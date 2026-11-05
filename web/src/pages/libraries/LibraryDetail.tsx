@@ -81,6 +81,53 @@ function Metadata({ library, onChanged }: { library: Library; onChanged: () => v
   )
 }
 
+/** Video frames in place of artwork, for what has none. */
+function Thumbnails({ library }: { library: Library }) {
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [asked, setAsked] = useState(false)
+
+  const generate = async () => {
+    setBusy(true)
+    setError(null)
+    try {
+      await api.generateThumbnails(library.id)
+      setAsked(true)
+    } catch (e) {
+      setError((e as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section aria-labelledby="library-thumbnails" className={styles.panel}>
+      <h2 id="library-thumbnails">Thumbnails</h2>
+      <p className={styles.muted}>
+        Videos with no artwork show a frame from the video. Scans make these for new files, waiting
+        while anyone is watching a converted stream. Generate now to also try again the files that
+        failed.
+      </p>
+      {error && (
+        <p className={styles.error} role="alert">
+          {error}
+        </p>
+      )}
+      <div className={styles.actions}>
+        <button
+          type="button"
+          className={`${styles.button} ${styles.small}`}
+          disabled={busy}
+          onClick={generate}
+        >
+          Generate thumbnails
+        </button>
+        {asked && <Link to="/manage/tasks">See how it’s going in Tasks</Link>}
+      </div>
+    </section>
+  )
+}
+
 function Settings({ library, onChanged }: { library: Library; onChanged: () => void }) {
   const [name, setName] = useState(library.name)
   const [error, setError] = useState<string | null>(null)
@@ -238,6 +285,7 @@ export function LibraryDetail({ id }: { id: number }) {
         </section>
 
         {!isFolders && <Metadata library={library} onChanged={libraries.reload} />}
+        {library.kind !== 'tv' && <Thumbnails library={library} />}
         {/* Keyed so a rename elsewhere resets the field. */}
         <Settings key={library.name} library={library} onChanged={libraries.reload} />
         {!isFolders && <PlacementPanel libraryId={library.id} version={version} />}

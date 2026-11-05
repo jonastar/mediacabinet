@@ -1,5 +1,6 @@
-import { api, type FolderVideo, type Library } from '../api/client'
+import { api, artworkUrl, type FolderVideo, type Library } from '../api/client'
 import { useApi } from '../api/useApi'
+import { CoverImage } from '../components/Artwork'
 import { FolderIcon, PlayIcon } from '../components/Icons'
 import { Link } from '../components/Link'
 import { Failed, Loading } from '../components/Status'
@@ -106,17 +107,20 @@ export function FolderLibraryPage({ library }: { library: Library }) {
         {videos.map((v) => {
           const available = v.availability === 'available'
           return (
-            <li key={v.id} className={styles.row}>
+            <li key={v.id} className={`${styles.row} ${styles.video}`}>
               {available ? (
                 <Link
                   to={`/play/${v.id}`}
-                  className={`${styles.icon} ${styles.play}`}
+                  className={`${styles.thumb} ${styles.play}`}
                   aria-label={`Play ${v.title}`}
                 >
+                  <CoverImage src={artworkUrl(v, 'thumbnail')} />
                   <PlayIcon />
                 </Link>
               ) : (
-                <span className={styles.icon} />
+                <span className={styles.thumb}>
+                  <CoverImage src={artworkUrl(v, 'thumbnail')} />
+                </span>
               )}
               <Link to={itemPath('movie', v.id, v.library_id)} className={styles.name}>
                 {v.title}

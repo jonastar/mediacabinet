@@ -25,6 +25,7 @@ mod playback;
 mod playlists;
 mod review;
 mod sign_in;
+mod tasks;
 mod wanted;
 mod watch;
 
@@ -74,6 +75,10 @@ fn routes() -> OpenApiRouter<AppState> {
         .routes(routes!(library::update_root, library::remove_root))
         .routes(routes!(library::scan_root))
         .routes(routes!(library::refresh_library))
+        .routes(routes!(library::generate_thumbnails))
+        .routes(routes!(tasks::list))
+        .routes(routes!(tasks::detail))
+        .routes(routes!(tasks::cancel))
         .routes(routes!(library::propose_template))
         .routes(routes!(library::check_template))
         .routes(routes!(library::list_folders))

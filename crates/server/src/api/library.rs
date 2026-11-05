@@ -348,6 +348,43 @@ pub async fn refresh_library(
     Ok((StatusCode::ACCEPTED, Json(RefreshStarted { started })))
 }
 
+#[derive(Serialize, ToSchema)]
+pub struct ThumbnailsStarted {
+    /// False when it has to wait: another of this library's is running or queued.
+    started: bool,
+}
+
+/// Extracts a frame from each movie and folder video with no artwork and no
+/// thumbnail yet, and tries again those that failed before. Runs as a task, one
+/// heavy task at a time, and waits while anything is being transcoded.
+#[utoipa::path(
+    post,
+    path = "/libraries/{id}/thumbnails",
+    tag = "libraries",
+    params(("id" = i64, Path)),
+    responses(
+        (status = 202, body = ThumbnailsStarted),
+        (status = 400, body = ErrorBody),
+        (status = 404, body = ErrorBody)
+    )
+)]
+pub async fn generate_thumbnails(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+) -> Result<(StatusCode, Json<ThumbnailsStarted>), ApiError> {
+    let library = library::get(&state.db, id).await?;
+    if library.kind == "tv" {
+        return Err(ApiError::BadRequest(
+            "Episodes don't show thumbnails yet.".into(),
+        ));
+    }
+    let started = state
+        .tasks
+        .request(Kind::Thumbnails, Scope::Library(id), Trigger::Manual)
+        .await?;
+    Ok((StatusCode::ACCEPTED, Json(ThumbnailsStarted { started })))
+}
+
 #[derive(Deserialize, ToSchema)]
 pub struct ProposeTemplate {
     path: String,

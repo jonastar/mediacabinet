@@ -61,7 +61,7 @@ export function MoviePoster({ movie: m, mode }: { movie: MovieSummary; mode: Mod
   return (
     <Link to={itemPath('movie', m.id, m.library_id)} className={styles.poster}>
       <div className={styles.art} style={{ background: seriesTone(m.title) }}>
-        <CoverImage src={artworkUrl(m, 'poster')} alt={m.title} />
+        <CoverImage src={artworkUrl(m, 'poster') ?? artworkUrl(m, 'thumbnail')} alt={m.title} />
         {m.watch?.played && <span className={styles.badge}>Watched</span>}
         {!m.artwork.includes('poster') && <span className={styles.title}>{m.title}</span>}
       </div>

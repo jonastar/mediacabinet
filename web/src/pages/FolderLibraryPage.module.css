@@ -55,6 +55,36 @@
   color: var(--text-muted);
 }
 
+.thumb {
+  position: relative;
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  height: 54px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--surface-raised);
+  color: var(--text-muted);
+}
+
+/* Readable over a frame of any brightness. */
+.thumb svg {
+  position: relative;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8));
+}
+
+.thumb img + svg {
+  color: var(--text);
+  opacity: 0;
+}
+
+.play:hover img + svg,
+.play:focus-visible img + svg {
+  opacity: 1;
+}
+
 .play:hover {
   background: var(--border);
   color: var(--text);
@@ -87,5 +117,9 @@ a.name:hover {
   .meta {
     flex-basis: 100%;
     padding-left: 44px;
+  }
+
+  .video .meta {
+    padding-left: 108px;
   }
 }

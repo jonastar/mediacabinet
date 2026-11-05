@@ -11,6 +11,7 @@ import { ReviewPage } from '../ReviewPage'
 import { SettingsPage } from '../SettingsPage'
 import { WantedPage } from '../WantedPage'
 import { Overview } from './Overview'
+import { TaskInspector, TasksPage } from './TasksPage'
 import { USERS_CHANGED_EVENT, UsersPage } from './UsersPage'
 import styles from './Manage.module.css'
 import usersStyles from './Users.module.css'
@@ -20,6 +21,7 @@ const TABS = [
   { to: '/manage/wanted', label: 'Wanted' },
   { to: '/manage/review', label: 'Review queue' },
   { to: '/manage/libraries', label: 'Libraries & roots' },
+  { to: '/manage/tasks', label: 'Tasks' },
   { to: '/manage/users', label: 'Users' },
   { to: '/manage/settings', label: 'Settings' },
 ]
@@ -37,6 +39,13 @@ function Section({ path }: { path: string }) {
   }
   if (path === '/manage/review') {
     return <ReviewPage />
+  }
+  if (path === '/manage/tasks') {
+    return <TasksPage />
+  }
+  const task = match('/manage/tasks/:id', path)
+  if (task && /^\d+$/.test(task.id)) {
+    return <TaskInspector key={task.id} id={Number(task.id)} />
   }
   if (path === '/manage/users') {
     return <UsersPage />

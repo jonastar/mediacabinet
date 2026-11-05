@@ -497,11 +497,16 @@ async fn genres_and_artwork(
     .bind(item)
     .fetch_all(&mut *conn)
     .await?;
-    let artwork: Vec<String> =
-        sqlx::query_scalar("SELECT kind FROM item_artwork WHERE item_id = ? ORDER BY kind")
-            .bind(item)
-            .fetch_all(&mut *conn)
-            .await?;
+    let artwork: Vec<String> = sqlx::query_scalar(
+        "SELECT kind FROM item_artwork WHERE item_id = ?1
+         UNION
+         SELECT 'thumbnail' FROM file_link l JOIN file_thumbnail t ON t.file_id = l.file_id
+         WHERE l.item_id = ?1 AND t.error IS NULL
+         ORDER BY 1",
+    )
+    .bind(item)
+    .fetch_all(&mut *conn)
+    .await?;
     Ok((genres, artwork))
 }
 

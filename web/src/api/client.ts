@@ -83,6 +83,9 @@ export type PersonCredit = Schemas['PersonCredit']
 export type LibraryKind = 'tv' | 'movies' | 'folders'
 export type FolderPage = Schemas['FolderPage']
 export type FolderVideo = Schemas['FolderVideo']
+export type TaskSummary = Schemas['TaskSummary']
+export type TaskDetail = Schemas['TaskDetail']
+export type TaskPage = Schemas['TaskPage']
 
 export interface PlayChoice {
   file_id?: number
@@ -97,6 +100,12 @@ export interface WebhookInput {
   event_types?: string[]
   enabled?: boolean
   from_start?: boolean
+}
+
+export interface TasksQuery {
+  kind?: string
+  state?: string
+  limit?: number
 }
 
 export interface ActivityQuery {
@@ -157,7 +166,10 @@ export class ApiError extends Error {
 }
 
 /** The URL of an item's artwork, if it has that kind. */
-export function artworkUrl(item: { id: number; artwork: string[] }, kind: 'poster' | 'backdrop') {
+export function artworkUrl(
+  item: { id: number; artwork: string[] },
+  kind: 'poster' | 'backdrop' | 'thumbnail',
+) {
   return item.artwork.includes(kind) ? `/api/artwork/${item.id}/${kind}` : null
 }
 
@@ -218,6 +230,11 @@ export const api = {
   deleteLibrary: (id: number) => request<void>('DELETE', `/api/libraries/${id}`),
   refreshLibrary: (id: number) =>
     request<{ started: boolean }>('POST', `/api/libraries/${id}/refresh`),
+  generateThumbnails: (id: number) =>
+    request<{ started: boolean }>('POST', `/api/libraries/${id}/thumbnails`),
+  tasks: (q: TasksQuery = {}) => request<TaskPage>('GET', `/api/tasks?${query(q)}`),
+  task: (id: number) => request<TaskDetail>('GET', `/api/tasks/${id}`),
+  cancelTask: (id: number) => request<void>('POST', `/api/tasks/${id}/cancel`),
   addRoot: (libraryId: number, root: NewRoot) =>
     request<Root>('POST', `/api/libraries/${libraryId}/roots`, root),
   updateRoot: (id: number, changes: RootChanges) =>

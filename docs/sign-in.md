@@ -210,4 +210,4 @@ Other details:
 - Signature verification (JWKS). Not needed for the code flow; needed before any flow that receives tokens through the browser.
 - Back-channel or front-channel logout; signing out of Media Cabinet doesn't sign you out of the provider.
 - Library access from groups: waits for the library permission model.
-- Sign-in for native/TV clients (device code flow or quick connect), with the Jellyfin-compatible API.
+- Sign-in for native and TV clients: pairing through the browser, see `docs/clients.md`.

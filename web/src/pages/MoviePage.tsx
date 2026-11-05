@@ -53,7 +53,7 @@ export function MoviePage({ id, folderVideo = false }: { id: number; folderVideo
   const manage = mode === 'manage'
   const tone = seriesTone(m.title)
   const background = heroBackground(
-    artworkUrl(m, 'backdrop'),
+    artworkUrl(m, 'backdrop') ?? artworkUrl(m, 'thumbnail'),
     manage ? `color-mix(in srgb, ${tone} 70%, var(--bg))` : tone,
   )
   const meta = [m.year, m.genres[0], runtime(m.runtime_seconds)].filter(Boolean).join(' · ')

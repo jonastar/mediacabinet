@@ -24,6 +24,7 @@ pub mod refs;
 pub mod scan;
 pub mod sign_in;
 pub mod tasks;
+pub mod thumbnails;
 pub mod wanted;
 pub mod watch;
 pub mod webhooks;

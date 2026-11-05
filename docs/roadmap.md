@@ -169,7 +169,10 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 
 ### Pre-work
 
-- [ ] Decide: the apps ship with v1 or follow it as 1.x
+- [x] Decide: the apps follow v1 as 1.x; Android might be ready for 1.0, but 1.0 doesn't wait for it
+- [x] Decide: Samsung and LG apps are packaged, not loaded from the server
+- [x] Decide: one small Preact app for all Samsung and LG TVs, which is also the reference for Android TV and tvOS
+- [x] Folders with READMEs: `players/` (with `players/web`, the shared TV app), `design/`, `web/src/core/`
 - [ ] Choose a licence with the App Store in mind (same item as Phase 0)
 - [ ] Device tokens: `Authorization: Bearer`, device names, a year from last use
 - [ ] Pairing: start and poll from the app, approve on the web at `/pair`, for passwords and every provider
@@ -182,8 +185,10 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 - [ ] Git remote and macOS CI: build, sign, upload to TestFlight
 - [ ] Spike on a rented Mac: AVPlayer plays direct, remuxed and transcoded streams with the cookie, on an iPhone and an Apple TV
 - [ ] Spike: Media3 plays the same streams on an Android phone and TV
-- [ ] Spike: a packaged app on a Samsung and an LG TV reaches a plain HTTP server, runs React and hls.js on the oldest engine available, and plays direct, remuxed and transcoded streams, with HDR; compare `<video>` and AVPlay on Samsung
-- [ ] Read Samsung's and LG's store requirements, including hosted apps and apps that need a person's own server
+- [ ] Register as a seller with Samsung and LG, and find out which TVs a new app can reach; this sets the store floor
+- [ ] Spike: an ES5 build with `@vitejs/plugin-legacy` plays a stream using Preact, the playback session and hls.js, on the oldest TV available (goal: Samsung 2017, LG 2016); sets how far back the app runs
+- [ ] Spike: a packaged app on a Samsung and an LG TV reaches a plain HTTP server and plays direct, remuxed and transcoded streams, with HDR on newer models; compare `<video>` and AVPlay on Samsung
+- [ ] Read Samsung's and LG's store requirements, including apps that need a person's own server
 - [ ] CORS on `/api` without credentials, for packaged TV apps
 - [ ] Media tokens: short-lived, read-only, media paths only
 - [ ] Fall back when playback fails: ask again without what failed, down to H.264 and AAC, and remember it per device
@@ -192,8 +197,9 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 ### Samsung and LG TVs
 
 - [ ] Web: a configurable server address behind one base URL
-- [ ] Web: `tv.html` entry and `pnpm build:tv` for older engines
-- [ ] Web: split `PlayerPage` into shared session logic and separate controls
+- [ ] `players/web` project: ES5 build, polyfills, fixed-value CSS, `@core` alias, a check that fails on CSS older TVs can't use, and lint and format in the pre-commit hook
+- [ ] Web: `src/core/` with the API client, playback session, fallback, capabilities and wording; a lint rule keeps React and CSS out
+- [ ] Try hosting the TV build at `/tv` on the server, for TV browsers with no install
 - [ ] Spatial focus navigation and remote keys
 - [ ] TV: connect to a server, pairing by code or QR code
 - [ ] TV: home, shows, movies, series and episode pages, search

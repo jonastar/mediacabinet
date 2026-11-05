@@ -16,7 +16,7 @@ Not in the first version: the Manage menu (admins use the web UI), offline downl
 | --- | --- | --- |
 | iOS, tvOS | SwiftUI | AVPlayer |
 | Android, Android TV | Kotlin, Compose (Compose for TV on TV) | Media3 |
-| Samsung (Tizen), LG (webOS) | React, TV screens from `web/` | `<video>` and hls.js |
+| Samsung (Tizen), LG (webOS) | Preact, TV screens from `web/` | `<video>` and hls.js |
 
 - **Native on Android and Apple, web on Samsung and LG.** The player is the part that has to be right, and each platform's own player gets hardware decoding, HDR and surround without extra work. tvOS has no web view at all. Samsung and LG TV apps are web apps anyway, so they reuse the web code.
 - **No bundled mpv or VLC.** The server already remuxes or transcodes what a client can't play, so the apps stay small. An app reports its capabilities and falls back when they turn out wrong (see Capabilities).
@@ -29,19 +29,23 @@ Not in the first version: the Manage menu (admins use the web UI), offline downl
 ```
 design/            tokens.json, the design values every player shares
 players/
+  README.md        what's shared and how the folders fit together
   android/         one Gradle build: core, phone, tv
   apple/           one Xcode project: Core package, iOS and tvOS targets
-  tizen/           config.xml, icons, platform adapter, packaging
-  webos/           appinfo.json, icons, platform adapter, packaging
+  web/             the TV app: Preact screens and focus handling, built for tizen and webos
+  tizen/           config.xml, icons, platform adapter, build scripts, docs
+  webos/           appinfo.json, icons, platform adapter, build scripts, docs
 web/
-  src/tv/          TV screens and focus handling, used by tizen and webos
-  tv.html          second entry point; `pnpm build:tv` writes web/dist-tv
+  src/core/        plain TypeScript shared by the web UI and the TV app
 ```
 
 - **A folder per build, not per target.** Six targets come from four builds. Gradle and Xcode each want one root to share code between phone and TV, and iOS and tvOS ship under one app record.
-- **TV web code stays in `web/`.** It imports `api/`, `lib/` and the player logic directly, and keeps the same lint, format and type checks. `players/tizen` and `players/webos` stay thin.
+- **The TV app is its own project in `players/web`.** It has its own dependencies and build settings, so Preact, the legacy plugin and polyfills can't reach the web UI, and web UI CSS can't slip into the TV app. It shares only `web/src/core/`, through an alias, and uses the same lint and format rules. The Docker build copies only `web/`, so the server image doesn't depend on it. `players/tizen` and `players/webos` stay thin.
+- **The core has no framework or CSS.** It holds the API client, playback session, fallback, capabilities, wording and formatting. A lint rule stops it importing React or CSS, and polyfills load only from the TV app's entry point, so the web UI isn't affected. It has no runtime dependencies either, because its imports would resolve against `web/node_modules` even in a TV build, so each app passes in hls.js. Swift and Kotlin can't use the code, but it's the reference for how playback should behave.
 
 ## Order
+
+The apps follow v1 as 1.x. Android might be ready for 1.0, but 1.0 doesn't wait for it.
 
 1. **Server pre-work and design tokens**, which everything needs.
 2. **LG and Samsung.** They reuse the most code and need no Mac, and they're the first test of the focus model and the fallback logic that the other TV apps then follow.
@@ -72,31 +76,83 @@ The cost is that UI fixes reach people through store updates, not server updates
 
 ### TV screens
 
-The current UI can't simply be reused: it's built around a sidebar and the pointer, with 43 `:hover` rules against 4 `:focus` rules. `web/src/tv/` gets its own screens and shares what isn't visual: `api/`, `useApi`, `lib/wording.ts`, `lib/format.ts` and the player logic.
+The current UI can't simply be reused: it's built around a sidebar and the pointer, with 43 `:hover` rules against 4 `:focus` rules. `players/web` gets its own screens and shares what isn't visual through `web/src/core/`.
+
+- **One small app for every TV, on Preact.** There's no separate minimal player: two TV interfaces would be more to maintain, mainly for a shrinking set of old TVs. Preact is about 4 KB gzipped against about 55 KB for React, which helps startup and memory on budget new TVs as well as old ones. Newer TVs still get HDR, better codecs and 4K, because those come from capabilities and the server. It has its own small hooks over the core, so nothing needs `preact/compat`. Plain TypeScript with no framework was the alternative, but rails, focus and lists would soon need a homemade framework.
+- **Reference for other TV apps.** This app is what Android TV and tvOS follow for layout and focus (see `docs/design-language.md`).
 
 - **Focus:** a small spatial navigation module of our own, following the rules in `docs/design-language.md`. Use a library if that turns out harder than it looks.
-- **Player:** `PlayerPage.tsx` (607 lines) splits into session logic that both UIs share and separate controls.
+- **Player:** the playback session moves out of `PlayerPage.tsx` (607 lines) and `useSource.ts` into `src/core/`, and each UI has its own controls. Test whether `hls.light` is enough, since the server sends one rendition and the player draws subtitles itself.
 - **Remote:** Back is key code 461 on webOS and 10009 on Tizen. Tizen media keys have to be registered through `tizen.tvinputdevice`. The platform adapter maps these to common actions.
-- **Trying it:** `pnpm dev` serves `tv.html`, and a desktop browser's arrow keys stand in for a remote.
+- **Trying it:** `pnpm dev` in `players/web`, and a desktop browser's arrow keys stand in for a remote.
 - **Memory:** TVs have little to spare, so rails render only what's near the screen, images are requested at display size, and hls.js gets a buffer limit.
 
 ### Which TVs
 
-Models from 2021 onward, the same floor as Jellyfin's Tizen client.
+As many as possible, but two separate limits apply: what the stores let a new app reach, and what the app can run on.
+
+**The stores come first, and neither publishes a list that could be found:**
+
+- **Samsung: probably 2021 onward.** Jellyfin's store app launched in February 2026 for 2021 and newer only. SamMobile says Samsung "appears to have disabled" publishing new apps for 2020 and older, without citing a source. Samsung's docs only say developers choose from a list of model groups, so a seller account will show the real list.
+- **LG: unknown.** One vendor page says webOS 4 and up (2018 onward), and one Jellyfin guide says webOS 3 "may not" be supported. Both are weak sources. Ask through Seller Lounge 1:1 Q&A.
+
+**The app aims lower than that where it costs little.** The technical goal is Samsung from 2017 and LG from 2016, the oldest Chromium-based TVs from each.
+
+- **Older Samsung TVs** that the store can't reach would sideload a `.wgt`, as older TVs do for Jellyfin today. It's a bonus, not a promise.
+- **The LG answer decides the real floor:** Chromium 53 if the store stops at webOS 4, Chromium 38 if it reaches webOS 3.
+- **WebKit models and older** aren't planned. They'd need older flexbox and possibly older-style HLS from the server.
+- **Hosting the build at `/tv` on the server** is worth testing. Any TV could open it in its built-in browser with no install, and being same-origin, cookies would work without CORS. TV browsers can be limited for video and may not capture Back, so it's an extra, not the main route. It would also mean building `players/web` in the Docker image.
 
 | Model year | Samsung | LG |
 | --- | --- | --- |
+| 2014 | | webOS 1, WebKit |
+| 2015 | Tizen 2.3, WebKit | webOS 2, WebKit |
+| 2016 | Tizen 2.4, WebKit | webOS 3, Chromium 38 |
+| 2017 | Tizen 3.0, Chromium 47 | webOS 3, Chromium 38 |
+| 2018 | Tizen 4.0, Chromium 56 | webOS 4, Chromium 53 |
+| 2019 | Tizen 5.0, Chromium 63 | webOS 4, Chromium 53 |
+| 2020 | Tizen 5.5, Chromium 69 | webOS 5, Chromium 68 |
 | 2021 | Tizen 6.0, Chromium 76 | webOS 6, Chromium 79 |
 | 2022 | Tizen 6.5, Chromium 85 | webOS 22, Chromium 87 |
 | 2023 | Tizen 7.0, Chromium 94 | webOS 23, Chromium 94 |
 | 2024 | Tizen 8.0, Chromium 108 | webOS 24, Chromium 108 |
 
-LG's table gives platform release years, and at least one report describes a 2021 model on an older webOS, so the app checks what it can do, not the model year.
+LG's table gives platform release years, and at least one report describes a 2021 model on an older webOS, so the app checks what it can do, not the model year. Engines don't change with firmware updates, according to one third-party guide.
 
-What this floor rules out:
+**One build for every TV:** ES5 with polyfills. Newer TVs run the same bundle, slightly larger than they need, and there's only one thing to test and ship.
 
-- **CSS.** The web UI uses `color-mix` (16 places) and `:has()` (3), and `aspect-ratio` (8) and flexbox `gap`, none of which Chromium 76 has. TV screens avoid them, and any CSS shared with TV has to as well.
-- **JavaScript.** The TV build sets an old `build.target`. That lowers syntax but adds no polyfills, so newer methods such as `replaceAll` need checking. Confirm in the spike that React 19 and hls.js run on Chromium 76.
+**JavaScript: setting a target isn't enough.** A trial build of the current web app on Vite 8.3 showed:
+
+- `build.target: 'es5'` is refused, because Rolldown only goes down to ES2015.
+- `chrome47` and `chrome38` build without complaint, but the output keeps classes and destructuring that those engines can't parse. The `chrome47` bundle is the same as the `es2015` one, so a passing build proves nothing.
+- `@vitejs/plugin-legacy` is the route to ES5: it has a release for Vite 8, and uses Babel, core-js and SystemJS. Set it to legacy chunks only. It's untested here, and is the spike's first step.
+- core-js doesn't cover browser APIs. `fetch` (missing on Chromium 38), `AbortController`, `URLSearchParams` and `ResizeObserver` need their own polyfills or a way around them.
+- `tsconfig`'s target doesn't matter, since `tsc` only checks types here (`noEmit`).
+- A few things can't be compiled or polyfilled: regex lookbehind, `BigInt` and `Proxy`. `video.play()` only returns a promise from Chromium 50, so `.play().catch()` crashes before that.
+
+**CSS: the target does nothing.** The build leaves CSS as written, and the web UI's built CSS has 684 `var()` uses, 25 grids and 224 `gap`s. These limits set how the TV screens are written:
+
+| Feature | Needs | So on TV |
+| --- | --- | --- |
+| `var()` | Chromium 49 | Tokens become fixed values in `tv.css` |
+| Grid | Chromium 57 | Flexbox with margins |
+| Flexbox `gap` | Chromium 84 | Margins |
+| `aspect-ratio` | Chromium 88 | Fixed sizes |
+| Variable fonts | Chromium 62 | Static Manrope files |
+| `#RRGGBBAA`, `rgb(0 0 0 / 50%)` | Chromium 62, 65 | `rgba()` with commas |
+| `:focus-visible` | Chromium 86 | A class set by the focus module |
+| `:has()`, `color-mix` | Chromium 105, 111 | Not used |
+
+The TV screens are new, so this costs little if it's followed from the first line, and a lot if it's fixed later. Nothing from the web UI's CSS is imported. `players/web/README.md` has the rules, and a check in the TV build should fail on these features.
+
+**What could still move the floor:**
+
+- **Preact** should run on these engines, which is one reason to use it over React 19, whose requirements aren't documented anywhere I could find. Confirm it in the spike.
+- **hls.js** expects `Map`, `Set`, `Promise` and similar. Its fMP4 HLS, the only kind the server makes, may not work on the oldest Media Source versions. One write-up calls Chromium 47's a 2015-era implementation.
+- **HTTPS:** old TVs may not trust current certificates or support what proxies require. Plain HTTP on a home network isn't affected.
+- **Performance and memory** on the oldest hardware. This one only shows up on a real TV.
+
+Older TVs get a simpler result, not a broken one. The server converts what they can't play, usually to H.264 in SDR, and animations can fall back to the static mark.
 
 ### Playback
 
@@ -108,7 +164,7 @@ What this floor rules out:
 
 Both platforms have command line tools that run on Linux, and both TVs have a developer mode for installing test builds. Samsung's dev builds are signed with a certificate tied to the TV. Emulators help with layout and focus, but not with playback.
 
-Sources: [Samsung web engines](https://developer.samsung.com/smarttv/develop/specifications/web-engine-specifications.html), [LG web engines](https://webostv.developer.lge.com/develop/specifications/web-api-and-web-engine), [hosted Tizen apps](https://promwad.com/company/news/how-develop-publish-tizen-apps-smart-tv-our-guide-javascript-engineers), [Jellyfin on Samsung](https://www.notebookcheck.com/Jellyfin-erhaelt-offizielle-App-fuer-Samsung-Smart-TVs.1219790.0.html), [4K on Tizen without AVPlay](https://forum.developer.samsung.com/t/how-to-play-4k-video-without-avplay/23505).
+Sources: [Samsung web engines](https://developer.samsung.com/smarttv/develop/specifications/web-engine-specifications.html), [LG web engines](https://webostv.developer.lge.com/develop/specifications/web-api-and-web-engine), [hosted Tizen apps](https://promwad.com/company/news/how-develop-publish-tizen-apps-smart-tv-our-guide-javascript-engineers), [Jellyfin on Samsung](https://www.notebookcheck.com/Jellyfin-erhaelt-offizielle-App-fuer-Samsung-Smart-TVs.1219790.0.html), [4K on Tizen without AVPlay](https://forum.developer.samsung.com/t/how-to-play-4k-video-without-avplay/23505), [SamMobile on publishing for older TVs](https://www.sammobile.com/news/jellyfin-app-samsung-tv-launched-plex-alternative/), [Samsung Seller Office](https://developer.samsung.com/tv-seller-office/guides/applications/distributing-application.html), [Android Authority on Jellyfin's cutoff](https://www.androidauthority.com/jellyfin-samsung-tvs-3637724/).
 
 ## Pre-work on the server
 
@@ -204,7 +260,7 @@ Judgement calls, not measurements. The right-hand column assumes the pace of thi
 | --- | --- | --- |
 | Pre-work | 2–3 wk | 1 wk |
 | Design tokens and language | 1 wk | 1–2 days |
-| Samsung and LG | 5–8 wk | 1–2 wk |
+| Samsung and LG, back to 2016–17 | 6–10 wk | 2–3 wk |
 | Android and Android TV | 6–10 wk | 1–2 wk |
 | iOS and tvOS | 6–10 wk | 1–2 wk |
 | Device testing and stores | 4–6 wk | 2–3 wk |
@@ -212,7 +268,7 @@ Judgement calls, not measurements. The right-hand column assumes the pace of thi
 
 ## Stores
 
-- **Samsung and LG:** each has its own seller registration and app review. Their requirements haven't been checked yet, including whether either has a problem with an app that only works with a person's own server. Read both before building the TV screens. Review uses the demo server.
+- **Samsung and LG:** each has its own seller registration and app review. Register with both early, because that's the way to learn which TVs a new app can reach. Also check whether either has a problem with an app that only works with a person's own server. Review uses the demo server.
 
 - **Google Play:** a one-time fee of about $25. New personal accounts must run a closed test with at least 12 testers, opted in for 14 days straight, before applying for production. Organisation accounts are generally exempt, but need a D-U-N-S number. TV apps are reviewed separately for TV requirements. Start finding testers early.
 - **App Store:** review uses the demo server. iOS and tvOS can ship under one app record.
@@ -222,7 +278,7 @@ Judgement calls, not measurements. The right-hand column assumes the pace of thi
 
 Emulators don't show HDR, surround or hardware decoding problems, so playback gets tested on real devices:
 
-- **Devices:** an iPhone, an Apple TV 4K, an Android phone, an Android TV device, a Samsung TV and an LG TV, and an HDR TV with a surround receiver or soundbar if possible. Include a 2021 model for Samsung or LG, since that's the oldest engine supported.
+- **Devices:** an iPhone, an Apple TV 4K, an Android phone, an Android TV device, a Samsung TV and an LG TV, and an HDR TV with a surround receiver or soundbar if possible. Samsung and LG need several ages: the oldest model we claim to support (2017 Samsung, 2016–17 LG), one from around 2020, and a current one. Used older TVs are cheap, and no claim about a model year is made without one.
 - **Files:** H.264, HEVC, AV1 and VP9; HDR10, HLG and Dolby Vision; AAC, AC-3, E-AC-3, TrueHD, DTS, Opus and FLAC; text and picture subtitles.
 - **Situations:** resume, seeking past what's converted, a long pause, switching tracks, losing the network, remote access through a reverse proxy.
 
@@ -230,5 +286,6 @@ Emulators don't show HDR, surround or hardware decoding problems, so playback ge
 
 ## Open questions
 
-- Do the apps ship with v1 or follow it as 1.x? The spec says native apps aren't a v1 deliverable, which points to 1.x.
-- Which Samsung and LG TVs are available to test on? This could change the order or the 2021 floor.
+- Which Samsung and LG TVs are available to test on? This could change the order or the floor.
+- Which TVs can a new app reach in each store? Seller accounts answer this, and it sets the floor.
+- How far back does the app actually run? A one-day spike answers this: connect, press play and watch a stream, using Preact, the extracted playback session and hls.js, built to ES5, on the oldest TV available.

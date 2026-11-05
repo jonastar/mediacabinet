@@ -6,6 +6,20 @@ How Media Cabinet looks and behaves on every screen: the web UI and the players 
 
 **The aim:** someone moving from the web UI to their TV or phone recognises the product and its words straight away, and each platform still feels at home. Identity is shared, platform conventions are not.
 
+## Where the truth lives
+
+| What | Source |
+| --- | --- |
+| Values: colour, type, spacing, durations | `design/tokens.json` |
+| Rules: components, wording, focus, player behaviour | This document |
+| How TV screens look and behave in practice: layouts, focus paths, timing | The Samsung and LG app in `players/web/` |
+
+**The Samsung and LG app is the reference for TV.** It's built first and runs in a desktop browser with arrow keys, so anyone building Android TV or tvOS can open it and see how a screen should work, without needing a TV.
+
+- **It's a reference for behaviour and layout, not a limit on looks.** Its CSS is restricted for old TVs. Android TV and tvOS match its structure, sizes and focus behaviour, and can add what their platforms do well, such as Apple TV's focus effect or backdrop blur.
+- **Decisions get written down.** Swift and Kotlin developers shouldn't have to read CSS to learn a rule. When building the TV app settles something, the rule goes in this document and the value in the tokens.
+- **Disagreements get resolved, not left in place.** If the app and this document differ, decide which is right and change the other.
+
 ## What's shared and what isn't
 
 | Shared everywhere | Follows the platform |
@@ -18,7 +32,7 @@ How Media Cabinet looks and behaves on every screen: the web UI and the players 
 
 ## Tokens
 
-`design/tokens.json` becomes the one source for shared values. A small script generates `web/src/tokens.css`, a Swift file and a Kotlin file. The generated files are committed, and CI checks they're current.
+`design/tokens.json` becomes the one source for shared values. A small script generates `web/src/tokens.css`, fixed values for the Samsung and LG screens (older TVs have no CSS variables), a Swift file and a Kotlin file. The generated files are committed, and CI checks they're current.
 
 Only values used on more than one platform go in: colour, state colours, radii, spacing, type sizes, durations. `--template-*` and `--bg-sidebar` stay in `index.css`, because only the web has those screens.
 
@@ -36,11 +50,11 @@ Dark only, using today's values from `index.css`:
 
 Badges use a 14–18% tint of the state colour with its lighter text colour. Artwork always sits under a dark scrim so text keeps 4.5:1 contrast (`lib/artwork.ts` has the gradients).
 
-The app background (`#0F1115`) differs from the brand's dark background (`#121214`), which the animations default to. Set `--mc-bg` to the app background wherever an animation sits on a page, or its outline will show.
+The app background (`#0F1115`) differs from the brand's dark background (`#121214`), which the animations default to. Set `--mc-bg` to the app background wherever an animation sits on a page, or its outline will show. On TVs without CSS variables, generate the animation with the right colour instead.
 
 ### Type and size
 
-Manrope everywhere, bundled with each app (it's under the Open Font License). Titles are weight 800 with tight tracking. JetBrains Mono is only for technical details such as player stats.
+Manrope everywhere, bundled with each app (it's under the Open Font License). The Samsung and LG app uses static font files rather than the variable font, which older TVs may not handle. Titles are weight 800 with tight tracking. JetBrains Mono is only for technical details such as player stats.
 
 Sizes are per form factor. TV values are at 1920×1080, which is one-to-one on tvOS and in Samsung and LG apps at that resolution. **Android TV lays out at 960×540 dp, so halve them there.**
 
@@ -102,4 +116,4 @@ The same on every platform, so a person never has to relearn it:
 - `launch-build-in` on app start, `loading-light-leak` while waiting, `playback-press-open` when playback starts. They can be rebuilt natively from the timings in the SVGs.
 - Motion never delays anyone: if playback is ready before the reveal ends, jump to the end state.
 - Follow the system's reduced motion setting where the platform has one: static mark for launch and loading, straight cut to the poster for playback.
-- Older TVs may struggle with animation, so if an animation stutters on a 2021 model, use the static version there.
+- Older TVs may struggle with animation. If one stutters on an older model, use the static version on that engine. The focus effect is the exception: if the scale stutters, drop the scale and keep the ring, since focus must always be visible.

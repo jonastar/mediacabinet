@@ -1,6 +1,7 @@
 import type { components } from '../api/schema.d.ts'
 import { nextFailure, without, type Failure } from './fallback'
 import { attachStream, startPlaying, type StreamOptions } from './stream'
+import { needsNewStream, type PlayChoice } from './tracks'
 import { NO_PICTURE_SECONDS, watchForPicture } from './watchdog'
 
 type ClientCaps = components['schemas']['ClientCaps']
@@ -8,7 +9,12 @@ type PlayPlan = components['schemas']['PlayPlan']
 
 /** The server calls a session needs. */
 export interface SessionApi {
-  play: (itemId: number, caps: ClientCaps, startSeconds?: number) => Promise<PlayPlan>
+  play: (
+    itemId: number,
+    choice: PlayChoice,
+    caps: ClientCaps,
+    startSeconds?: number,
+  ) => Promise<PlayPlan>
   stop: (sessionId: string) => Promise<unknown>
   progress: (itemId: number, position: number, duration?: number | null) => Promise<unknown>
 }
@@ -43,6 +49,8 @@ const RETRIES_FORGIVEN_AFTER_MS = 5 * 60 * 1000
  */
 export class PlaybackSession {
   plan: PlayPlan | null = null
+  /** The version, quality, audio and subtitles in use. */
+  choice: PlayChoice = {}
   error: string | null = null
   /** A request is out, or a seek is waiting to become one. */
   loading = true
@@ -134,6 +142,17 @@ export class PlaybackSession {
     this.options.onChange()
   }
 
+  /** Changes the version, quality, audio or subtitles, restarting only if it has to. */
+  choose(next: PlayChoice) {
+    const restart = !this.plan || needsNewStream(this.plan, this.choice, next)
+    this.choice = next
+    if (restart) {
+      this.load(this.position())
+    } else {
+      this.options.onChange()
+    }
+  }
+
   /** Tries again after an error, from what's remembered. */
   retry(caps: ClientCaps) {
     this.caps = caps
@@ -183,7 +202,7 @@ export class PlaybackSession {
     const request = ++this.request
     this.loading = true
     onChange()
-    api.play(itemId, this.caps, at).then(
+    api.play(itemId, this.choice, this.caps, at).then(
       (plan) => {
         if (request !== this.request) {
           // Overtaken by a later request.
@@ -209,6 +228,7 @@ export class PlaybackSession {
     this.detach()
     this.stopServerSide(this.plan)
     this.plan = plan
+    this.choice = { ...this.choice, file_id: plan.version.file_id, audio_stream: plan.audio_stream }
     this.lastPosition = plan.start_seconds
     this.seekTarget = null
     this.error = null

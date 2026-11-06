@@ -12,6 +12,7 @@ Details belong in the commit, docs or API reference.
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
+- The TV app can pick the version, quality, audio and subtitles while playing, and offers the next episode near the end.
 - Episodes now get their picture from TMDB as series refresh, and the API lists it (`artwork` on episodes, `GET /api/artwork/{id}/still`).
 - TVs and apps can sign in with a code approved at `/pair`, for any kind of account, or with a password (`POST /api/auth/pair`, `POST /api/auth/device`); they stay signed in for a year from last use, and Account lists them with sign out (`GET /api/me/devices`).
 - The API accepts `Authorization: Bearer` device tokens, `?media_token=` for artwork, streams and subtitles (`POST /api/me/media-token`), and cross-site requests from packaged TV apps (`CABINET_CORS_ORIGINS` adds origins).

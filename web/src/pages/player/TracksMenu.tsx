@@ -1,14 +1,6 @@
 import type { PlayChoice, PlayPlan, Version } from '../../api/client'
-import { resolution } from '../../lib/format'
-import { audioLabel, subtitleLabel, versionLabel } from './labels'
+import { audioLabel, QUALITIES, resolution, subtitleLabel, versionLabel } from '../../core/labels'
 import styles from './Player.module.css'
-
-const QUALITIES: [number | null, string][] = [
-  [null, 'Original'],
-  [1080, '1080p'],
-  [720, '720p'],
-  [480, '480p'],
-]
 
 const MODES: Record<PlayPlan['mode'], string> = {
   direct: 'Playing the file directly',

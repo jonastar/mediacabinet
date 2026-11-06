@@ -131,10 +131,13 @@ export function useInitialFocus(ready: unknown) {
   }, [ready])
 }
 
-/** Takes the arrow keys while this screen is showing. */
-export function useKeys(onKey: (keyCode: number, event: KeyboardEvent) => boolean | void) {
+/** Hears every key, and takes the arrow keys from focus movement while `takesArrows`. */
+export function useKeys(
+  onKey: (keyCode: number, event: KeyboardEvent) => boolean | void,
+  takesArrows = true,
+) {
   useEffect(() => {
-    handlingArrows = true
+    handlingArrows = takesArrows
     const listener = (event: KeyboardEvent) => {
       if (onKey(event.keyCode, event)) {
         event.preventDefault()
@@ -145,7 +148,24 @@ export function useKeys(onKey: (keyCode: number, event: KeyboardEvent) => boolea
       handlingArrows = false
       document.removeEventListener('keydown', listener)
     }
-  }, [onKey])
+  }, [onKey, takesArrows])
+}
+
+let backHandler: (() => boolean) | null = null
+
+/** Gives this screen first say on Back, to close its own layers; true if it did something. */
+export function useBack(handler: () => boolean) {
+  useEffect(() => {
+    backHandler = handler
+    return () => {
+      backHandler = null
+    }
+  }, [handler])
+}
+
+/** Whether the screen showing dealt with Back itself. */
+export function screenHandledBack() {
+  return backHandler ? backHandler() : false
 }
 
 /** Calls `handler` for remote buttons with a meaning, such as Back. */

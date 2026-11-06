@@ -203,7 +203,7 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 - [ ] Spatial focus navigation and remote keys
 - [ ] TV: connect to a server, pairing by code or QR code
 - [ ] TV: home, shows, movies, series and episode pages, search
-- [ ] TV: player with versions, tracks, subtitles, resume, next episode
+- [x] TV: player with versions, tracks, subtitles, resume, next episode
 - [ ] `players/webos`: manifest, icons, platform adapter (capabilities, HDR, keys), packaging
 - [ ] `players/tizen`: manifest, icons, platform adapter (capabilities, HDR, keys), packaging
 

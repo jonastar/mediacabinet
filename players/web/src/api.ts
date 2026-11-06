@@ -1,5 +1,5 @@
 import type { SessionApi } from '@core/session'
-import type { components } from '../../../web/src/api/schema.d.ts'
+import type { components, paths } from '../../../web/src/api/schema.d.ts'
 
 type Schemas = components['schemas']
 export type ClientCaps = Schemas['ClientCaps']
@@ -10,6 +10,7 @@ export type PairingStarted = Schemas['PairingStarted']
 export type PairingStatus = Schemas['PairingStatus']
 export type ServerInfo = Schemas['ServerInfo']
 export type MediaToken = Schemas['MediaToken']
+export type Version = Schemas['Version']
 
 const SERVER_KEY = 'mc-server'
 const TOKEN_KEY = 'mc-token'
@@ -71,7 +72,7 @@ export function normaliseAddress(typed: string): string {
   return /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`
 }
 
-async function request<T>(method: string, path: string, body?: unknown, base = server): Promise<T> {
+async function send(method: string, path: string, body?: unknown, base = server) {
   const headers: Record<string, string> = {}
   if (body !== undefined) {
     headers['content-type'] = 'application/json'
@@ -92,29 +93,66 @@ async function request<T>(method: string, path: string, body?: unknown, base = s
     const detail = await res.json().catch(() => null)
     throw new ApiError(res.status, detail?.error ?? `${method} ${path}: ${res.status}`)
   }
-  if (res.status === 204) {
-    return undefined as T
+  return res
+}
+
+type Method = 'get' | 'post' | 'put' | 'delete'
+/** The methods a path has: the schema marks the others as `never`. */
+type MethodOf<P extends keyof paths> = {
+  [M in Method]: [NonNullable<paths[P][M]>] extends [never] ? never : M
+}[Method]
+type Json<T> = { content: { 'application/json': T } }
+
+/** What an operation in the generated schema takes and gives back. */
+type PathArgs<Op> = Op extends { parameters: { path: infer Params } } ? { path: Params } : unknown
+type BodyArgs<Op> = Op extends { requestBody: Json<infer Body> } ? { body: Body } : unknown
+type Result<Op> = Op extends { responses: { 200: Json<infer Body> } } ? Body : void
+type Args<Op> = PathArgs<Op> & BodyArgs<Op> & { base?: string }
+
+/**
+ * Calls the API, with the path, parameters, body and result all checked against
+ * the generated schema. Compiles away to a plain request.
+ */
+async function call<P extends keyof paths, M extends MethodOf<P>>(
+  method: M,
+  path: P,
+  ...[args]: Record<string, never> extends Args<paths[P][M]>
+    ? [args?: Args<paths[P][M]>]
+    : [args: Args<paths[P][M]>]
+): Promise<Result<paths[P][M]>> {
+  const {
+    path: params,
+    body,
+    base,
+  } = (args ?? {}) as {
+    path?: Record<string, unknown>
+    body?: unknown
+    base?: string
   }
-  return res.json() as Promise<T>
+  const url = (path as string).replace(/\{(\w+)\}/g, (_, name: string) => String(params?.[name]))
+  const res = await send(method.toUpperCase(), url, body, base)
+  return (res.status === 204 ? undefined : res.json()) as Promise<Result<paths[P][M]>>
 }
 
 export const api = {
-  serverInfo: (address: string) =>
-    request<ServerInfo>('GET', '/api/server-info', undefined, address),
+  serverInfo: (address: string) => call('get', '/api/server-info', { base: address }),
   startPairing: (deviceName: string) =>
-    request<PairingStarted>('POST', '/api/auth/pair', { device_name: deviceName }),
-  pollPairing: (secret: string) =>
-    request<PairingStatus>('POST', '/api/auth/pair/poll', { secret }),
-  home: () => request<Home>('GET', '/api/home'),
-  episodes: (seriesId: number) => request<EpisodeList>('GET', `/api/series/${seriesId}/episodes`),
-  signOut: () => request<void>('POST', '/api/auth/logout'),
+    call('post', '/api/auth/pair', { body: { device_name: deviceName } }),
+  pollPairing: (secret: string) => call('post', '/api/auth/pair/poll', { body: { secret } }),
+  home: () => call('get', '/api/home'),
+  episodes: (seriesId: number) =>
+    call('get', '/api/series/{id}/episodes', { path: { id: seriesId } }),
+  versions: (itemId: number) => call('get', '/api/items/{id}/versions', { path: { id: itemId } }),
+  signOut: () => call('post', '/api/auth/logout'),
+  /** Subtitles as WebVTT, from the URL in a play plan. */
+  subtitles: (url: string) => send('GET', url).then((res) => res.text()),
 }
 
 /** A media token that's still good for a while; for what can't send a header. */
 export async function mediaToken(): Promise<string> {
   const hourFromNow = Date.now() / 1000 + 3600
   if (!media || media.expires_at < hourFromNow) {
-    media = await request<MediaToken>('POST', '/api/me/media-token')
+    media = await call('post', '/api/me/media-token')
   }
   return media.token
 }
@@ -126,12 +164,15 @@ export function mediaUrl(path: string, withToken: string): string {
 }
 
 export const sessionApi: SessionApi = {
-  play: (itemId, caps, startSeconds) =>
-    request<PlayPlan>('POST', `/api/items/${itemId}/play`, { caps, start_seconds: startSeconds }),
-  stop: (sessionId) => request<void>('DELETE', `/api/play/${sessionId}`),
+  play: (itemId, choice, caps, startSeconds) =>
+    call('post', '/api/items/{id}/play', {
+      path: { id: itemId },
+      body: { ...choice, caps, start_seconds: startSeconds },
+    }),
+  stop: (sessionId) => call('delete', '/api/play/{id}', { path: { id: sessionId } }),
   progress: (itemId, position, duration) =>
-    request('PUT', `/api/items/${itemId}/progress`, {
-      position_seconds: position,
-      duration_seconds: duration,
+    call('put', '/api/items/{id}/progress', {
+      path: { id: itemId },
+      body: { position_seconds: position, duration_seconds: duration },
     }),
 }

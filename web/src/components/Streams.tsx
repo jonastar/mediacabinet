@@ -3,7 +3,7 @@ import { api, type StoredProbe, type StoredStream } from '../api/client'
 import { useApi } from '../api/useApi'
 import { ago } from '../lib/format'
 import { useLiveEvents } from '../lib/live'
-import { channelLayout, clock, codecName, language } from '../pages/player/labels'
+import { channelLayout, clock, codecName, language } from '../core/labels'
 import styles from './Streams.module.css'
 
 const HDR: Record<string, string> = { hdr10: 'HDR10', hlg: 'HLG', dolby_vision: 'Dolby Vision' }

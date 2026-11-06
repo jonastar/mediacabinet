@@ -236,6 +236,12 @@ input:focus {
   text-align: left;
 }
 
+/* Something this wide would leave the safe area at the full focus scale. */
+.row:focus,
+.option:focus {
+  transform: scale(1.02);
+}
+
 /* About this TV */
 
 .facts {
@@ -322,4 +328,139 @@ input:focus {
   justify-content: space-between;
   margin-top: token(space.space16);
   font-size: token(type.meta);
+}
+
+.controls .episode {
+  margin-bottom: token(space.space16);
+  color: token(color.textSecondary);
+  font-size: token(type.meta);
+}
+
+.player-buttons {
+  display: flex;
+  margin-top: token(space.space24);
+  font-size: token(type.meta);
+}
+
+.player-buttons button {
+  margin-right: token(space.space16);
+}
+
+.player-buttons .spacer {
+  flex: 1 1 0;
+}
+
+.player-buttons button:last-child {
+  margin-right: 0;
+}
+
+/* Subtitles, drawn here because a track from another origin isn't reliable on old TVs. */
+
+.subtitles {
+  position: absolute;
+  right: token(layout.safeSide);
+  bottom: token(layout.safeTopBottom);
+  left: token(layout.safeSide);
+  margin: 0;
+  text-align: center;
+  white-space: pre-line;
+  font-size: token(type.section);
+  font-weight: 600;
+  text-shadow:
+    0 2px 4px black,
+    0 0 8px black;
+  transition: bottom token(duration.focus);
+}
+
+.subtitles.raised {
+  bottom: 340px;
+}
+
+/* Up next */
+
+.up-next {
+  position: absolute;
+  right: token(layout.safeSide);
+  bottom: 300px;
+  width: 720px;
+  box-sizing: border-box;
+  padding: token(space.space32);
+  background: rgba(15, 17, 21, 0.95);
+  border-radius: token(radius.cardTv);
+}
+
+.up-next-label {
+  margin-bottom: token(space.space8);
+  color: token(color.textSecondary);
+  font-size: token(type.meta);
+}
+
+.up-next-title {
+  margin: 0;
+  font-weight: 700;
+}
+
+.up-next .actions {
+  margin-top: token(space.space24);
+  font-size: token(type.meta);
+}
+
+/* Audio, subtitles and versions */
+
+.tracks {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 720px;
+  box-sizing: border-box;
+  padding: token(layout.safeTopBottom) token(space.space48);
+  overflow: hidden;
+  background: rgba(15, 17, 21, 0.97);
+}
+
+.tracks h2 {
+  margin: token(space.space32) 0 token(space.space12);
+  color: token(color.textSecondary);
+  font-size: token(type.meta);
+  font-weight: 700;
+}
+
+.tracks h2:first-child {
+  margin-top: 0;
+}
+
+.option {
+  display: block;
+  width: 100%;
+  margin-bottom: token(space.space8);
+  padding: token(space.space12) token(space.space24);
+  background: none;
+  font-size: token(type.meta);
+  text-align: left;
+}
+
+.option:focus {
+  background: token(color.surfaceRaised);
+}
+
+.option.selected {
+  color: token(color.accentHover);
+  font-weight: 700;
+}
+
+.option.selected::after {
+  content: '';
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-left: token(space.space16);
+  background: token(color.accent);
+  border-radius: 50%;
+}
+
+.how-playing {
+  margin: 0 0 token(space.space8);
+  color: token(color.textMuted);
+  font-size: token(type.small);
 }

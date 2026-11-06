@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'preact/hooks'
 import { session } from './api'
-import { useRemote } from './focus'
+import { screenHandledBack, useRemote } from './focus'
 import { Browse } from './screens/Browse'
 import { Connect } from './screens/Connect'
 import { Diagnostics } from './screens/Diagnostics'
@@ -25,10 +25,11 @@ export function App() {
   }, [])
 
   const open = useCallback((screen: Screen) => setStack((s) => [...s, screen]), [])
+  const replace = useCallback((screen: Screen) => setStack((s) => [...s.slice(0, -1), screen]), [])
   const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), [])
   const onRemote = useCallback(
     (action: string) => {
-      if (action === 'back') {
+      if (action === 'back' && !screenHandledBack()) {
         back()
       }
     },
@@ -71,7 +72,7 @@ export function App() {
     case 'episodes':
       return <Episodes key={screen.seriesId} screen={screen} open={open} />
     case 'player':
-      return <Player key={screen.itemId} screen={screen} onLeave={back} />
+      return <Player key={screen.itemId} screen={screen} onLeave={back} onReplace={replace} />
     case 'diagnostics':
       return <Diagnostics />
     default:

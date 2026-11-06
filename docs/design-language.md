@@ -97,7 +97,7 @@ Players use Watch mode wording only, since Manage stays on the web. `web/src/lib
 Applies to all TVs. The web UI has the same need for keyboard use (Phase 9).
 
 - **Something is always focused**, and each screen defines where focus starts: normally the primary action.
-- **The focused item is obvious from across a room:** 1.08 scale and a 4 px accent ring, over 150 ms. Apple TV uses its system card effect with the accent colour wherever a control has one, because people expect it there.
+- **The focused item is obvious from across a room:** 1.08 scale and a 4 px accent ring, over 150 ms (1.02 for full-width rows, which would otherwise leave the safe area). Apple TV uses its system card effect with the accent colour wherever a control has one, because people expect it there.
 - **Movement is predictable.** Left and right stay within a rail, and up and down move between rails, returning to the last item used in each.
 - **Back goes back one step:** close a panel, then leave the screen and restore focus to where the person came from. At the top level, it asks before leaving the app, except on Apple TV, where the Menu button's system behaviour applies.
 - **No hover-only actions.** Anything that appears on hover on the web needs a focused or selected form on TV.

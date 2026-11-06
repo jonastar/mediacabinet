@@ -6,9 +6,9 @@ There's one app for every model, kept small so it also starts quickly on budget 
 
 ## Status
 
-A first version, for finding out how far back it runs: connect to a server, pair with a code, pick something from Home (keep watching, shows and their episodes, movies; not folder libraries) and watch it, with resume, seeking and fallback. "About this TV" shows what the TV reports, and anything that goes wrong shows on screen, since a TV has no console.
+A first version, for finding out how far back it runs: connect to a server, pair with a code, pick something from Home (keep watching, shows and their episodes, movies; not folder libraries) and watch it, with resume, seeking, fallback, next episode, and version, quality, audio and subtitle pickers. "About this TV" shows what the TV reports, and anything that goes wrong shows on screen, since a TV has no console.
 
-Not yet: search, version, track and subtitle pickers, a QR code, next episode, and remembering the last item used in each rail.
+Not yet: search, a QR code, a series page, restoring focus on Back, and remembering the last item used in each rail. The subtitle and audio chosen aren't carried over to the next episode, as on the web.
 
 ## Working on it
 
@@ -30,7 +30,7 @@ This is its own project, separate from the web UI in [`web/`](../../web/):
 - `vite.config.ts`: ES5 with polyfills, written to `dist/`, with tokens written into the CSS as fixed values (`token(color.accent)`).
 - `scripts/check-build.mjs`: reads what the build wrote, and fails on JavaScript that isn't ES5, CSS older TVs can't use, and `crossorigin` scripts. A passing Vite build proves none of that.
 - `tsconfig.json`: an `@core` alias to [`web/src/core/`](../../web/src/core/), the only code shared with the web UI.
-- `src/`: screens, focus handling and the platform adapter (`platform.ts`).
+- `src/`: screens, focus handling and the platform adapter (`platform.ts`). `api.ts` checks every call's path, method, body and result against the schema generated from the server's OpenAPI document.
 
 It uses the same lint and format rules as `web/`, and the pre-commit hook runs them.
 

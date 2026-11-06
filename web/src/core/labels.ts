@@ -1,11 +1,47 @@
-import type { Version } from '../../api/client'
-import { bytes, resolution } from '../../lib/format'
+import type { components } from '../api/schema.d.ts'
+
+type Version = components['schemas']['Version']
 
 let names: Intl.DisplayNames | null = null
 try {
   names = new Intl.DisplayNames(undefined, { type: 'language' })
 } catch {
+  // Older engines have no language names: see COMMON_LANGUAGES.
   names = null
+}
+
+/** For engines without `Intl.DisplayNames`, which is most TVs before 2021. */
+const COMMON_LANGUAGES: Record<string, string> = {
+  ara: 'Arabic',
+  chi: 'Chinese',
+  zho: 'Chinese',
+  cze: 'Czech',
+  ces: 'Czech',
+  dan: 'Danish',
+  dut: 'Dutch',
+  nld: 'Dutch',
+  eng: 'English',
+  fin: 'Finnish',
+  fre: 'French',
+  fra: 'French',
+  ger: 'German',
+  deu: 'German',
+  gre: 'Greek',
+  ell: 'Greek',
+  heb: 'Hebrew',
+  hin: 'Hindi',
+  hun: 'Hungarian',
+  ita: 'Italian',
+  jpn: 'Japanese',
+  kor: 'Korean',
+  nor: 'Norwegian',
+  pol: 'Polish',
+  por: 'Portuguese',
+  rus: 'Russian',
+  spa: 'Spanish',
+  swe: 'Swedish',
+  tur: 'Turkish',
+  ukr: 'Ukrainian',
 }
 
 /** `eng` → `English`; unknown codes as they are. */
@@ -14,11 +50,38 @@ export function language(code: string | null | undefined): string | null {
     return null
   }
   try {
-    return names?.of(code) ?? code
+    return names?.of(code) ?? COMMON_LANGUAGES[code] ?? code
   } catch {
-    return code
+    return COMMON_LANGUAGES[code] ?? code
   }
 }
+
+export function bytes(n: number): string {
+  if (n >= 1e9) {
+    return `${(n / 1e9).toFixed(1)} GB`
+  }
+  if (n >= 1e6) {
+    return `${Math.round(n / 1e6)} MB`
+  }
+  return `${Math.max(1, Math.round(n / 1e3))} KB`
+}
+
+export function resolution(height: number | null | undefined): string | null {
+  if (!height) {
+    return null
+  }
+  const steps = [2160, 1440, 1080, 720, 576, 480]
+  const step = steps.find((s) => height >= s * 0.9)
+  return `${step ?? height}p`
+}
+
+/** The heights a stream can be converted down to; `null` is the file as it is. */
+export const QUALITIES: [number | null, string][] = [
+  [null, 'Original'],
+  [1080, '1080p'],
+  [720, '720p'],
+  [480, '480p'],
+]
 
 const CODECS: Record<string, string> = {
   aac: 'AAC',

@@ -1,6 +1,9 @@
 import type { LinkedFile } from '../api/client'
 
+import { bytes, resolution } from '../core/labels'
+
 export { episodeLabel } from '../core/episode'
+export { bytes, resolution }
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
   day: 'numeric',
@@ -88,25 +91,6 @@ export function progress(runtime: number | null | undefined, position: number, p
     return 0
   }
   return Math.min(1, position / runtime)
-}
-
-export function bytes(n: number): string {
-  if (n >= 1e9) {
-    return `${(n / 1e9).toFixed(1)} GB`
-  }
-  if (n >= 1e6) {
-    return `${Math.round(n / 1e6)} MB`
-  }
-  return `${Math.max(1, Math.round(n / 1e3))} KB`
-}
-
-export function resolution(height: number | null | undefined): string | null {
-  if (!height) {
-    return null
-  }
-  const steps = [2160, 1440, 1080, 720, 576, 480]
-  const step = steps.find((s) => height >= s * 0.9)
-  return `${step ?? height}p`
 }
 
 const CODECS: Record<string, string> = { hevc: 'HEVC', h264: 'H.264', av1: 'AV1', vp9: 'VP9' }

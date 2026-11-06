@@ -12,9 +12,10 @@ import {
   VolumeIcon,
 } from '../components/Icons'
 import { playbackCaps } from '../core/caps'
+import { clock } from '../core/labels'
+import { needsNewStream } from '../core/tracks'
 import { episodeLabel } from '../lib/format'
 import { navigate, useQueryParam } from '../lib/router'
-import { clock } from './player/labels'
 import { Meter } from './player/meter'
 import { StatsPanel } from './player/StatsPanel'
 import { TracksMenu } from './player/TracksMenu'
@@ -341,14 +342,7 @@ export function PlayerPage({ id }: { id: number }) {
     if (!plan) {
       return
     }
-    const track = plan.version.subtitles.find((t) => t.id === nextChoice.subtitle)
-    const burning = plan.subtitles.some((s) => !s.url)
-    const sameStream =
-      nextChoice.file_id === choice.file_id &&
-      nextChoice.audio_stream === choice.audio_stream &&
-      (nextChoice.max_height ?? null) === (choice.max_height ?? null)
-    // Text subtitles are drawn by the browser; anything else needs a new stream.
-    if (sameStream && (track?.text ?? true) && !burning) {
+    if (!needsNewStream(plan, choice, nextChoice)) {
       choiceRef.current = nextChoice
       setChoice(nextChoice)
       return

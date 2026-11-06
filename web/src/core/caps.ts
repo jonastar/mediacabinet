@@ -1,5 +1,7 @@
-import type { ClientCaps } from '../api/client'
-import { without, worthRemembering, type Failure } from '../core/fallback'
+import type { components } from '../api/schema.d.ts'
+import { without, worthRemembering, type Failure } from './fallback'
+
+type ClientCaps = components['schemas']['ClientCaps']
 
 /** Codec names as the server knows them, with a MIME type to test each. */
 const VIDEO: [string, string][] = [

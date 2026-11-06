@@ -1,21 +1,8 @@
 import { useCallback, useEffect, useRef, type RefObject } from 'react'
 import type { ClientCaps, PlayPlan } from '../../api/client'
 import { nextFailure, without, type Failure } from '../../core/fallback'
-import { rememberFailures } from '../../lib/caps'
-
-/** How long video may have data to play and still show nothing. */
-const NO_PICTURE_SECONDS = 8
-/** Enough buffered that not playing can't be the network's fault. */
-const BUFFERED_ENOUGH_SECONDS = 2
-
-function bufferedAhead(el: HTMLVideoElement) {
-  for (let i = 0; i < el.buffered.length; i++) {
-    if (el.buffered.start(i) <= el.currentTime && el.currentTime <= el.buffered.end(i)) {
-      return el.buffered.end(i) - el.currentTime
-    }
-  }
-  return 0
-}
+import { rememberFailures } from '../../core/caps'
+import { NO_PICTURE_SECONDS, watchForPicture } from '../../core/watchdog'
 
 /**
  * Recovers when a device can't play what it said it could: asks again without
@@ -56,33 +43,19 @@ export function useFallback(
       return
     }
     started.current = false
-    let stuck = 0
-    const timer = window.setInterval(() => {
-      const el = video.current
-      if (!el) {
-        return
-      }
-      const played = el.played.length > 0 && el.played.end(0) - el.played.start(0) > 0.2
-      if (played) {
+    const el = video.current
+    if (!el) {
+      return
+    }
+    return watchForPicture(
+      el,
+      () => {
         started.current = true
         rememberFailures(unproven.current)
         unproven.current = []
-        window.clearInterval(timer)
-        return
-      }
-      // Paused covers browsers that block playing until someone clicks.
-      const waitingForPicture =
-        !el.paused &&
-        !el.seeking &&
-        !document.hidden &&
-        bufferedAhead(el) >= BUFFERED_ENOUGH_SECONDS
-      stuck = waitingForPicture ? stuck + 1 : 0
-      if (stuck >= NO_PICTURE_SECONDS) {
-        window.clearInterval(timer)
-        decodeFailed(`no picture after ${NO_PICTURE_SECONDS} seconds`)
-      }
-    }, 1000)
-    return () => window.clearInterval(timer)
+      },
+      () => decodeFailed(`no picture after ${NO_PICTURE_SECONDS} seconds`),
+    )
   }, [plan, video, decodeFailed])
 
   const reset = useCallback(() => {

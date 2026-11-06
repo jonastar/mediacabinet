@@ -1,0 +1,11 @@
+{
+  "id": "app.mediacabinet.tv",
+  "version": "1.0.0",
+  "vendor": "Media Cabinet",
+  "type": "web",
+  "main": "index.html",
+  "title": "Media Cabinet",
+  "icon": "icon.png",
+  "largeIcon": "icon.png",
+  "disableBackHistoryAPI": true
+}

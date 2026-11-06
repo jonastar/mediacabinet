@@ -82,7 +82,7 @@ The current UI can't simply be reused: it's built around a sidebar and the point
 - **Reference for other TV apps.** This app is what Android TV and tvOS follow for layout and focus (see `docs/design-language.md`).
 
 - **Focus:** a small spatial navigation module of our own, following the rules in `docs/design-language.md`. Use a library if that turns out harder than it looks.
-- **Player:** the playback session moves out of `PlayerPage.tsx` (607 lines) and `useSource.ts` into `src/core/`, and each UI has its own controls. Test whether `hls.light` is enough, since the server sends one rendition and the player draws subtitles itself.
+- **Player:** the playback session is in `src/core/session.ts`, and each UI has its own controls. The TV app uses it; `PlayerPage.tsx` shares the parts below it (`stream.ts`, `watchdog.ts`, `fallback.ts`, `caps.ts`) and still has to move onto it. `hls.light` works for direct, remuxed and seeking so far, since the server sends one rendition and the player draws subtitles itself.
 - **Remote:** Back is key code 461 on webOS and 10009 on Tizen. Tizen media keys have to be registered through `tizen.tvinputdevice`. The platform adapter maps these to common actions.
 - **Trying it:** `pnpm dev` in `players/web`, and a desktop browser's arrow keys stand in for a remote.
 - **Memory:** TVs have little to spare, so rails render only what's near the screen, images are requested at display size, and hls.js gets a buffer limit.
@@ -121,8 +121,12 @@ LG's table gives platform release years, and at least one report describes a 202
 
 **One build for every TV:** ES5 with polyfills. Newer TVs run the same bundle, slightly larger than they need, and there's only one thing to test and ship.
 
-**JavaScript: setting a target isn't enough.** A trial build of the current web app on Vite 8.3 showed:
+**JavaScript: setting a target isn't enough.** A trial build of the current web app on Vite 8.3 showed the points below. Building `players/web` found more, and `scripts/check-build.mjs` there now fails the build on all of them:
 
+- The plugin minifies legacy chunks with Oxc for ES2015, which brings back template literals, so the build uses Terser.
+- Its polyfills chunk skips Babel, so the bundler's helpers stay as arrow functions, and the config lowers them.
+- `crossorigin` on script tags blocks them from `file://`, where a packaged app runs, so every TV would show a blank screen. The config strips it.
+- In legacy-only mode the CSS is carried inside the JavaScript, and `cssCodeSplit: false` drops it altogether. It stays inside, and the check reads it from there.
 - `build.target: 'es5'` is refused, because Rolldown only goes down to ES2015.
 - `chrome47` and `chrome38` build without complaint, but the output keeps classes and destructuring that those engines can't parse. The `chrome47` bundle is the same as the `es2015` one, so a passing build proves nothing.
 - `@vitejs/plugin-legacy` is the route to ES5: it has a release for Vite 8, and uses Babel, core-js and SystemJS. Set it to legacy chunks only. It's untested here, and is the spike's first step.
@@ -294,4 +298,4 @@ Emulators don't show HDR, surround or hardware decoding problems, so playback ge
 
 - Which Samsung and LG TVs are available to test on? This could change the order or the floor.
 - Which TVs can a new app reach in each store? Seller accounts answer this, and it sets the floor.
-- How far back does the app actually run? A one-day spike answers this: connect, press play and watch a stream, using Preact, the extracted playback session and hls.js, built to ES5, on the oldest TV available.
+- How far back does the app actually run? `players/web` is ready to answer this: connect, press play and watch a stream, built to ES5, on the oldest TV available. Its output parses as ES5 and it runs from `file://` on a current engine, but it hasn't run on an old one yet.

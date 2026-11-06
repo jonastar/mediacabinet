@@ -1,6 +1,14 @@
 # Core
 
-Plain TypeScript shared by the web UI and the TV app in `players/web`. So far it has `fallback.ts`, what to rule out when playback fails. The rest is still in `api/`, `lib/`, `pages/PlayerPage.tsx` and `pages/player/useSource.ts`. The plan is in `docs/clients.md`. Tests sit beside the code and run with `pnpm test`.
+Plain TypeScript shared by the web UI and the TV app in `players/web`. So far it has:
+
+- `caps.ts`: what this device can play, and what's been found not to
+- `fallback.ts`: what to rule out when playback fails
+- `stream.ts`: attaching a plan's stream to a `<video>`
+- `watchdog.ts`: telling whether a stream really started
+- `session.ts`: playing one item from start to finish. The TV app uses it; `pages/PlayerPage.tsx` still does the same work itself, and should move onto it.
+
+The rest is still in `api/` and `lib/`. The plan is in `docs/clients.md`. Tests sit beside the code and run with `pnpm test`.
 
 ## Planned contents
 

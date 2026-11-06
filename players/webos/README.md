@@ -1,13 +1,22 @@
 # LG TVs (webOS)
 
-A packaged web app. The app itself is in [`players/web/`](../web/). This folder holds LG's build scripts, adapter and docs. Not started. See [`docs/clients.md`](../../docs/clients.md).
+A packaged web app. The app itself is in [`players/web/`](../web/). This folder holds LG's manifest and packaging. See [`docs/clients.md`](../../docs/clients.md).
 
-## Planned contents
+## Putting it on a TV
 
-- `appinfo.json`: the app's manifest
-- icons from `docs/brand/`
-- the platform adapter: capabilities, HDR, remote keys
-- a build script that wraps `players/web/dist` into an `.ipk`
+Not tried on a TV yet, so the manifest may need changes. You need LG's [CLI](https://webostv.developer.lge.com/develop/tools/cli-installation) and the Developer Mode app on the TV.
+
+```sh
+./package.sh                                  # writes build/*.ipk from players/web
+ares-setup-device                             # once, to add the TV as "tv"
+ares-install --device tv build/*.ipk
+ares-launch --device tv app.mediacabinet.tv
+```
+
+## Still to come
+
+- the platform adapter: capabilities, HDR. Today's is generic, in `players/web/src/platform.ts`
+- proper icon sizes for the store
 
 ## Things to know
 

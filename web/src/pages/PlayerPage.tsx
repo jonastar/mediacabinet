@@ -11,7 +11,7 @@ import {
   TracksIcon,
   VolumeIcon,
 } from '../components/Icons'
-import { playbackCaps } from '../lib/caps'
+import { playbackCaps } from '../core/caps'
 import { episodeLabel } from '../lib/format'
 import { navigate, useQueryParam } from '../lib/router'
 import { clock } from './player/labels'

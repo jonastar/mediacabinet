@@ -186,7 +186,7 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 - [ ] Spike on a rented Mac: AVPlayer plays direct, remuxed and transcoded streams with the cookie, on an iPhone and an Apple TV
 - [ ] Spike: Media3 plays the same streams on an Android phone and TV
 - [ ] Register as a seller with Samsung and LG, and find out which TVs a new app can reach; this sets the store floor
-- [ ] Spike: an ES5 build with `@vitejs/plugin-legacy` plays a stream using Preact, the playback session and hls.js, on the oldest TV available (goal: Samsung 2017, LG 2016); sets how far back the app runs
+- [ ] Spike: an ES5 build with `@vitejs/plugin-legacy` plays a stream using Preact, the playback session and hls.js, on the oldest TV available (goal: Samsung 2017, LG 2016); sets how far back the app runs. The app for it is built (`players/web`, "About this TV" shows what the TV reports); running it on TVs remains
 - [ ] Spike: a packaged app on a Samsung and an LG TV reaches a plain HTTP server and plays direct, remuxed and transcoded streams, with HDR on newer models; compare `<video>` and AVPlay on Samsung; note what `Origin` each sends, and narrow the CORS list to that
 - [ ] Read Samsung's and LG's store requirements, including apps that need a person's own server
 - [x] CORS on `/api` without credentials, for packaged TV apps
@@ -197,7 +197,7 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 ### Samsung and LG TVs
 
 - [ ] Web: a configurable server address behind one base URL
-- [ ] `players/web` project: ES5 build, polyfills, fixed-value CSS, `@core` alias, a check that fails on CSS older TVs can't use, and lint and format in the pre-commit hook
+- [x] `players/web` project: ES5 build, polyfills, fixed-value CSS, `@core` alias, a check that fails on CSS older TVs can't use, and lint and format in the pre-commit hook
 - [ ] Web: `src/core/` with the API client, playback session, fallback, capabilities and wording; a lint rule keeps React and CSS out
 - [ ] Try hosting the TV build at `/tv` on the server, for TV browsers with no install
 - [ ] Spatial focus navigation and remote keys

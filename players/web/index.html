@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1920" />
+    <title>Media Cabinet</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #0f1115;
+        color: #e8e6e1;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <pre
+      id="crash"
+      style="display: none; margin: 96px; font-size: 25px; white-space: pre-wrap"
+    ></pre>
+    <script>
+      // A TV has no console, so anything that goes wrong has to show on screen.
+      // Written for any engine, since it has to work when the bundle doesn't.
+      window.showCrash = function (message) {
+        var el = document.getElementById('crash')
+        el.style.display = 'block'
+        el.appendChild(document.createTextNode(message + '\n\n' + navigator.userAgent + '\n\n'))
+      }
+      window.onerror = function (message, source, line, column) {
+        window.showCrash(message + ' (' + source + ':' + line + ':' + column + ')')
+      }
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

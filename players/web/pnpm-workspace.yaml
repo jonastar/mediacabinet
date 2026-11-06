@@ -1,0 +1,4 @@
+allowBuilds:
+  core-js: false
+minimumReleaseAgeExclude:
+  - '@vitejs/plugin-legacy@8.2.4'

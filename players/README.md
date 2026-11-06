@@ -1,6 +1,6 @@
 # Players
 
-The apps people watch on. They browse and play; managing a library stays in the web UI. Nothing is built yet. The plan is in [`docs/clients.md`](../docs/clients.md) and the checklist in [`docs/roadmap.md`](../docs/roadmap.md).
+The apps people watch on. They browse and play; managing a library stays in the web UI. The TV app in [`web/`](web/) has a first version, and the rest aren't started. The plan is in [`docs/clients.md`](../docs/clients.md) and the checklist in [`docs/roadmap.md`](../docs/roadmap.md).
 
 | Folder | Targets | UI | Player |
 | --- | --- | --- | --- |

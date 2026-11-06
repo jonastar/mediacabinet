@@ -16,3 +16,9 @@ pnpm format:check && pnpm lint || {
     echo "pre-commit: run 'pnpm format' in web/" >&2
     exit 1
 }
+
+cd "$root/players/web"
+pnpm format:check && pnpm lint || {
+    echo "pre-commit: run 'pnpm format' in players/web/" >&2
+    exit 1
+}

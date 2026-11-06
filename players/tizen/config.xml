@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://mediacabinet.app/tv" version="1.0.0" viewmodes="maximized">
+  <tizen:application id="MdCabinet0.MediaCabinet" package="MdCabinet0" required_version="3.0"/>
+  <content src="index.html"/>
+  <icon src="icon.png"/>
+  <name>Media Cabinet</name>
+  <!-- The server is whatever address the person types, usually plain HTTP. -->
+  <access origin="*" subdomains="true"/>
+  <tizen:allow-navigation>*</tizen:allow-navigation>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
+  <tizen:profile name="tv-samsung"/>
+</widget>

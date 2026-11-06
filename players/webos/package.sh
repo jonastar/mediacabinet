@@ -9,4 +9,5 @@ mkdir -p "$here/build/app"
 cp -R "$root/players/web/dist/." "$here/build/app/"
 cp "$here/appinfo.json" "$here/build/app/"
 cp "$root/docs/brand/icons/android-maskable-192.png" "$here/build/app/icon.png"
-ares-package --outdir "$here/build" "$here/build/app"
+# The build is minified already, and checked as ES5 in that form.
+(cd "$here" && pnpm exec ares-package --no-minify --outdir build build/app)

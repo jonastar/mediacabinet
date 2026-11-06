@@ -32,6 +32,7 @@ const REPORT_EVERY_MS = 15000
 /** Waits for more presses, so seeking doesn't start a stream per press. */
 const SEEK_SETTLE_MS = 600
 const NETWORK_RETRIES = 2
+const RETRIES_FORGIVEN_AFTER_MS = 5 * 60 * 1000
 
 /**
  * Playing one item: asks the server how, attaches the stream, recovers from
@@ -51,6 +52,7 @@ export class PlaybackSession {
   private unproven: Failure[] = []
   private started = false
   private retries = 0
+  private lastRetryAt = 0
   private request = 0
   private seekTarget: number | null = null
   private seekTimer: number | undefined
@@ -137,6 +139,7 @@ export class PlaybackSession {
     this.caps = caps
     this.unproven = []
     this.retries = 0
+    this.lastRetryAt = 0
     this.load(this.position())
   }
 
@@ -228,7 +231,6 @@ export class PlaybackSession {
 
   private onStarted() {
     this.started = true
-    this.retries = 0
     this.options.remember(this.unproven)
     this.unproven = []
   }
@@ -236,9 +238,18 @@ export class PlaybackSession {
   private onFatal(message: string, cause: 'network' | 'decode') {
     if (cause === 'decode') {
       this.onDecodeFailed(message)
-    } else if (this.retries < NETWORK_RETRIES) {
+      return
+    }
+    // Retries are forgiven by a quiet spell, not by starting to play: a stream
+    // that plays briefly and breaks each time would otherwise restart forever.
+    const now = Date.now()
+    if (now - this.lastRetryAt > RETRIES_FORGIVEN_AFTER_MS) {
+      this.retries = 0
+    }
+    if (this.retries < NETWORK_RETRIES) {
       // A stream that ended on the server (idle too long) restarts where it was.
       this.retries += 1
+      this.lastRetryAt = now
       this.load(this.position())
     } else {
       this.giveUp(message)

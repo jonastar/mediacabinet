@@ -7,5 +7,6 @@
   "title": "Media Cabinet",
   "icon": "icon.png",
   "largeIcon": "icon.png",
-  "disableBackHistoryAPI": true
+  "disableBackHistoryAPI": true,
+  "requiredACG": []
 }

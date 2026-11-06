@@ -296,6 +296,10 @@ Emulators don't show HDR, surround or hardware decoding problems, so playback ge
 
 ## Open questions
 
+- Why does playback restart in a loop in Samsung's TV Simulator, after a first frame and a little audio? There are no logs to go on. The app's own endless retry was fixed and it still happens, so the simulator's known trouble with video on Windows is the likely cause. Check on an emulator or a real TV.
+- Does `players/tizen/config.xml` work? Nothing has installed it yet, since the Simulator ignores it, and the `.wgt` has to be signed on a computer with a desktop session first. The app ID is a placeholder.
+- Does video show on an old LG TV? On the webOS 3.0 emulator the app starts, pairs and browses, and streams load with the clock moving, but there's no picture or sound. LG doesn't list HLS on emulators before 5.0, so only a real TV can settle it.
+- Should a stream that plays with no picture count as failed? The watchdog only checks that time moves, so a TV doing what that emulator did would show black with no error. Checking `videoWidth` shortly after starting would catch it.
 - Which Samsung and LG TVs are available to test on? This could change the order or the floor.
 - Which TVs can a new app reach in each store? Seller accounts answer this, and it sets the floor.
 - How far back does the app actually run? `players/web` is ready to answer this: connect, press play and watch a stream, built to ES5, on the oldest TV available. Its output parses as ES5 and it runs from `file://` on a current engine, but it hasn't run on an old one yet.

@@ -4,13 +4,22 @@ A packaged web app. The app itself is in [`players/web/`](../web/). This folder 
 
 ## Putting it on a TV
 
-Not tried on a TV yet, so the manifest may need changes. You need [Tizen Studio's CLI](https://developer.samsung.com/smarttv/develop/getting-started/setting-up-sdk/installing-tv-sdk.html), a signing profile tied to the TV, and Developer Mode on the TV.
+The UI, pairing and navigation work in Samsung's TV Simulator, which ignores the manifest and signing. Not tried on an emulator or a TV yet, so the manifest may need changes.
 
 ```sh
-./package.sh                                  # writes build/*.wgt from players/web
-sdb connect <the TV's address>
-tizen install -n build/MediaCabinet.wgt -t <the TV's name in "sdb devices">
+./package.sh     # writes build/app/ and build/MediaCabinet-unsigned.wgt from players/web
 ```
+
+**TV Simulator:** open `build/app/`.
+
+**Emulator or real TV:** the package has to be signed, and that needs Samsung's tools on your own computer, because `tz` couldn't read a profile's password back over SSH on Linux (probably no keyring there). In the Tizen extension or Tizen Studio there, create a signing profile in Certificate Manager (a real TV needs a Samsung certificate tied to it, with Developer Mode on), then:
+
+```sh
+tz pack -t wgt -b MediaCabinet-unsigned.wgt -s <profile> -o MediaCabinet.wgt
+tz install -p MediaCabinet.wgt -t <device>
+```
+
+Samsung's emulator needs hardware virtualisation. On AMD processors, that means TV image 8.0.1 or later with Windows Hypervisor Platform turned on. It's untested here so far.
 
 ## Still to come
 

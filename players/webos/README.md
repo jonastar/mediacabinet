@@ -4,14 +4,18 @@ A packaged web app. The app itself is in [`players/web/`](../web/). This folder 
 
 ## Putting it on a TV
 
-Not tried on a TV yet, so the manifest may need changes. You need LG's [CLI](https://webostv.developer.lge.com/develop/tools/cli-installation) and the Developer Mode app on the TV.
+Works in the webOS 6.0 Simulator, which skips packaging. Not tried on a TV yet, so the `.ipk` and manifest may need changes. You need the Developer Mode app on the TV. LG's CLI is a local dependency here, so `pnpm install` in this folder sets it up.
 
 ```sh
-./package.sh                                  # writes build/*.ipk from players/web
-ares-setup-device                             # once, to add the TV as "tv"
-ares-install --device tv build/*.ipk
-ares-launch --device tv app.mediacabinet.tv
+pnpm install
+./package.sh                                            # writes build/*.ipk from players/web
+pnpm exec ares-setup-device                             # once, to add the TV as "tv"
+pnpm exec ares-novacom --device tv --getkey             # once, with the passphrase the TV shows
+pnpm exec ares-install --device tv build/*.ipk
+pnpm exec ares-launch --device tv app.mediacabinet.tv
 ```
+
+These need to run on a machine that can reach the TV over the network. If that isn't this one, copy the `.ipk` and run the install there with LG's CLI.
 
 ## Still to come
 

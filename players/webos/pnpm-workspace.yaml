@@ -1,0 +1,6 @@
+# None of these are needed: one loosens permissions on the CLI's own config
+# files, and the others build optional native speed-ups for SSH.
+allowBuilds:
+  '@webos-tools/cli': false
+  cpu-features: false
+  ssh2: false

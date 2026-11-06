@@ -594,6 +594,7 @@ async fn sync_series(
         set_external_ids(tx, id, provider, &e.id, &[]).await?;
         set_credits(tx, id, provider, &e.credits).await?;
         set_rating(tx, id, provider, e.rating).await?;
+        set_artwork(tx, id, provider, &[("still", &e.still)]).await?;
         sqlx::query("UPDATE item SET removed_upstream_at = NULL WHERE id = ?")
             .bind(id)
             .execute(&mut *tx)

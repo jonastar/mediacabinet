@@ -2405,6 +2405,8 @@ export interface components {
             airs_at?: number | null;
             /** @description False when the provider only gave a date: show the date without a time. */
             airs_time_known: boolean;
+            /** @description Artwork kinds available from `/api/artwork/{item_id}/{kind}`: still. */
+            artwork: string[];
             /** Format: int64 */
             item_id: number;
             number?: components["schemas"]["EpisodeNumber"] | null;

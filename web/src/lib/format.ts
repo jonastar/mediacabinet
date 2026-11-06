@@ -1,17 +1,6 @@
-import type { EpisodeNumber, LinkedFile } from '../api/client'
+import type { LinkedFile } from '../api/client'
 
-const pad = (n: number) => String(n).padStart(2, '0')
-
-/** `S01E03`, `03` or `E03`, following the ordering the number comes from. */
-export function episodeLabel(n: EpisodeNumber | null | undefined): string {
-  if (!n || n.number == null) {
-    return '—'
-  }
-  if (n.season != null && n.style !== 'absolute') {
-    return `S${pad(n.season)}E${pad(n.number)}`
-  }
-  return n.style === 'playlist' ? `E${pad(n.number)}` : pad(n.number)
-}
+export { episodeLabel } from '../core/episode'
 
 const dateFormat = new Intl.DateTimeFormat(undefined, {
   day: 'numeric',

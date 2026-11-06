@@ -1,14 +1,8 @@
+import { episodeLine } from '@core/episode'
 import { useEffect, useState } from 'preact/hooks'
 import type { Screen } from '../App'
 import { api, type EpisodeList } from '../api'
 import { useInitialFocus } from '../focus'
-
-function label(number: { season?: number | null; episode?: number | null } | null | undefined) {
-  if (!number) {
-    return ''
-  }
-  return `S${number.season ?? '?'} E${number.episode ?? '?'} · `
-}
 
 /** A show's episodes that can be played. */
 export function Episodes({
@@ -41,7 +35,7 @@ export function Episodes({
   }, [screen.seriesId])
 
   const playable = list ? list.entries.filter((entry) => entry.files.length > 0) : []
-  const upNext = list?.up_next
+  const upNext = list && list.up_next != null ? list.entries[list.up_next] : null
   useInitialFocus(list)
 
   return (
@@ -58,7 +52,7 @@ export function Episodes({
           <button
             key={entry.item_id}
             className="row"
-            data-first={entry.item_id === upNext ? '' : undefined}
+            data-first={entry === upNext ? '' : undefined}
             onClick={() =>
               open({
                 name: 'player',
@@ -67,8 +61,7 @@ export function Episodes({
               })
             }
           >
-            {label(entry.number)}
-            {entry.title}
+            {episodeLine(entry)}
           </button>
         ))}
       </div>

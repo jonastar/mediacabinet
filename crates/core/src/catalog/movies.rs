@@ -64,6 +64,7 @@ struct EpisodeHitRow {
     runtime_seconds: Option<i64>,
     season: Option<i64>,
     number: Option<i64>,
+    has_still: bool,
 }
 
 #[derive(sqlx::FromRow)]
@@ -277,7 +278,9 @@ pub async fn search(
 
     let hits: Vec<EpisodeHitRow> = sqlx::query_as(
             "SELECT s.id AS series_id, s.title AS series_title, e.id, e.title, e.airs_at, e.airs_tz,
-                    e.runtime_seconds, os.number AS season, oe.episode_number AS number
+                    e.runtime_seconds, os.number AS season, oe.episode_number AS number,
+                    EXISTS (SELECT 1 FROM item_artwork a WHERE a.item_id = e.id AND a.kind = 'still')
+                        AS has_still
              FROM item e JOIN item s ON s.id = e.parent_id
              LEFT JOIN ordering o ON o.series_id = s.id AND o.is_default
              LEFT JOIN ordering_entry oe ON oe.ordering_id = o.id AND oe.item_id = e.id
@@ -301,6 +304,7 @@ pub async fn search(
                  runtime_seconds: runtime,
                  season,
                  number,
+                 has_still,
              }| {
                 EpisodeHit {
                     series_id,
@@ -320,6 +324,7 @@ pub async fn search(
                         airs_at,
                         airs_time_known: airs_tz.is_some(),
                         runtime_seconds: runtime,
+                        artwork: super::episode_artwork(has_still),
                     },
                 }
             },

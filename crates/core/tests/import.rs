@@ -1,5 +1,6 @@
 //! Importing and refreshing provider metadata.
 
+use cabinet_core::catalog::{self, EpisodeList};
 use cabinet_core::metadata::fake::Catalog;
 use cabinet_core::metadata::import::{import_movie, import_series, refresh_series};
 use cabinet_core::metadata::{EpisodeData, SeriesData};
@@ -250,6 +251,7 @@ async fn new_episodes_are_added_with_an_event() {
         number: 1,
         credits: Default::default(),
         rating: None,
+        still: None,
     });
 
     let report = import_series(&pool, TV, &data).await.unwrap();
@@ -260,6 +262,34 @@ async fn new_episodes_are_added_with_an_event() {
         .await
         .unwrap();
     assert_eq!(events, ["series.refreshed", "item.added"]);
+}
+
+#[tokio::test]
+async fn an_episode_lists_its_still_for_as_long_as_the_provider_has_it() {
+    let (_dir, pool) = db().await;
+    let mut data = night_harbor();
+    data.episodes[0].still = Some("/still.jpg".into());
+    let series = import_series(&pool, TV, &data).await.unwrap().item_id;
+
+    let artwork = |list: EpisodeList| -> Vec<Vec<String>> {
+        list.entries
+            .into_iter()
+            .map(|e| e.episode.artwork)
+            .filter(|kinds| !kinds.is_empty())
+            .collect()
+    };
+    let now = catalog::now();
+    let list = catalog::episodes(&pool, series, None, None, now)
+        .await
+        .unwrap();
+    assert_eq!(artwork(list), [["still"]]);
+
+    data.episodes[0].still = None;
+    import_series(&pool, TV, &data).await.unwrap();
+    let list = catalog::episodes(&pool, series, None, None, now)
+        .await
+        .unwrap();
+    assert!(artwork(list).is_empty());
 }
 
 #[tokio::test]

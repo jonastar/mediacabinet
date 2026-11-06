@@ -70,6 +70,9 @@ pub struct EpisodeData {
     pub credits: Credits,
     #[serde(default)]
     pub rating: Option<RatingData>,
+    /// A frame from the episode, as a provider image path.
+    #[serde(default)]
+    pub still: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

@@ -101,6 +101,7 @@ Applies to all TVs. The web UI has the same need for keyboard use (Phase 9).
 - **Movement is predictable.** Left and right stay within a rail, and up and down move between rails, returning to the last item used in each.
 - **Back goes back one step:** close a panel, then leave the screen and restore focus to where the person came from. At the top level, it asks before leaving the app, except on Apple TV, where the Menu button's system behaviour applies.
 - **No hover-only actions.** Anything that appears on hover on the web needs a focused or selected form on TV.
+- **Text fields stay in the top half of the screen,** clear of the on-screen keyboard, which covers the bottom and may not tell the page it's there.
 
 ## Player
 

@@ -42,7 +42,7 @@ export function Connect({ onConnected }: { onConnected: (address: string) => voi
   }
 
   return (
-    <main className="center">
+    <main className="center above-keyboard">
       <h1>Connect to your server</h1>
       <p className="muted">The address you open Media Cabinet at, such as 192.168.1.20:8420.</p>
       <form onSubmit={connect}>

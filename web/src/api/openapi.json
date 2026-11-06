@@ -7036,7 +7036,8 @@
         "required": [
           "item_id",
           "title",
-          "airs_time_known"
+          "airs_time_known",
+          "artwork"
         ],
         "properties": {
           "airs_at": {
@@ -7050,6 +7051,13 @@
           "airs_time_known": {
             "type": "boolean",
             "description": "False when the provider only gave a date: show the date without a time."
+          },
+          "artwork": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Artwork kinds available from `/api/artwork/{item_id}/{kind}`: still."
           },
           "item_id": {
             "type": "integer",

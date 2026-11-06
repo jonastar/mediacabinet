@@ -405,6 +405,7 @@ pub(crate) fn series_from(
                     crew: crew(&e.crew),
                 },
                 rating: rating(e.vote_average, e.vote_count),
+                still: e.still_path,
             });
         }
     }
@@ -785,6 +786,7 @@ pub(crate) struct RawEpisode {
     runtime: Option<i64>,
     season_number: i64,
     episode_number: i64,
+    still_path: Option<String>,
     vote_average: Option<f64>,
     vote_count: Option<i64>,
     #[serde(default)]
@@ -860,7 +862,7 @@ mod tests {
         let s1: RawSeason = parse(
             r#"{"season_number": 1, "name": "Season 1", "overview": "", "episodes": [
                 {"id": 101, "name": "The Fox at the Crossing", "air_date": "2019-04-04", "runtime": 25,
-                 "season_number": 1, "episode_number": 1},
+                 "season_number": 1, "episode_number": 1, "still_path": "/fox.jpg"},
                 {"id": 102, "name": "", "air_date": null, "season_number": 1, "episode_number": 2}]}"#,
         );
         let group: RawGroup = parse(
@@ -882,6 +884,7 @@ mod tests {
         );
         assert_eq!(data.episodes.len(), 3);
         let pilot = &data.episodes[1];
+        assert_eq!(pilot.still.as_deref(), Some("/fox.jpg"));
         assert_eq!(
             (pilot.season, pilot.number, pilot.runtime_minutes),
             (1, 1, Some(25))

@@ -1,24 +1,50 @@
+import { episodeLine } from '@core/episode'
 import { useEffect, useState } from 'preact/hooks'
 import type { Screen } from '../App'
 import { api, mediaToken, mediaUrl, type Home } from '../api'
 import { useInitialFocus } from '../focus'
+
+type ContinueItem = Home['keep_watching'][number]
+
+/** How far through an episode someone is, as a percentage, once they've started it. */
+function percentWatched({ episode, position_seconds: position }: ContinueItem) {
+  if (!episode.runtime_seconds || position <= 0) {
+    return null
+  }
+  return Math.min(100, (position / episode.runtime_seconds) * 100)
+}
 
 function Card({
   title,
   detail,
   image,
   first,
+  landscape,
+  percent,
   onSelect,
 }: {
   title: string
   detail?: string
   image: string | null
   first?: boolean
+  landscape?: boolean
+  percent?: number | null
   onSelect: () => void
 }) {
   return (
-    <button className="card" data-first={first ? '' : undefined} onClick={onSelect}>
-      <span className="poster">{image && <img src={image} alt="" />}</span>
+    <button
+      className={landscape ? 'card landscape' : 'card'}
+      data-first={first ? '' : undefined}
+      onClick={onSelect}
+    >
+      <span className="poster">
+        {image && <img src={image} alt="" />}
+        {percent != null && (
+          <span className="card-progress">
+            <span style={{ width: `${percent}%` }} />
+          </span>
+        )}
+      </span>
       <span className="card-title">{title}</span>
       {detail && <span className="card-detail">{detail}</span>}
     </button>
@@ -69,9 +95,20 @@ export function Browse({
     }
   }, [attempt])
 
-  const poster = (id: number, kinds: string[]) => {
-    const kind = kinds.indexOf('poster') >= 0 ? 'poster' : kinds[0]
+  const artwork = (id: number, kinds: string[], wanted: string[]) => {
+    const kind = wanted.filter((k) => kinds.indexOf(k) >= 0)[0] ?? kinds[0]
     return kind && token ? mediaUrl(`/api/artwork/${id}/${kind}`, token) : null
+  }
+  const poster = (id: number, kinds: string[]) => artwork(id, kinds, ['poster'])
+
+  /** The episode's own picture, or else the show's. */
+  const episodeImage = ({ episode, series_id }: ContinueItem) => {
+    // A server older than this app doesn't send `artwork` on episodes.
+    if (episode.artwork?.length) {
+      return artwork(episode.item_id, episode.artwork, ['still'])
+    }
+    const show = home?.shows.filter((s) => s.id === series_id)[0]
+    return show ? artwork(show.id, show.artwork, ['backdrop', 'poster']) : null
   }
 
   const empty = home && !home.keep_watching.length && !home.shows.length && !home.movies.length
@@ -98,9 +135,11 @@ export function Browse({
             <Card
               key={item.episode.item_id}
               first={i === 0}
+              landscape
               title={item.series_title}
-              detail={item.episode.title}
-              image={null}
+              detail={episodeLine(item.episode)}
+              image={episodeImage(item)}
+              percent={percentWatched(item)}
               onSelect={() =>
                 open({ name: 'player', itemId: item.episode.item_id, title: item.series_title })
               }

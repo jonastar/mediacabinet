@@ -3,6 +3,7 @@
 Plain TypeScript shared by the web UI and the TV app in `players/web`. So far it has:
 
 - `caps.ts`: what this device can play, and what's been found not to
+- `episode.ts`: how an episode's number is written
 - `fallback.ts`: what to rule out when playback fails
 - `stream.ts`: attaching a plan's stream to a `<video>`
 - `watchdog.ts`: telling whether a stream really started

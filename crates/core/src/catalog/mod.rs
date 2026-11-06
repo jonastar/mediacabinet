@@ -101,6 +101,13 @@ pub struct EpisodeRef {
     /// False when the provider only gave a date: show the date without a time.
     pub airs_time_known: bool,
     pub runtime_seconds: Option<i64>,
+    /// Artwork kinds available from `/api/artwork/{item_id}/{kind}`: still.
+    pub artwork: Vec<String>,
+}
+
+/// The artwork kinds an episode has, from whether it has a still.
+fn episode_artwork(has_still: bool) -> Vec<String> {
+    has_still.then(|| "still".to_string()).into_iter().collect()
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -337,6 +344,7 @@ struct EpisodeRow {
     is_filler: bool,
     newest_file: Option<i64>,
     overview: Option<String>,
+    has_still: bool,
 }
 
 /// One series with all its episodes and the user's state, loaded once.
@@ -376,7 +384,9 @@ impl Loaded {
                     EXISTS (SELECT 1 FROM item_tag t WHERE t.item_id = e.id AND t.tag = 'filler')
                         AS is_filler,
                     (SELECT max(f.first_seen) FROM file_link l JOIN media_file f ON f.id = l.file_id
-                     WHERE l.item_id = e.id AND f.status = 'present') AS newest_file
+                     WHERE l.item_id = e.id AND f.status = 'present') AS newest_file,
+                    EXISTS (SELECT 1 FROM item_artwork a WHERE a.item_id = e.id AND a.kind = 'still')
+                        AS has_still
              FROM item e
              JOIN item_state st ON st.item_id = e.id
              LEFT JOIN item_wanted w ON w.item_id = e.id
@@ -450,6 +460,7 @@ impl Loaded {
             airs_at: e.airs_at,
             airs_time_known: e.airs_tz.is_some(),
             runtime_seconds: e.runtime_seconds,
+            artwork: episode_artwork(e.has_still),
         }
     }
 

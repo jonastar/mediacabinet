@@ -105,6 +105,17 @@ input:focus {
   justify-content: center;
 }
 
+/*
+ * For screens with a text field. A TV's on-screen keyboard takes the bottom of
+ * the screen, usually without telling the page, so everything stays in the top
+ * half instead of relying on the page being told to move.
+ */
+.above-keyboard {
+  justify-content: flex-start;
+  box-sizing: border-box;
+  padding-top: token(layout.safeTopBottom);
+}
+
 .address {
   font-size: token(type.section);
   font-weight: 700;
@@ -150,7 +161,31 @@ input:focus {
   border-radius: token(radius.cardTv);
 }
 
+.landscape {
+  width: token(layout.cardWidth);
+}
+
+.landscape .poster {
+  height: token(layout.cardHeight);
+}
+
+.card-progress {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.card-progress span {
+  display: block;
+  height: 100%;
+  background: token(color.accent);
+}
+
 .poster {
+  position: relative;
   display: block;
   width: 100%;
   height: token(layout.posterHeight);

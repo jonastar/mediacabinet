@@ -64,6 +64,7 @@ This code may have to run on much older browsers than the web UI, possibly down 
 **TV behaviour:**
 
 - Something is always focused, and nothing depends on hover.
+- A screen with a text field keeps it in the top half (`.above-keyboard`), clear of the on-screen keyboard.
 - Requests go through the configurable server address, never a relative `/api` URL.
 - Memory is short: render only what's near the screen, and request images at display size.
 

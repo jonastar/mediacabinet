@@ -221,23 +221,216 @@ input:focus {
   font-size: token(type.small);
 }
 
-/* Episodes */
+/* The arrows on a rail, only when there's a pointer to use them. */
 
-.list {
-  margin: 0 -24px;
-  padding: 0 24px;
+.rail-body {
+  position: relative;
 }
 
-.row {
+.rail-arrow {
+  display: none;
+  position: absolute;
+  top: 50%;
+  width: 72px;
+  height: 72px;
+  margin-top: -36px;
+  background: rgba(15, 17, 21, 0.9);
+  border-radius: 50%;
+  font-size: token(type.section);
+  line-height: 64px;
+  text-align: center;
+}
+
+.pointer .rail-arrow {
   display: block;
+}
+
+.rail-before {
+  left: -84px;
+}
+
+.rail-after {
+  right: -84px;
+}
+
+/* A series */
+
+.series {
+  height: 100%;
+  overflow: hidden;
+}
+
+.series-hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  box-sizing: border-box;
+  height: 660px;
+  padding: token(layout.safeTopBottom) token(layout.safeSide) token(space.space32);
+  overflow: hidden;
+}
+
+.series-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.series-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  background:
+    linear-gradient(to top, #0f1115 2%, rgba(15, 17, 21, 0.8) 50%, rgba(15, 17, 21, 0.15)),
+    linear-gradient(to right, rgba(15, 17, 21, 0.9) 35%, rgba(15, 17, 21, 0) 80%);
+}
+
+.series-hero > :not(.series-backdrop) {
+  position: relative;
+  z-index: 2;
+}
+
+.series-hero h1 {
+  margin-bottom: token(space.space8);
+  font-size: token(type.hero);
+  line-height: 1.1;
+}
+
+.series-meta {
   margin-bottom: token(space.space12);
+  color: token(color.textSecondary);
+  font-size: token(type.meta);
+}
+
+.series-overview {
+  display: -webkit-box;
+  width: 1200px;
+  max-height: 106px;
+  margin-bottom: token(space.space24);
+  overflow: hidden;
+  font-size: token(type.meta);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.series-play {
+  align-self: flex-start;
+  background: token(color.accent);
+  color: token(color.accentInk);
+  font-weight: 700;
+}
+
+.series-play:focus {
+  border-color: token(color.text);
+}
+
+.seasons {
+  padding: 0 token(layout.safeSide);
+  margin-bottom: token(space.space8);
+}
+
+.seasons .rail-items {
+  padding: 16px 48px;
+}
+
+.season {
+  flex: 0 0 auto;
+  margin-right: token(space.space16);
+  background: none;
+  font-size: token(type.meta);
+  white-space: nowrap;
+}
+
+.season.selected {
+  background: token(color.surfaceRaised);
+  color: token(color.accentHover);
+  font-weight: 700;
+}
+
+.series-empty {
+  padding: 0 token(layout.safeSide);
+}
+
+/* Each row is placed by number (see ROW_HEIGHT), so only the ones near the screen exist. */
+.episodes {
+  position: relative;
+  margin: 0 token(layout.safeSide) token(layout.safeTopBottom);
+}
+
+.episode-row {
+  position: absolute;
+  left: 0;
+  display: flex;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  height: 168px;
+  padding: token(space.space8);
   background: token(color.surface);
   text-align: left;
 }
 
+.episode-still {
+  position: relative;
+  flex: 0 0 256px;
+  height: 144px;
+  overflow: hidden;
+  background: token(color.surfaceRaised);
+  border-radius: token(radius.control);
+}
+
+.episode-still img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.episode-text {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 token(space.space32);
+}
+
+.episode-title,
+.episode-about {
+  display: block;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.episode-title {
+  font-weight: 700;
+}
+
+.episode-about {
+  color: token(color.textMuted);
+  font-size: token(type.small);
+}
+
+.episode-state {
+  flex: 0 0 auto;
+  padding-right: token(space.space24);
+  color: token(color.textSecondary);
+  font-size: token(type.small);
+}
+
+.episode-state.next {
+  color: token(color.accentHover);
+  font-weight: 700;
+}
+
 /* Something this wide would leave the safe area at the full focus scale. */
-.row:focus,
+.episode-row:focus,
 .option:focus {
   transform: scale(1.02);
 }
@@ -311,6 +504,12 @@ input:focus {
   font-size: token(type.section);
 }
 
+/* Taller than the line itself, so a pointer can hit it. */
+.timeline-target {
+  margin: -16px 0;
+  padding: 16px 0;
+}
+
 .timeline {
   height: 8px;
   overflow: hidden;
@@ -364,6 +563,7 @@ input:focus {
   margin: 0;
   text-align: center;
   white-space: pre-line;
+  pointer-events: none;
   font-size: token(type.section);
   font-weight: 600;
   text-shadow:

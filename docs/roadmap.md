@@ -200,7 +200,7 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 - [x] `players/web` project: ES5 build, polyfills, fixed-value CSS, `@core` alias, a check that fails on CSS older TVs can't use, and lint and format in the pre-commit hook
 - [ ] Web: `src/core/` with the API client, playback session, fallback, capabilities and wording; a lint rule keeps React and CSS out
 - [ ] Try hosting the TV build at `/tv` on the server, for TV browsers with no install
-- [ ] Spatial focus navigation and remote keys
+- [x] Spatial focus navigation and remote keys, and LG's Magic Remote pointer
 - [ ] TV: connect to a server, pairing by code or QR code
 - [ ] TV: home, shows, movies, series and episode pages, search
 - [x] TV: player with versions, tracks, subtitles, resume, next episode

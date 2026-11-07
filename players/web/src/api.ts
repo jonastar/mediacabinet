@@ -4,7 +4,9 @@ import type { components, paths } from '../../../web/src/api/schema.d.ts'
 type Schemas = components['schemas']
 export type ClientCaps = Schemas['ClientCaps']
 export type Home = Schemas['Home']
+export type Episode = Schemas['Episode']
 export type EpisodeList = Schemas['EpisodeList']
+export type SeriesDetail = Schemas['SeriesDetail']
 export type PlayPlan = Schemas['PlayPlan']
 export type PairingStarted = Schemas['PairingStarted']
 export type PairingStatus = Schemas['PairingStatus']
@@ -140,6 +142,7 @@ export const api = {
     call('post', '/api/auth/pair', { body: { device_name: deviceName } }),
   pollPairing: (secret: string) => call('post', '/api/auth/pair/poll', { body: { secret } }),
   home: () => call('get', '/api/home'),
+  series: (seriesId: number) => call('get', '/api/series/{id}', { path: { id: seriesId } }),
   episodes: (seriesId: number) =>
     call('get', '/api/series/{id}/episodes', { path: { id: seriesId } }),
   versions: (itemId: number) => call('get', '/api/items/{id}/versions', { path: { id: itemId } }),

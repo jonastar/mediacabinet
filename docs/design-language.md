@@ -87,6 +87,7 @@ The same parts, named the same in every codebase:
 - **State badge:** label and colour from the state table.
 - **Progress bar:** accent on a dim track, the same on every card and in the player.
 - **Episode row:** thumbnail, number, title, meta, badge. The number follows the viewer's ordering (`S01E03`, `03` or `E03`).
+- **Series page on TV:** hero with the episode up next as its primary action, then season tabs, then that season's episode rows, opening at the season up next. Moving focus onto a tab with the remote shows that season. A pointer has to click, because it passes over the tabs on its way to the rows.
 
 ## Wording
 
@@ -100,6 +101,7 @@ Applies to all TVs. The web UI has the same need for keyboard use (Phase 9).
 - **The focused item is obvious from across a room:** 1.08 scale and a 4 px accent ring, over 150 ms (1.02 for full-width rows, which would otherwise leave the safe area). Apple TV uses its system card effect with the accent colour wherever a control has one, because people expect it there.
 - **Movement is predictable.** Left and right stay within a rail, and up and down move between rails, returning to the last item used in each.
 - **Back goes back one step:** close a panel, then leave the screen and restore focus to where the person came from. At the top level, it asks before leaving the app, except on Apple TV, where the Menu button's system behaviour applies.
+- **A pointer moves the same focus.** On remotes with one (LG's Magic Remote), hovering focuses a control, so there's only ever one highlight, and an arrow key carries on from there. The wheel scrolls, and rails show arrows at their ends while the pointer is in use. Hovering never opens a text field, since that can bring up the on-screen keyboard.
 - **No hover-only actions.** Anything that appears on hover on the web needs a focused or selected form on TV.
 - **Text fields stay in the top half of the screen,** clear of the on-screen keyboard, which covers the bottom and may not tell the page it's there.
 
@@ -110,6 +112,7 @@ The same on every platform, so a person never has to relearn it:
 - **Controls, left to right:** play or pause, skip back and forward 10 seconds (as the web player's arrow keys do), the timeline, then tracks and versions. Next episode appears near the end.
 - **Custom controls everywhere**, because of how HLS sessions work (see `docs/clients.md`), using `offset_seconds` and `duration_seconds` for the timeline.
 - **Remotes:** left and right seek while the controls are hidden, and any other key shows them. Back closes an open panel, then hides the controls, then leaves the player.
+- **Pointers:** moving it shows the controls, clicking the timeline seeks there, and clicking the picture puts away what's over it.
 - **Failure:** try the fallback steps in `docs/clients.md` before showing an error. An error says what failed and offers a way back.
 
 ## Motion

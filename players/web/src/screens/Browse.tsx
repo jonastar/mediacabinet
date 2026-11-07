@@ -3,6 +3,7 @@ import { useEffect, useState } from 'preact/hooks'
 import type { Screen } from '../App'
 import { api, mediaToken, mediaUrl, type Home } from '../api'
 import { useInitialFocus } from '../focus'
+import { Rail } from './Rail'
 
 type ContinueItem = Home['keep_watching'][number]
 
@@ -19,6 +20,7 @@ function Card({
   detail,
   image,
   first,
+  focusKey,
   landscape,
   percent,
   onSelect,
@@ -27,6 +29,7 @@ function Card({
   detail?: string
   image: string | null
   first?: boolean
+  focusKey: string
   landscape?: boolean
   percent?: number | null
   onSelect: () => void
@@ -35,6 +38,7 @@ function Card({
     <button
       className={landscape ? 'card landscape' : 'card'}
       data-first={first ? '' : undefined}
+      data-key={focusKey}
       onClick={onSelect}
     >
       <span className="poster">
@@ -48,15 +52,6 @@ function Card({
       <span className="card-title">{title}</span>
       {detail && <span className="card-detail">{detail}</span>}
     </button>
-  )
-}
-
-function Rail({ title, children }: { title: string; children: preact.ComponentChildren }) {
-  return (
-    <section className="rail">
-      <h2>{title}</h2>
-      <div className="rail-items">{children}</div>
-    </section>
   )
 }
 
@@ -130,11 +125,12 @@ export function Browse({
       {!problem && !home && <p className="muted center">Loading…</p>}
       {empty && <p className="muted">There's nothing to watch here yet.</p>}
       {home && home.keep_watching.length > 0 && (
-        <Rail title="Keep watching">
+        <Rail name="keep-watching" title="Keep watching">
           {home.keep_watching.map((item, i) => (
             <Card
               key={item.episode.item_id}
               first={i === 0}
+              focusKey={`continue-${item.series_id}`}
               landscape
               title={item.series_title}
               detail={episodeLine(item.episode)}
@@ -148,22 +144,24 @@ export function Browse({
         </Rail>
       )}
       {home && home.shows.length > 0 && (
-        <Rail title="Shows">
+        <Rail name="shows" title="Shows">
           {home.shows.map((show) => (
             <Card
               key={show.id}
+              focusKey={`series-${show.id}`}
               title={show.title}
               image={poster(show.id, show.artwork)}
-              onSelect={() => open({ name: 'episodes', seriesId: show.id, title: show.title })}
+              onSelect={() => open({ name: 'series', seriesId: show.id, title: show.title })}
             />
           ))}
         </Rail>
       )}
       {home && home.movies.length > 0 && (
-        <Rail title="Movies">
+        <Rail name="movies" title="Movies">
           {home.movies.map((movie) => (
             <Card
               key={movie.id}
+              focusKey={`movie-${movie.id}`}
               title={movie.title}
               image={poster(movie.id, movie.artwork)}
               onSelect={() => open({ name: 'player', itemId: movie.id, title: movie.title })}
@@ -173,7 +171,9 @@ export function Browse({
       )}
       {home && (
         <div className="actions">
-          <button onClick={() => open({ name: 'diagnostics' })}>About this TV</button>
+          <button data-key="about" onClick={() => open({ name: 'diagnostics' })}>
+            About this TV
+          </button>
           <button onClick={onChangeServer}>Change server</button>
         </div>
       )}

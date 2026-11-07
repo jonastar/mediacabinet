@@ -6,9 +6,9 @@ There's one app for every model, kept small so it also starts quickly on budget 
 
 ## Status
 
-A first version, for finding out how far back it runs: connect to a server, pair with a code, pick something from Home (keep watching, shows and their episodes, movies; not folder libraries) and watch it, with resume, seeking, fallback, next episode, and version, quality, audio and subtitle pickers. "About this TV" shows what the TV reports, and anything that goes wrong shows on screen, since a TV has no console.
+A first version, for finding out how far back it runs: connect to a server, pair with a code, pick something from Home (keep watching, shows, movies; not folder libraries), go through a show by season, and watch it, with resume, seeking, fallback, next episode, and version, quality, audio and subtitle pickers. Back returns to where you were, each rail remembers its last item, and LG's Magic Remote pointer works everywhere. "About this TV" shows what the TV reports, and anything that goes wrong shows on screen, since a TV has no console.
 
-Not yet: search, a QR code, a series page, restoring focus on Back, and remembering the last item used in each rail. The subtitle and audio chosen aren't carried over to the next episode, as on the web.
+Not yet: search, a QR code, a page for movies (choosing one plays it), and episodes that can't be played yet on a show's page. The subtitle and audio chosen aren't carried over to the next episode, as on the web.
 
 ## Working on it
 
@@ -63,7 +63,8 @@ This code may have to run on much older browsers than the web UI, possibly down 
 
 **TV behaviour:**
 
-- Something is always focused, and nothing depends on hover.
+- Something is always focused, and nothing depends on hover. With a pointer, hovering moves focus, so anything a pointer needs beyond that (rail arrows, the timeline) is extra, and never in the way of the remote.
+- Give a control `data-key` if focus should find it again, and put rails in `data-rail`; `focus.ts` explains them.
 - A screen with a text field keeps it in the top half (`.above-keyboard`), clear of the on-screen keyboard.
 - Requests go through the configurable server address, never a relative `/api` URL.
 - Memory is short: render only what's near the screen, and request images at display size.

@@ -7,7 +7,7 @@ import { parseVtt, textAt, type Cue } from '@core/subtitles'
 import { subtitleUrl, type PlayChoice } from '@core/tracks'
 import type { Screen } from '../App'
 import { api, mediaToken, mediaUrl, session as signIn, sessionApi, type Version } from '../api'
-import { useBack, useInitialFocus, useKeys, useRemote } from '../focus'
+import { useBack, useInitialFocus, useKeys, usePointerMove, useRemote } from '../focus'
 import { loadHls } from '../hls'
 import { platform, type RemoteAction } from '../platform'
 import { TracksPanel } from './TracksPanel'
@@ -262,6 +262,32 @@ export function Player({
   }, [layer, ended, hideLater])
   useBack(onBack)
 
+  // A pointer can't ask for the controls with a key, so moving it brings them up.
+  const onPointerMove = useCallback(() => {
+    if (seeks) {
+      show('controls')
+    } else if (layer === 'controls') {
+      hideLater()
+    }
+  }, [seeks, layer, show, hideLater])
+  usePointerMove(onPointerMove)
+
+  /** A click on the picture puts away whatever's over it. */
+  const onVideoClick = () => {
+    if (layer === 'panel' || layer === 'controls' || layer === 'timeline') {
+      onBack()
+    }
+  }
+
+  const seekToClick = (event: MouseEvent) => {
+    const bar = (event.currentTarget as HTMLElement).getBoundingClientRect()
+    if (playback && duration > 0) {
+      const target = ((event.clientX - bar.left) / bar.width) * duration
+      playback.seekBy(target - position)
+      hideLater()
+    }
+  }
+
   const onRemote = useCallback(
     (action: RemoteAction) => {
       if (!playback || action === 'back') {
@@ -316,6 +342,7 @@ export function Player({
     <main className="player">
       <video
         ref={setVideo}
+        onClick={onVideoClick}
         onError={() => playback?.videoFailed()}
         onEnded={() => {
           playback?.report()
@@ -340,8 +367,10 @@ export function Player({
       <div className={overlay === 'hidden' ? 'controls hidden' : 'controls'}>
         <h1>{context?.series_title ?? context?.title ?? screen.title}</h1>
         {isEpisode && context && <p className="episode">{episodeLine(context)}</p>}
-        <div className="timeline">
-          <div className="timeline-played" style={{ width: `${percent}%` }} />
+        <div className="timeline-target" onClick={seekToClick}>
+          <div className="timeline">
+            <div className="timeline-played" style={{ width: `${percent}%` }} />
+          </div>
         </div>
         <div className="controls-row">
           <span>

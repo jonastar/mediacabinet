@@ -1,32 +1,58 @@
 import { useCallback, useEffect, useState } from 'preact/hooks'
 import { session } from './api'
-import { screenHandledBack, useRemote } from './focus'
+import { currentPlace, returnTo, screenHandledBack, useRemote, type Place } from './focus'
 import { Browse } from './screens/Browse'
 import { Connect } from './screens/Connect'
 import { Diagnostics } from './screens/Diagnostics'
-import { Episodes } from './screens/Episodes'
 import { Pair } from './screens/Pair'
 import { Player } from './screens/Player'
+import { Series } from './screens/Series'
 
 export type Screen =
   | { name: 'browse' }
-  | { name: 'episodes'; seriesId: number; title: string }
+  | { name: 'series'; seriesId: number; title: string }
   | { name: 'player'; itemId: number; title: string }
   | { name: 'diagnostics' }
+
+/** A screen in the stack, and where focus was when the next one opened over it. */
+type Entry = Screen & { place?: Place | null }
 
 /** Connect, then pair, then a stack of screens, with Back going down it. */
 export function App() {
   const [server, setServer] = useState(session.server())
   const [token, setToken] = useState(session.token())
-  const [stack, setStack] = useState<Screen[]>([{ name: 'browse' }])
+  const [stack, setStack] = useState<Entry[]>([{ name: 'browse' }])
 
   useEffect(() => {
     session.listen(() => setToken(null))
   }, [])
 
-  const open = useCallback((screen: Screen) => setStack((s) => [...s, screen]), [])
-  const replace = useCallback((screen: Screen) => setStack((s) => [...s.slice(0, -1), screen]), [])
-  const back = useCallback(() => setStack((s) => (s.length > 1 ? s.slice(0, -1) : s)), [])
+  const open = useCallback((screen: Screen) => {
+    const place = currentPlace()
+    returnTo(null)
+    setStack((s) => [...s.slice(0, -1), { ...s[s.length - 1], place }, screen])
+  }, [])
+  const replace = useCallback((screen: Screen) => {
+    setStack((s) => {
+      const top = s[s.length - 1]
+      const below = s[s.length - 2]
+      // Moving on to the next episode: coming back lands on that one, not where it began.
+      if (top.name === 'player' && screen.name === 'player' && below?.place) {
+        const place =
+          below.place.key === `episode-${top.itemId}`
+            ? { ...below.place, key: `episode-${screen.itemId}` }
+            : below.place
+        return [...s.slice(0, -2), { ...below, place }, screen]
+      }
+      return [...s.slice(0, -1), screen]
+    })
+  }, [])
+  const back = useCallback(() => {
+    if (stack.length > 1) {
+      returnTo(stack[stack.length - 2].place)
+      setStack(stack.slice(0, -1))
+    }
+  }, [stack])
   const onRemote = useCallback(
     (action: string) => {
       if (action === 'back' && !screenHandledBack()) {
@@ -69,8 +95,8 @@ export function App() {
   }
   const screen = stack[stack.length - 1]
   switch (screen.name) {
-    case 'episodes':
-      return <Episodes key={screen.seriesId} screen={screen} open={open} />
+    case 'series':
+      return <Series key={screen.seriesId} screen={screen} open={open} />
     case 'player':
       return <Player key={screen.itemId} screen={screen} onLeave={back} onReplace={replace} />
     case 'diagnostics':

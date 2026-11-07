@@ -319,6 +319,7 @@ pub(crate) async fn run_task(task: &Handle, root_id: i64) -> Result<Finished, sq
                 }
             }
             request_thumbnails(task, root_id).await;
+            request_artwork(task, root_id).await;
             Finished {
                 state: Ended::Ok,
                 outcome: Some(report),
@@ -348,6 +349,19 @@ pub(crate) async fn run_task(task: &Handle, root_id: i64) -> Result<Finished, sq
         },
     };
     Ok(finished)
+}
+
+/// Asks for downloads if the scan brought in anything with artwork.
+async fn request_artwork(task: &Handle, root_id: i64) {
+    let library: Result<i64, _> =
+        sqlx::query_scalar("SELECT library_id FROM library_root WHERE id = ?")
+            .bind(root_id)
+            .fetch_one(task.pool())
+            .await;
+    match library {
+        Ok(library) => crate::artwork::request_if_due(task, library, Trigger::Added).await,
+        Err(e) => tracing::warn!(root_id, error = %e, "can't request artwork"),
+    }
 }
 
 /// Asks for thumbnails if the scan left files in the root's library without one.

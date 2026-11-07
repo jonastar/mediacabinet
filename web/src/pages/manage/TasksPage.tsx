@@ -15,6 +15,7 @@ const KINDS: Record<string, string> = {
   scan: 'Scan',
   metadata_refresh: 'Metadata refresh',
   thumbnails: 'Thumbnails',
+  artwork: 'Artwork downloads',
 }
 
 const STATES: Record<string, string> = {

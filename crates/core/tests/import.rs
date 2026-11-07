@@ -352,6 +352,55 @@ async fn refresh_schedule_and_failures() {
 }
 
 #[tokio::test]
+async fn a_refresh_asks_for_the_artwork_it_finds_with_its_own_trigger() {
+    use cabinet_core::artwork::ArtworkStore;
+    use cabinet_core::metadata::Provider;
+    use cabinet_core::tasks::{Kind, Scope, Services, Tasks, Trigger};
+    use std::sync::Arc;
+
+    let (dir, pool) = db().await;
+    import_series(&pool, TV, &night_harbor()).await.unwrap();
+    sqlx::query("UPDATE item SET refreshed_at = 0")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+    let mut found = catalog();
+    for series in &mut found.series {
+        if series.id == "99010" {
+            series.episodes[0].still = Some("/still.jpg".into());
+        }
+    }
+    let tasks = Tasks::new(
+        pool.clone(),
+        Services {
+            provider: Provider::Fake(Arc::new(found)),
+            // Nothing's listening, which makes no difference to asking.
+            artwork: Some(ArtworkStore::with_images(
+                dir.path().join("artwork"),
+                "http://127.0.0.1:1".into(),
+            )),
+            ..Services::default()
+        },
+    );
+    let scope = Scope::Library(TV);
+    tasks
+        .request(Kind::MetadataRefresh, scope, Trigger::Manual)
+        .await
+        .unwrap();
+    tasks.wait_idle(Kind::MetadataRefresh, scope).await;
+    tasks.wait_idle(Kind::Artwork, scope).await;
+
+    let triggers: Vec<String> =
+        sqlx::query_scalar("SELECT trigger FROM task WHERE kind = 'artwork' AND library_id = ?")
+            .bind(TV)
+            .fetch_all(&pool)
+            .await
+            .unwrap();
+    assert_eq!(triggers, ["manual"]);
+}
+
+#[tokio::test]
 async fn refreshing_a_library_refreshes_its_items_as_a_task() {
     use cabinet_core::metadata::Provider;
     use cabinet_core::tasks::{Kind, Scope, Services, Tasks, Trigger};

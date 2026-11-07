@@ -256,6 +256,11 @@ pub(crate) async fn run_task(task: &Handle, library: i64) -> Result<Finished, sq
         task.progress(|p| p.done = done + 1);
     }
 
+    // Refreshing is what finds new artwork; a refresh by hand tries everything again.
+    if !cancelled {
+        crate::artwork::request_if_due(task, library, task.trigger()).await;
+    }
+
     let outcome = json!({
         "refreshed": refreshed,
         "failed": failed,

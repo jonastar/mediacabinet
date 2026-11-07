@@ -143,6 +143,7 @@ Designs: `docs/tasks.md`, `docs/activity.md`.
 - [x] Heavy lane: one task at a time, waits while transcodes run
 - [x] Thumbnails task
 - [ ] Trickplay task
+- [ ] Storage settings: artwork quality and generated thumbnails, each can be turned off (default: high quality, thumbnails on; `docs/metadata-storage.md`)
 - [x] UI: Tasks tab in Manage and task inspector
 - [x] Activity: table, per-viewer audience filter, library additions from the event outbox
 - [x] Play sessions and watch activity; incognito setting

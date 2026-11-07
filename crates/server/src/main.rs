@@ -200,6 +200,7 @@ async fn main() -> anyhow::Result<()> {
         ffmpeg,
         dir: data_dir.join("thumbnails"),
     };
+    let artwork = cabinet_core::artwork::ArtworkStore::new(data_dir.join("artwork"));
     cabinet_core::tasks::log::spawn_writer(db.clone(), task_log_lines);
     let omdb = omdb();
     let tasks = cabinet_core::tasks::Tasks::new(
@@ -210,6 +211,7 @@ async fn main() -> anyhow::Result<()> {
             match_settings,
             omdb: omdb.clone(),
             thumbnailer: Some(thumbnailer.clone()),
+            artwork: Some(artwork.clone()),
             transcoding: {
                 let transcoder = transcoder.clone();
                 std::sync::Arc::new(move || transcoder.active())
@@ -217,6 +219,11 @@ async fn main() -> anyhow::Result<()> {
         },
     );
     tasks.resume().await?;
+    cabinet_core::artwork::spawn_sweeper(
+        tasks.clone(),
+        artwork.clone(),
+        Duration::from_secs(60 * 60),
+    );
     let scans = cabinet_core::scan::ScanService::new(tasks.clone());
     let interval = env_number("CABINET_SCAN_INTERVAL_MINUTES", 360)?;
     if interval > 0 {
@@ -261,7 +268,7 @@ async fn main() -> anyhow::Result<()> {
         match_settings,
         sign_in,
         pairings: cabinet_core::pairing::Pairings::default(),
-        artwork: artwork::ArtworkCache::new(data_dir.join("artwork")),
+        artwork: artwork::ArtworkCache(artwork),
         transcoder,
         thumbnailer,
         cache: data_dir.join("cache"),

@@ -16,6 +16,7 @@ use sqlx::{SqliteConnection, SqlitePool};
 use tokio::sync::{Semaphore, watch};
 use tracing::Instrument;
 
+use crate::artwork::ArtworkStore;
 use crate::matcher::MatchSettings;
 use crate::metadata::Provider;
 use crate::metadata::omdb::Omdb;
@@ -30,6 +31,7 @@ pub enum Kind {
     Scan,
     MetadataRefresh,
     Thumbnails,
+    Artwork,
 }
 
 impl Kind {
@@ -38,6 +40,7 @@ impl Kind {
             Kind::Scan => "scan",
             Kind::MetadataRefresh => "metadata_refresh",
             Kind::Thumbnails => "thumbnails",
+            Kind::Artwork => "artwork",
         }
     }
 
@@ -46,6 +49,7 @@ impl Kind {
             "scan" => Some(Kind::Scan),
             "metadata_refresh" => Some(Kind::MetadataRefresh),
             "thumbnails" => Some(Kind::Thumbnails),
+            "artwork" => Some(Kind::Artwork),
             _ => None,
         }
     }
@@ -57,7 +61,10 @@ impl Kind {
 
     /// Whether it stops when asked once it's running. A scan runs to the end.
     pub fn can_cancel(self) -> bool {
-        matches!(self, Kind::MetadataRefresh | Kind::Thumbnails)
+        matches!(
+            self,
+            Kind::MetadataRefresh | Kind::Thumbnails | Kind::Artwork
+        )
     }
 }
 
@@ -171,6 +178,8 @@ pub struct Services {
     pub omdb: Option<Omdb>,
     /// Without this, scans don't ask for thumbnails.
     pub thumbnailer: Option<Thumbnailer>,
+    /// Without this, nothing asks for artwork to be downloaded ahead of time.
+    pub artwork: Option<ArtworkStore>,
     /// Whether anything is being transcoded for playback now; heavy tasks wait.
     pub transcoding: Arc<dyn Fn() -> bool + Send + Sync>,
 }
@@ -183,6 +192,7 @@ impl Default for Services {
             match_settings: MatchSettings::default(),
             omdb: None,
             thumbnailer: None,
+            artwork: None,
             transcoding: Arc::new(|| false),
         }
     }
@@ -564,6 +574,9 @@ impl Tasks {
                 }
                 (Kind::Thumbnails, Scope::Library(library_id)) => {
                     crate::thumbnails::run_task(&handle, library_id).await
+                }
+                (Kind::Artwork, Scope::Library(library_id)) => {
+                    crate::artwork::run_task(&handle, library_id).await
                 }
                 _ => Ok(Finished {
                     state: Ended::Cancelled,

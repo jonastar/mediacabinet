@@ -12,6 +12,7 @@ const TASK_KINDS: Record<string, string> = {
   scan: 'Scan task',
   metadata_refresh: 'Metadata refresh task',
   thumbnails: 'Thumbnails task',
+  artwork: 'Artwork download',
 }
 
 const TARGETS: Record<string, string> = {

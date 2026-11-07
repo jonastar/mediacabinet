@@ -5,6 +5,7 @@ pub mod activity;
 pub mod apikeys;
 pub mod apple;
 pub mod arr;
+pub mod artwork;
 pub mod catalog;
 pub mod db;
 pub mod demo;

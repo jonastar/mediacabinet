@@ -2,7 +2,7 @@
 
 Oct 28, 2026 · Jonas
 
-Background work the server does on its own or on request: scans, metadata refresh, thumbnails, trickplay, and later AI subtitle generation and sync. One system, one history, one progress UI. Status: partly built; the roadmap's Phase 8 lists what's left.
+Background work the server does on its own or on request: scans, metadata refresh, thumbnails, artwork downloads, trickplay, and later AI subtitle generation and sync. One system, one history, one progress UI. Status: partly built; the roadmap's Phase 8 lists what's left.
 
 ## What a task is
 
@@ -23,7 +23,7 @@ Two lanes, no general worker pool:
 
 | Lane | Kinds | Concurrency |
 | --- | --- | --- |
-| Light | scan, metadata refresh | As today: one scan per root; metadata limited by the provider's rate limit |
+| Light | scan, metadata refresh, artwork | As today: one scan per root; metadata limited by the provider's rate limit |
 | Heavy | thumbnails, trickplay, AI subtitles | One task at a time (a semaphore). A setting if someone wants more. |
 
 - A long heavy task must never block a scan or a metadata refresh; that's the only reason for the lanes.
@@ -58,6 +58,15 @@ Two lanes, no general worker pool:
 - Thumbnails are a fallback, not artwork: `item_artwork` holds provider images, and `artwork` on an item lists `thumbnail` as well when it has one (`GET /artwork/{id}/thumbnail`).
 - An episode has one picture, so clients don't choose: `artwork` lists `still` if it has either sort, and `GET /artwork/{id}/still` serves the provider's if there is one, otherwise the frame. A frame made before the provider had a still is simply no longer served.
 - A scan asks for a run, on its root's library, when that would find anything. A file that fails is listed in the outcome and remembered: scans skip it until the file changes, and asking by hand tries it again. Failing to start ffmpeg ends the run without marking anything.
+
+## Artwork
+
+- Provider images are kept in `artwork/{provider}/{size}/` in the data directory. Items only store the provider's path, so the `artwork` task downloads them ahead of time, and a client asking first downloads that one image. It's why the library keeps working when TMDB doesn't.
+- The `artwork` kind runs on a library. Its work list is the `item_artwork` rows with nothing on disk at the current size, so changing a size downloads that kind again. People's photos aren't included: there are many, on pages rarely visited, so they still download when first asked for.
+- A scan or metadata refresh asks for a run when that would find anything, and an hourly sweep asks too, which covers the scheduled refresh (it doesn't run as a task yet) and picks up after an outage.
+- It's in the light lane, because downloading doesn't compete with playback for the CPU and shouldn't wait hours behind thumbnails.
+- An image the provider says it hasn't got is listed in the outcome and remembered in `artwork_unavailable` (migration 0022); a refresh by hand tries it again. An outage stops the run without marking anything, and only counts as failed if someone asked for that run, so an hourly sweep doesn't report it every hour.
+- Still to do: removing images nothing refers to any more, such as old sizes or artwork a provider has replaced.
 
 ## Migration from what exists
 

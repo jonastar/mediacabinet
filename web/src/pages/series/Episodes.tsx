@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from 'react'
-import type { Episode } from '../../api/client'
+import { artworkUrl, type Episode } from '../../api/client'
+import { CoverImage } from '../../components/Artwork'
 import { Badge } from '../../components/Badge'
 import { MoreIcon, PlayIcon, WatchedIcon } from '../../components/Icons'
 import { Link } from '../../components/Link'
@@ -171,9 +172,16 @@ function Thumb({
   children: ReactNode
 }) {
   const style = { background: v.tone }
+  const still = artworkUrl({ id: v.episode.item_id, artwork: v.episode.artwork }, 'still')
+  const picture = still && (
+    <span className={styles.still}>
+      <CoverImage src={still} />
+    </span>
+  )
   if (!playable(v.episode)) {
     return (
       <div className={className} style={style}>
+        {picture}
         {children}
       </div>
     )
@@ -185,6 +193,7 @@ function Thumb({
       style={style}
       aria-label={`Play ${v.episode.title}`}
     >
+      {picture}
       {children}
       <span className={styles.playOverlay} aria-hidden="true">
         <PlayIcon />

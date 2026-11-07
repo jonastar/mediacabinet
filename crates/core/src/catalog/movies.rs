@@ -279,7 +279,10 @@ pub async fn search(
     let hits: Vec<EpisodeHitRow> = sqlx::query_as(
             "SELECT s.id AS series_id, s.title AS series_title, e.id, e.title, e.airs_at, e.airs_tz,
                     e.runtime_seconds, os.number AS season, oe.episode_number AS number,
-                    EXISTS (SELECT 1 FROM item_artwork a WHERE a.item_id = e.id AND a.kind = 'still')
+                    (EXISTS (SELECT 1 FROM item_artwork a WHERE a.item_id = e.id AND a.kind = 'still')
+                     OR EXISTS (SELECT 1 FROM file_link l
+                                JOIN file_thumbnail t ON t.file_id = l.file_id
+                                WHERE l.item_id = e.id AND t.error IS NULL))
                         AS has_still
              FROM item e JOIN item s ON s.id = e.parent_id
              LEFT JOIN ordering o ON o.series_id = s.id AND o.is_default

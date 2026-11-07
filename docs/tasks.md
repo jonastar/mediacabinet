@@ -53,9 +53,10 @@ Two lanes, no general worker pool:
 
 ## Thumbnails
 
-- The `thumbnails` kind runs on a library. Its work list is present video files linked to a movie (folder videos are movies) with no provider art, and no thumbnail of the file as it is now: `file_thumbnail` (migration 0019) records each file's size and mtime when it was tried. Episodes are left out until episode rows show images.
+- The `thumbnails` kind runs on a library. Its work list is present video files linked to a movie (folder videos are movies) or an episode with no provider art, and no thumbnail of the file as it is now: `file_thumbnail` (migration 0019) records each file's size and mtime when it was tried.
 - The frame comes from 25% in; if that's nearly black, 40%, 60% and 10%, keeping the brightest. One WebP at most 640 wide, tone-mapped if HDR, at `thumbnails/{file_id}.webp` in the data directory.
 - Thumbnails are a fallback, not artwork: `item_artwork` holds provider images, and `artwork` on an item lists `thumbnail` as well when it has one (`GET /artwork/{id}/thumbnail`).
+- An episode has one picture, so clients don't choose: `artwork` lists `still` if it has either sort, and `GET /artwork/{id}/still` serves the provider's if there is one, otherwise the frame. A frame made before the provider had a still is simply no longer served.
 - A scan asks for a run, on its root's library, when that would find anything. A file that fails is listed in the outcome and remembered: scans skip it until the file changes, and asking by hand tries it again. Failing to start ffmpeg ends the run without marking anything.
 
 ## Migration from what exists

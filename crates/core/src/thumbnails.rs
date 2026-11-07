@@ -1,5 +1,5 @@
-//! Thumbnails: a frame from each video, for movies and folder videos with no
-//! provider art. Runs as the `thumbnails` task over a library. Design:
+//! Thumbnails: a frame from each video, for movies, folder videos and episodes
+//! with no provider art. Runs as the `thumbnails` task over a library. Design:
 //! `docs/tasks.md`.
 //!
 //! The work list is computed each run: what has no thumbnail, or whose file has
@@ -37,8 +37,8 @@ impl Thumbnailer {
     }
 }
 
-/// Files in library `?1` due a thumbnail: readable video, linked to a movie with no
-/// provider art, without a thumbnail of the file as it is now. `?2` tries failed
+/// Files in library `?1` due a thumbnail: readable video, linked to a movie or
+/// episode with no provider art, without a thumbnail of the file as it is now. `?2` tries failed
 /// ones again.
 const DUE: &str = "FROM media_file f
      JOIN library_root r ON r.id = f.root_id
@@ -47,7 +47,7 @@ const DUE: &str = "FROM media_file f
        AND EXISTS (SELECT 1 FROM media_stream s WHERE s.file_id = f.id AND s.kind = 'video')
        AND EXISTS (
            SELECT 1 FROM file_link l JOIN item i ON i.id = l.item_id
-           WHERE l.file_id = f.id AND i.kind = 'movie'
+           WHERE l.file_id = f.id AND i.kind IN ('movie', 'episode')
              AND NOT EXISTS (SELECT 1 FROM item_artwork a WHERE a.item_id = i.id))
        AND (t.file_id IS NULL OR t.size <> f.size OR t.mtime <> f.mtime
             OR (t.error IS NOT NULL AND ?2))";

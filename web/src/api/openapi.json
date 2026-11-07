@@ -325,7 +325,7 @@
         "tags": [
           "catalog"
         ],
-        "summary": "An item's artwork (poster, backdrop or still), cached locally after first use,\nor `thumbnail`: a frame from its video.",
+        "summary": "An item's artwork (poster, backdrop or still), cached locally after first use,\nor `thumbnail`: a frame from its video. An episode's `still` is the provider's\npicture if there is one, otherwise that frame.",
         "operationId": "artwork",
         "parameters": [
           {
@@ -7057,7 +7057,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Artwork kinds available from `/api/artwork/{item_id}/{kind}`: still."
+            "description": "Artwork kinds available from `/api/artwork/{item_id}/{kind}`: `still`, the\nepisode's picture. The server chooses it: the provider's if there is one,\notherwise a frame from the video."
           },
           "item_id": {
             "type": "integer",

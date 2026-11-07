@@ -170,7 +170,7 @@ export class ApiError extends Error {
 /** The URL of an item's artwork, if it has that kind. */
 export function artworkUrl(
   item: { id: number; artwork: string[] },
-  kind: 'poster' | 'backdrop' | 'thumbnail',
+  kind: 'poster' | 'backdrop' | 'thumbnail' | 'still',
 ) {
   return item.artwork.includes(kind) ? `/api/artwork/${item.id}/${kind}` : null
 }

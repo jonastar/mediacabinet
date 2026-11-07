@@ -264,6 +264,68 @@ async fn items_with_provider_art_are_left_alone() {
 }
 
 #[tokio::test]
+async fn an_episode_gets_a_frame_unless_the_provider_has_a_still() {
+    if !has_ffmpeg() {
+        eprintln!("skipping: ffmpeg not installed");
+        return;
+    }
+    let f = Fixture::new().await;
+    make_clip(&f.media.join("clip.mp4"), false);
+    f.scan().await;
+    let file = f.file_id("clip.mp4").await;
+    sqlx::raw_sql(sqlx::AssertSqlSafe(format!(
+        "INSERT INTO item (id, kind, title, library_id) VALUES (900, 'series', 'Show', {library});
+         INSERT INTO series (item_id) VALUES (900);
+         INSERT INTO item (id, parent_id, library_id, kind, title)
+             VALUES (901, 900, {library}, 'episode', 'One');
+         INSERT INTO ordering (id, series_id, name, kind, source, is_default)
+             VALUES (900, 900, 'Aired', 'aired', 'tmdb', 1);
+         INSERT INTO ordering_season (id, ordering_id, number) VALUES (900, 900, 1);
+         INSERT INTO ordering_entry (ordering_id, position, item_id, ordering_season_id, episode_number)
+             VALUES (900, 1, 901, 900, 1);
+         UPDATE file_link SET item_id = 901 WHERE file_id = {file};",
+        library = f.library,
+    )))
+    .execute(&f.pool)
+    .await
+    .unwrap();
+
+    let artwork = || async {
+        let list =
+            cabinet_core::catalog::episodes(&f.pool, 900, None, None, cabinet_core::catalog::now())
+                .await
+                .unwrap();
+        list.entries[0].episode.artwork.clone()
+    };
+    let still = "INSERT INTO item_artwork (item_id, kind, provider, path)
+                 VALUES (901, 'still', 'tmdb', '/s.jpg')";
+
+    // With a provider still there's nothing to make.
+    sqlx::query(still).execute(&f.pool).await.unwrap();
+    assert!(!thumbnails::has_work(&f.pool, f.library).await.unwrap());
+    assert_eq!(artwork().await, ["still"]);
+
+    // Without one, the frame takes its place under the same name.
+    sqlx::query("DELETE FROM item_artwork WHERE item_id = 901")
+        .execute(&f.pool)
+        .await
+        .unwrap();
+    assert!(artwork().await.is_empty());
+    assert!(thumbnails::has_work(&f.pool, f.library).await.unwrap());
+    let tasks = Tasks::new(f.pool.clone(), services(f.thumbnailer("ffmpeg".into())));
+    f.run(&tasks, Trigger::Manual).await;
+    assert_eq!(
+        thumbnails::for_item(&f.pool, 901).await.unwrap(),
+        Some(file)
+    );
+    assert_eq!(artwork().await, ["still"]);
+
+    // Both at once still make one picture to the client.
+    sqlx::query(still).execute(&f.pool).await.unwrap();
+    assert_eq!(artwork().await, ["still"]);
+}
+
+#[tokio::test]
 async fn a_dark_video_still_gets_a_thumbnail() {
     if !has_ffmpeg() {
         eprintln!("skipping: ffmpeg not installed");

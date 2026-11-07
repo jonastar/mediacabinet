@@ -125,6 +125,7 @@
 
 .thumb {
   position: relative;
+  isolation: isolate;
   flex: 0 0 160px;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-control);
@@ -132,6 +133,20 @@
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
+}
+
+/* Behind what's on the thumbnail, under a scrim so that stays readable. */
+.still {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+}
+
+.still::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 17, 21, 0.35);
 }
 
 .thumbNumber {
@@ -229,6 +244,7 @@ a.title:hover {
 
 .cardArt {
   position: relative;
+  isolation: isolate;
   aspect-ratio: 16 / 9;
   border-radius: var(--radius-card);
   display: flex;

@@ -101,11 +101,13 @@ pub struct EpisodeRef {
     /// False when the provider only gave a date: show the date without a time.
     pub airs_time_known: bool,
     pub runtime_seconds: Option<i64>,
-    /// Artwork kinds available from `/api/artwork/{item_id}/{kind}`: still.
+    /// Artwork kinds available from `/api/artwork/{item_id}/{kind}`: `still`, the
+    /// episode's picture. The server chooses it: the provider's if there is one,
+    /// otherwise a frame from the video.
     pub artwork: Vec<String>,
 }
 
-/// The artwork kinds an episode has, from whether it has a still.
+/// The artwork kinds an episode has, from whether it has a picture of either sort.
 fn episode_artwork(has_still: bool) -> Vec<String> {
     has_still.then(|| "still".to_string()).into_iter().collect()
 }
@@ -385,7 +387,10 @@ impl Loaded {
                         AS is_filler,
                     (SELECT max(f.first_seen) FROM file_link l JOIN media_file f ON f.id = l.file_id
                      WHERE l.item_id = e.id AND f.status = 'present') AS newest_file,
-                    EXISTS (SELECT 1 FROM item_artwork a WHERE a.item_id = e.id AND a.kind = 'still')
+                    (EXISTS (SELECT 1 FROM item_artwork a WHERE a.item_id = e.id AND a.kind = 'still')
+                     OR EXISTS (SELECT 1 FROM file_link l
+                                JOIN file_thumbnail t ON t.file_id = l.file_id
+                                WHERE l.item_id = e.id AND t.error IS NULL))
                         AS has_still
              FROM item e
              JOIN item_state st ON st.item_id = e.id

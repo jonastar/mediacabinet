@@ -99,7 +99,8 @@ pub async fn search(
 }
 
 /// An item's artwork (poster, backdrop or still), cached locally after first use,
-/// or `thumbnail`: a frame from its video.
+/// or `thumbnail`: a frame from its video. An episode's `still` is the provider's
+/// picture if there is one, otherwise that frame.
 #[utoipa::path(
     get,
     path = "/artwork/{id}/{kind}",
@@ -120,8 +121,12 @@ pub async fn artwork(
             .bind(&kind)
             .fetch_optional(&state.db)
             .await?;
-    let (provider, path) = row.ok_or(ApiError::NotFound)?;
-    state.artwork.get(&provider, &kind, &path).await
+    match row {
+        Some((provider, path)) => state.artwork.get(&provider, &kind, &path).await,
+        // An episode has one picture, whichever sort there is.
+        None if kind == "still" => thumbnail(&state, id).await,
+        None => Err(ApiError::NotFound),
+    }
 }
 
 /// A frame from the item's video, for items with no provider art.

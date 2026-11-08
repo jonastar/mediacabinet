@@ -154,7 +154,7 @@ async fn world() -> World {
         _dir: dir,
         pool,
         fake,
-        sign_in: SignIn::new(vec![], None),
+        sign_in: SignIn::new(vec![], None, None),
         issuer,
     }
 }

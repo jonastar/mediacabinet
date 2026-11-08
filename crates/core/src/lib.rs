@@ -10,6 +10,7 @@ pub mod catalog;
 pub mod db;
 pub mod demo;
 pub mod events;
+pub mod guests;
 pub mod items;
 pub mod layout;
 pub mod library;

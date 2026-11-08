@@ -26,21 +26,49 @@ pub struct ServerInfo {
     version: &'static str,
     /// Apps older than this should ask to be updated.
     min_app_version: &'static str,
+    /// Apps may offer "Continue as guest" (`POST /auth/device/guest`).
+    guest_access: bool,
 }
 
 /// What an app shows on its connect screen. Public.
 #[utoipa::path(get, path = "/server-info", tag = "devices", responses((status = 200, body = ServerInfo)))]
-pub async fn server_info() -> Json<ServerInfo> {
+pub async fn server_info(State(state): State<AppState>) -> Result<Json<ServerInfo>, ApiError> {
     let name = std::env::var("CABINET_SERVER_NAME")
         .ok()
         .map(|name| name.trim().to_string())
         .filter(|name| !name.is_empty())
         .unwrap_or_else(|| "Media Cabinet".into());
-    Json(ServerInfo {
+    Ok(Json(ServerInfo {
         name,
         version: env!("CARGO_PKG_VERSION"),
         min_app_version: MIN_APP_VERSION,
-    })
+        guest_access: super::accounts::guest_access(&state).await?,
+    }))
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct GuestDevice {
+    /// Shown in Account, where it can be signed out.
+    device_name: String,
+}
+
+/// Signs a device in as a new guest, when guest access is on. Returns its
+/// token; no cookie. For trying the app against a demo server, and for store
+/// review.
+#[utoipa::path(
+    post,
+    path = "/auth/device/guest",
+    tag = "devices",
+    request_body = GuestDevice,
+    responses((status = 200, body = DeviceSession), (status = 400, body = ErrorBody), (status = 403, body = ErrorBody))
+)]
+pub async fn device_guest(
+    State(state): State<AppState>,
+    Json(body): Json<GuestDevice>,
+) -> Result<Json<DeviceSession>, ApiError> {
+    super::accounts::check_guest_access(&state).await?;
+    let (user, token) = cabinet_core::guests::sign_in_device(&state.db, &body.device_name).await?;
+    Ok(Json(DeviceSession { token, user }))
 }
 
 #[derive(Deserialize, ToSchema)]

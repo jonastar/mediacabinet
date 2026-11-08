@@ -153,6 +153,9 @@ export const api = {
   startPairing: (deviceName: string) =>
     call('post', '/api/auth/pair', { body: { device_name: deviceName } }),
   pollPairing: (secret: string) => call('post', '/api/auth/pair/poll', { body: { secret } }),
+  /** Signs in as a new guest, on a server that lets guests in. */
+  guest: (deviceName: string) =>
+    call('post', '/api/auth/device/guest', { body: { device_name: deviceName } }),
   home: () => call('get', '/api/home'),
   series: (seriesId: number) => call('get', '/api/series/{id}', { path: { id: seriesId } }),
   episodes: (seriesId: number) =>

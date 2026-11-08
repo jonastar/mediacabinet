@@ -235,6 +235,7 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 
 - [ ] Playback test on real devices: codecs, HDR, surround, subtitles, long pauses, lost connections
 - [ ] Remote access test through a reverse proxy
+- [x] Guest access, for a public demo and store review (`docs/guests.md`)
 - [ ] Public demo server with openly licensed films, for store review
 - [ ] App icons, screenshots and store listings (`docs/brand/`)
 - [ ] Google Play: closed test with 12 testers for 14 days, then production

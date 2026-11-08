@@ -9,6 +9,7 @@ use axum::response::{IntoResponse, Response};
 use cabinet_core::accounts::{self, AccountError, User, UserStatus};
 use cabinet_core::activity::{self, NewEntry};
 use cabinet_core::catalog::now;
+use cabinet_core::guests;
 use cabinet_core::sign_in::providers::{self, ProviderButton};
 use cabinet_core::sign_in::{self, Login};
 use serde::{Deserialize, Serialize};
@@ -30,6 +31,8 @@ pub struct AuthStatus {
     providers: Vec<ProviderButton>,
     /// Whether the login page shows the password form up front.
     password_sign_in: bool,
+    /// Whether people may continue as a guest (`POST /auth/guest`).
+    guest_access: bool,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -90,7 +93,43 @@ pub async fn status(
         providers: providers::buttons(&state.db).await?,
         password_sign_in: providers::password_sign_in(&state.db, state.sign_in.password_env())
             .await?,
+        guest_access: guest_access(&state).await?,
     }))
+}
+
+/// Whether people may continue as a guest: it's turned on, and the server has
+/// been set up, so an admin exists to turn it off again.
+pub(super) async fn guest_access(state: &AppState) -> Result<bool, ApiError> {
+    Ok(guests::enabled(&state.db, state.sign_in.guest_env()).await?
+        && !accounts::setup_needed(&state.db).await?)
+}
+
+/// Refused unless guest access is on.
+pub(super) async fn check_guest_access(state: &AppState) -> Result<(), ApiError> {
+    if guest_access(state).await? {
+        Ok(())
+    } else {
+        Err(ApiError::ForbiddenBecause(
+            "This server doesn't let guests in.".into(),
+        ))
+    }
+}
+
+/// Signs in as a new guest, setting the session cookie, when guest access is
+/// on. Each call makes a separate guest; signing out removes them.
+#[utoipa::path(
+    post,
+    path = "/auth/guest",
+    tag = "accounts",
+    responses((status = 200, body = User), (status = 403, body = ErrorBody))
+)]
+pub async fn guest(
+    State(state): State<AppState>,
+    headers: HeaderMap,
+) -> Result<Response, ApiError> {
+    check_guest_access(&state).await?;
+    let (user, token) = guests::sign_in(&state.db).await?;
+    Ok(signed_in(&headers, user, &token))
 }
 
 /// First run: creates the admin account and signs it in. Refused once set up.

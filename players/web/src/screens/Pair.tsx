@@ -16,6 +16,7 @@ export function Pair({
   const [pairing, setPairing] = useState<PairingStarted | null>(null)
   const [problem, setProblem] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
+  const [guests, setGuests] = useState(false)
   const restart = useCallback(() => setAttempt((n) => n + 1), [])
   useInitialFocus(null)
 
@@ -39,6 +40,29 @@ export function Pair({
       current = false
     }
   }, [attempt])
+
+  useEffect(() => {
+    let current = true
+    api.serverInfo(server).then(
+      (info) => {
+        if (current) {
+          setGuests(info.guest_access)
+        }
+      },
+      () => undefined,
+    )
+    return () => {
+      current = false
+    }
+  }, [server])
+
+  const continueAsGuest = () => {
+    setProblem(null)
+    api.guest(platform.deviceName).then(
+      (session) => onPaired(session.token),
+      (err: Error) => setProblem(err.message),
+    )
+  }
 
   useEffect(() => {
     if (!pairing) {
@@ -81,6 +105,7 @@ export function Pair({
       )}
       <div className="actions">
         {problem && <button onClick={restart}>Try again</button>}
+        {guests && <button onClick={continueAsGuest}>Continue as guest</button>}
         <button onClick={onChangeServer}>Change server</button>
       </div>
     </main>

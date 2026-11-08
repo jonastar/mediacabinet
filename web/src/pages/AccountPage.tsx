@@ -4,7 +4,7 @@ import { useApi } from '../api/useApi'
 import { Loading } from '../components/Status'
 import { Link } from '../components/Link'
 import { ago } from '../lib/format'
-import { signedIn, useUser } from '../lib/session'
+import { signedIn, signOut, useUser } from '../lib/session'
 import styles from './Settings.module.css'
 
 /** What linking an account left in the URL; read once, then removed. */
@@ -19,8 +19,51 @@ function takeLinkResult(): { ok: boolean; text: string } | null {
   return error ? { ok: false, text: error } : { ok: true, text: 'Linked.' }
 }
 
-/** Your own name, email, password, linked accounts, devices and privacy. */
 export function AccountPage() {
+  const user = useUser()
+  return user.is_guest ? <GuestAccount /> : <OwnAccount />
+}
+
+/** A guest has nothing to change; they can pair a TV and sign out. */
+function GuestAccount() {
+  const signOutGuest = () => {
+    if (window.confirm('Sign out? What you watched and saved is forgotten.')) {
+      signOut()
+    }
+  }
+  return (
+    <div className={styles.page}>
+      <div className={styles.inner}>
+        <div className={styles.heading}>
+          <h1>Account</h1>
+          <p className={styles.muted}>
+            You're a guest. What you watch, your resume points and your playlists are your own,
+            hidden from other guests, and forgotten when you sign out.
+          </p>
+        </div>
+        <section className={styles.panel} aria-labelledby="devices">
+          <h2 id="devices">Devices</h2>
+          <p className={styles.muted}>
+            If a TV or app is showing a code, <Link to="/pair">enter it here</Link> to sign it in as
+            this guest.
+          </p>
+        </section>
+        <section className={styles.panel} aria-labelledby="leave">
+          <h2 id="leave">Sign out</h2>
+          <p className={styles.muted}>Ends this guest visit. Signing in again starts afresh.</p>
+          <div className={styles.row}>
+            <button type="button" className={styles.button} onClick={signOutGuest}>
+              Sign out
+            </button>
+          </div>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+/** Your own name, email, password, linked accounts, devices and privacy. */
+function OwnAccount() {
   const user = useUser()
   const [name, setName] = useState(user.name)
   const [email, setEmail] = useState(user.email ?? '')

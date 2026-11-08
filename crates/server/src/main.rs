@@ -105,6 +105,7 @@ async fn sign_in_providers(db: &sqlx::SqlitePool) -> anyhow::Result<cabinet_core
     use cabinet_core::sign_in::{SignIn, env, providers};
     let vars: Vec<(String, String)> = std::env::vars().collect();
     let password = env::password_sign_in(&vars).map_err(anyhow::Error::msg)?;
+    let guests = env::guest_access(&vars).map_err(anyhow::Error::msg)?;
     let (from_env, problems) = env::parse(&vars);
     for problem in problems {
         tracing::warn!("{problem}");
@@ -116,7 +117,13 @@ async fn sign_in_providers(db: &sqlx::SqlitePool) -> anyhow::Result<cabinet_core
         let keys: Vec<&str> = from_env.iter().map(|p| p.key.as_str()).collect();
         tracing::info!(?keys, "sign-in providers from the environment");
     }
-    Ok(SignIn::new(from_env, password))
+    // Guests outlive a restart only while guest access stays on.
+    if cabinet_core::guests::enabled(db, guests).await? {
+        cabinet_core::guests::sweep(db).await?;
+    } else {
+        cabinet_core::guests::remove_all(db).await?;
+    }
+    Ok(SignIn::new(from_env, password, guests))
 }
 
 fn env_number(name: &str, default: u64) -> anyhow::Result<u64> {

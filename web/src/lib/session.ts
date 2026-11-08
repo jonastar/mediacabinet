@@ -6,6 +6,8 @@ export interface SignInOptions {
   providers: ProviderButton[]
   /** Show the password form up front. */
   passwordSignIn: boolean
+  /** Offer "Continue as guest". */
+  guestAccess: boolean
 }
 
 /**
@@ -22,7 +24,7 @@ export type Session =
   | { state: 'unreachable'; error: Error }
 
 let current: Session = { state: 'checking' }
-let options: SignInOptions = { providers: [], passwordSignIn: true }
+let options: SignInOptions = { providers: [], passwordSignIn: true, guestAccess: false }
 /** Signed out on purpose: don't send them straight back to a provider. */
 let signedOutHere = false
 const listeners = new Set<() => void>()
@@ -40,7 +42,11 @@ function subscribe(onChange: () => void) {
 export async function checkSession() {
   try {
     const status = await api.authStatus()
-    options = { providers: status.providers, passwordSignIn: status.password_sign_in }
+    options = {
+      providers: status.providers,
+      passwordSignIn: status.password_sign_in,
+      guestAccess: status.guest_access,
+    }
     if (status.setup_needed) {
       set({ state: 'setup' })
     } else if (status.user) {

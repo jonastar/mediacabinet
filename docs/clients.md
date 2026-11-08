@@ -247,7 +247,7 @@ Old app versions will keep calling the API, sometimes for months.
 
 ### Demo server for store review
 
-Reviewers need something to log in to. Run a small public instance with a non-admin account and openly licensed films (Big Buck Bunny, Sintel, Tears of Steel). It also doubles as a stable test target.
+Reviewers need something to log in to. Run a small public instance with openly licensed films (Big Buck Bunny, Sintel, Tears of Steel) and guest access on, so apps offer "Continue as guest" (`docs/guests.md`); a non-admin account as well, for stores that want a username and password. It also doubles as a stable test target and as the website's demo.
 
 ## Building for Apple without owning a Mac
 

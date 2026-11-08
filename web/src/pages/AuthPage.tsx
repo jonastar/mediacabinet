@@ -52,19 +52,23 @@ function Card({ children, onSubmit }: { children: ReactNode; onSubmit?: (e: Form
 
 /**
  * What a provider's round trip left in the URL: an error, or `confirm` for
- * "Is this you?". Read once, then removed so a reload doesn't repeat it.
+ * "Is this you?". Also `guest`, for a link that goes straight in as a guest
+ * (a demo server's "Try it"). Read once, then removed so a reload doesn't
+ * repeat it.
  */
 function takeSignInParams() {
   const params = new URLSearchParams(window.location.search)
   const error = params.get('sign_in_error')
   const confirm = params.get('sign_in') === 'confirm'
-  if (error || params.has('sign_in')) {
+  const guest = params.has('guest')
+  if (error || params.has('sign_in') || guest) {
     params.delete('sign_in_error')
     params.delete('sign_in')
+    params.delete('guest')
     const rest = params.toString()
     window.history.replaceState(null, '', window.location.pathname + (rest ? `?${rest}` : ''))
   }
-  return { error, confirm }
+  return { error, confirm, guest }
 }
 
 /** Sign in, or on a fresh install, create the admin account. */
@@ -77,12 +81,15 @@ export function AuthPage({ setup, options }: { setup: boolean; options?: SignInO
   const [error, setError] = useState<string | null>(params.error)
   const [busy, setBusy] = useState(false)
   const providers = setup ? [] : (options?.providers ?? [])
+  const guestAccess = !setup && (options?.guestAccess ?? false)
+  const [asGuest, setAsGuest] = useState(guestAccess && params.guest && !params.error)
   const passwordFirst = setup || !providers.length || (options?.passwordSignIn ?? true)
   const [showPassword, setShowPassword] = useState(passwordFirst)
   // Password sign-in hidden and one provider: go straight there, unless
   // something went wrong or they just signed out.
   const straightTo =
     !passwordFirst &&
+    !guestAccess &&
     providers.length === 1 &&
     !params.error &&
     !confirming &&
@@ -96,6 +103,16 @@ export function AuthPage({ setup, options }: { setup: boolean; options?: SignInO
     }
   }, [straightTo])
 
+  useEffect(() => {
+    if (!asGuest) {
+      return
+    }
+    api.guest().then(signedIn, (err: Error) => {
+      setError(err.message)
+      setAsGuest(false)
+    })
+  }, [asGuest])
+
   if (confirming) {
     return <Confirm onCancel={() => setConfirming(false)} />
   }
@@ -103,6 +120,13 @@ export function AuthPage({ setup, options }: { setup: boolean; options?: SignInO
     return (
       <Card>
         <p className={styles.lead}>Taking you to {straightTo.name}…</p>
+      </Card>
+    )
+  }
+  if (asGuest) {
+    return (
+      <Card>
+        <p className={styles.lead}>Letting you in as a guest…</p>
       </Card>
     )
   }
@@ -174,6 +198,17 @@ export function AuthPage({ setup, options }: { setup: boolean; options?: SignInO
           <button type="submit" className={styles.submit} disabled={busy}>
             {setup ? 'Create account' : 'Sign in'}
           </button>
+        </>
+      )}
+      {guestAccess && (
+        <>
+          <p className={styles.or}>or</p>
+          <button type="button" className={styles.guest} onClick={() => setAsGuest(true)}>
+            Continue as guest
+          </button>
+          <p className={styles.note}>
+            Look around without an account. What you watch is forgotten when you sign out.
+          </p>
         </>
       )}
     </Card>

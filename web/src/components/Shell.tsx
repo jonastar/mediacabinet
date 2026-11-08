@@ -108,11 +108,13 @@ export function Shell({ children }: { children: ReactNode }) {
             aria-current={isCurrent('/account', path) ? 'page' : undefined}
           >
             <span className={styles.avatar} aria-hidden="true">
-              {user.name.slice(0, 1).toUpperCase()}
+              {(user.is_guest ? 'Guest' : user.name).slice(0, 1).toUpperCase()}
             </span>
             <span className={styles.identity}>
-              <span className={styles.name}>{user.name}</span>
-              <span className={styles.role}>{user.is_admin ? 'Admin' : 'Account'}</span>
+              <span className={styles.name}>{user.is_guest ? 'Guest' : user.name}</span>
+              <span className={styles.role}>
+                {user.is_admin ? 'Admin' : user.is_guest ? 'Trying it out' : 'Account'}
+              </span>
             </span>
           </Link>
           <button
@@ -120,7 +122,14 @@ export function Shell({ children }: { children: ReactNode }) {
             className={styles.signOut}
             title="Sign out"
             aria-label="Sign out"
-            onClick={() => signOut()}
+            onClick={() => {
+              if (
+                !user.is_guest ||
+                window.confirm('Sign out? As a guest, what you watched and saved is forgotten.')
+              ) {
+                signOut()
+              }
+            }}
           >
             <SignOutIcon />
           </button>

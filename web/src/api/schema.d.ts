@@ -318,6 +318,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/device/guest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Signs a device in as a new guest, when guest access is on. Returns its
+         *     token; no cookie. For trying the app against a demo server, and for store
+         *     review.
+         */
+        post: operations["device_guest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/guest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Signs in as a new guest, setting the session cookie, when guest access is
+         *     on. Each call makes a separate guest; signing out removes them.
+         */
+        post: operations["guest"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/login": {
         parameters: {
             query?: never;
@@ -2145,10 +2186,14 @@ export interface components {
             language?: string | null;
         };
         AuthSettingsInput: {
+            /** @description Let people continue as a guest. Turning it off removes every guest. */
+            guest_access?: boolean | null;
             /** @description Show the password form on the login page up front. */
-            password_sign_in: boolean;
+            password_sign_in?: boolean | null;
         };
         AuthStatus: {
+            /** @description Whether people may continue as a guest (`POST /auth/guest`). */
+            guest_access: boolean;
             /** @description Whether the login page shows the password form up front. */
             password_sign_in: boolean;
             /** @description Other accounts people can sign in with. */
@@ -2562,6 +2607,10 @@ export interface components {
         };
         FolderVideo: components["schemas"]["MovieSummary"] & {
             file_name: string;
+        };
+        GuestDevice: {
+            /** @description Shown in Account, where it can be signed out. */
+            device_name: string;
         };
         Health: {
             status: string;
@@ -3472,6 +3521,8 @@ export interface components {
             year?: number | null;
         };
         ServerInfo: {
+            /** @description Apps may offer "Continue as guest" (`POST /auth/device/guest`). */
+            guest_access: boolean;
             /** @description Apps older than this should ask to be updated. */
             min_app_version: string;
             /** @description What to call this server; `CABINET_SERVER_NAME`, or "Media Cabinet". */
@@ -3500,6 +3551,15 @@ export interface components {
         SignInSettings: {
             /** @description A provider's redirect URL is this plus `{key}/callback`. */
             callback_base: string;
+            /** @description Whether people may continue as a guest. */
+            guest_access: boolean;
+            /** @description `CABINET_GUEST_ACCESS` is set, so the switch is read-only. */
+            guest_access_from_env: boolean;
+            /**
+             * Format: int64
+             * @description Guests there are now.
+             */
+            guests: number;
             password_sign_in: boolean;
             /** @description `CABINET_PASSWORD_SIGN_IN` is set, so the switch is read-only. */
             password_sign_in_from_env: boolean;
@@ -3823,6 +3883,8 @@ export interface components {
             /** @description Hides what the user watches from other users, not from admins. */
             incognito: boolean;
             is_admin: boolean;
+            /** @description A throwaway account from "Continue as guest" ([`crate::guests`]). */
+            is_guest: boolean;
             name: string;
             status: components["schemas"]["UserStatus"];
         };
@@ -4589,6 +4651,72 @@ export interface operations {
                 };
             };
             401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    device_guest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GuestDevice"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceSession"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    guest: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["User"];
+                };
+            };
+            403: {
                 headers: {
                     [name: string]: unknown;
                 };

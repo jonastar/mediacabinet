@@ -843,6 +843,83 @@
         }
       }
     },
+    "/api/auth/device/guest": {
+      "post": {
+        "tags": [
+          "devices"
+        ],
+        "summary": "Signs a device in as a new guest, when guest access is on. Returns its\ntoken; no cookie. For trying the app against a demo server, and for store\nreview.",
+        "operationId": "device_guest",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GuestDevice"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/guest": {
+      "post": {
+        "tags": [
+          "accounts"
+        ],
+        "summary": "Signs in as a new guest, setting the session cookie, when guest access is\non. Each call makes a separate guest; signing out removes them.",
+        "operationId": "guest",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/User"
+                }
+              }
+            }
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/login": {
       "post": {
         "tags": [
@@ -6264,12 +6341,19 @@
       },
       "AuthSettingsInput": {
         "type": "object",
-        "required": [
-          "password_sign_in"
-        ],
         "properties": {
+          "guest_access": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Let people continue as a guest. Turning it off removes every guest."
+          },
           "password_sign_in": {
-            "type": "boolean",
+            "type": [
+              "boolean",
+              "null"
+            ],
             "description": "Show the password form on the login page up front."
           }
         }
@@ -6279,9 +6363,14 @@
         "required": [
           "setup_needed",
           "providers",
-          "password_sign_in"
+          "password_sign_in",
+          "guest_access"
         ],
         "properties": {
+          "guest_access": {
+            "type": "boolean",
+            "description": "Whether people may continue as a guest (`POST /auth/guest`)."
+          },
           "password_sign_in": {
             "type": "boolean",
             "description": "Whether the login page shows the password form up front."
@@ -7538,6 +7627,18 @@
             }
           }
         ]
+      },
+      "GuestDevice": {
+        "type": "object",
+        "required": [
+          "device_name"
+        ],
+        "properties": {
+          "device_name": {
+            "type": "string",
+            "description": "Shown in Account, where it can be signed out."
+          }
+        }
       },
       "Health": {
         "type": "object",
@@ -10708,9 +10809,14 @@
         "required": [
           "name",
           "version",
-          "min_app_version"
+          "min_app_version",
+          "guest_access"
         ],
         "properties": {
+          "guest_access": {
+            "type": "boolean",
+            "description": "Apps may offer \"Continue as guest\" (`POST /auth/device/guest`)."
+          },
           "min_app_version": {
             "type": "string",
             "description": "Apps older than this should ask to be updated."
@@ -10785,12 +10891,28 @@
           "providers",
           "password_sign_in",
           "password_sign_in_from_env",
+          "guest_access",
+          "guest_access_from_env",
+          "guests",
           "callback_base"
         ],
         "properties": {
           "callback_base": {
             "type": "string",
             "description": "A provider's redirect URL is this plus `{key}/callback`."
+          },
+          "guest_access": {
+            "type": "boolean",
+            "description": "Whether people may continue as a guest."
+          },
+          "guest_access_from_env": {
+            "type": "boolean",
+            "description": "`CABINET_GUEST_ACCESS` is set, so the switch is read-only."
+          },
+          "guests": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Guests there are now."
           },
           "password_sign_in": {
             "type": "boolean"
@@ -11773,7 +11895,8 @@
           "is_admin",
           "created_at",
           "incognito",
-          "status"
+          "status",
+          "is_guest"
         ],
         "properties": {
           "created_at": {
@@ -11796,6 +11919,10 @@
           },
           "is_admin": {
             "type": "boolean"
+          },
+          "is_guest": {
+            "type": "boolean",
+            "description": "A throwaway account from \"Continue as guest\" ([`crate::guests`])."
           },
           "name": {
             "type": "string"

@@ -16,7 +16,7 @@ There's a folder per build, not per target. Android's phone and TV apps share on
 
 ## What every player does the same
 
-- **Sign-in:** device tokens from the pairing flow, sent as `Authorization: Bearer`. Never an API key, because those act as an admin.
+- **Sign-in:** device tokens from the pairing flow, sent as `Authorization: Bearer`. Never an API key, because those act as an admin. When `GET /api/server-info` says `guest_access`, offer "Continue as guest" (`POST /api/auth/device/guest`, `docs/guests.md`).
 - **Playback:** send capabilities to `POST /items/{id}/play`, and play the plan it returns. If playback fails to start, ask again without what failed, and remember that for the device.
 - **Timeline:** custom controls, using `offset_seconds` and `duration_seconds`, because an HLS session can start partway into a file.
 - **API changes:** additive. Old versions stay in use for months, and removals wait for a declared minimum version (`GET /api/server-info`).

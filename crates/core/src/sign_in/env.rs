@@ -91,10 +91,19 @@ fn parse_bool(value: &str) -> Option<bool> {
 
 /// `CABINET_PASSWORD_SIGN_IN`, if set.
 pub fn password_sign_in(vars: &[(String, String)]) -> Result<Option<bool>, String> {
-    match vars.iter().find(|(k, _)| k == "CABINET_PASSWORD_SIGN_IN") {
+    switch(vars, "CABINET_PASSWORD_SIGN_IN")
+}
+
+/// `CABINET_GUEST_ACCESS`, if set.
+pub fn guest_access(vars: &[(String, String)]) -> Result<Option<bool>, String> {
+    switch(vars, "CABINET_GUEST_ACCESS")
+}
+
+fn switch(vars: &[(String, String)], name: &str) -> Result<Option<bool>, String> {
+    match vars.iter().find(|(k, _)| k == name) {
         Some((_, v)) => parse_bool(v)
             .map(Some)
-            .ok_or_else(|| "CABINET_PASSWORD_SIGN_IN must be true or false".to_string()),
+            .ok_or_else(|| format!("{name} must be true or false")),
         None => Ok(None),
     }
 }
@@ -401,5 +410,10 @@ mod tests {
             Ok(Some(false))
         );
         assert!(password_sign_in(&vars(&[("CABINET_PASSWORD_SIGN_IN", "nah")])).is_err());
+        assert_eq!(
+            guest_access(&vars(&[("CABINET_GUEST_ACCESS", "on")])),
+            Ok(Some(true))
+        );
+        assert_eq!(guest_access(&vars(&[])), Ok(None));
     }
 }

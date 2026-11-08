@@ -15,6 +15,7 @@ use axum::response::{IntoResponse, Response};
 use cabinet_core::accounts::{self, User};
 use cabinet_core::activity::{self, NewEntry};
 use cabinet_core::catalog::now;
+use cabinet_core::guests;
 use cabinet_core::sign_in::providers::{self, ProviderButton, ProviderInput, ProviderView};
 use cabinet_core::sign_in::{self, CheckReport, Outcome, Purpose, SignInError, TestReport};
 use serde::{Deserialize, Serialize};
@@ -138,6 +139,11 @@ pub async fn start(
     let provider = enabled_provider(&state, &key).await?;
     let purpose = if query.link {
         match session_user(&state, &headers).await? {
+            Some(user) if user.is_guest => {
+                return Err(ApiError::ForbiddenBecause(
+                    "Guests can't link an account.".into(),
+                ));
+            }
             Some(user) => Purpose::Link { user: user.id },
             None => return Err(ApiError::Unauthorized("Log in first.".into())),
         }
@@ -590,6 +596,12 @@ pub struct SignInSettings {
     password_sign_in: bool,
     /// `CABINET_PASSWORD_SIGN_IN` is set, so the switch is read-only.
     password_sign_in_from_env: bool,
+    /// Whether people may continue as a guest.
+    guest_access: bool,
+    /// `CABINET_GUEST_ACCESS` is set, so the switch is read-only.
+    guest_access_from_env: bool,
+    /// Guests there are now.
+    guests: i64,
     /// A provider's redirect URL is this plus `{key}/callback`.
     callback_base: String,
 }
@@ -613,6 +625,9 @@ pub async fn list_providers(
         providers: views,
         password_sign_in: providers::password_sign_in(&state.db, env).await?,
         password_sign_in_from_env: env.is_some(),
+        guest_access: guests::enabled(&state.db, state.sign_in.guest_env()).await?,
+        guest_access_from_env: state.sign_in.guest_env().is_some(),
+        guests: guests::count(&state.db).await?,
         callback_base: callback_base(&headers),
     }))
 }
@@ -967,7 +982,9 @@ pub async fn test_report(
 #[derive(Deserialize, ToSchema)]
 pub struct AuthSettingsInput {
     /// Show the password form on the login page up front.
-    password_sign_in: bool,
+    password_sign_in: Option<bool>,
+    /// Let people continue as a guest. Turning it off removes every guest.
+    guest_access: Option<bool>,
 }
 
 #[utoipa::path(
@@ -982,21 +999,27 @@ pub async fn set_auth_settings(
     ActingUser(actor): ActingUser,
     Json(body): Json<AuthSettingsInput>,
 ) -> Result<StatusCode, ApiError> {
-    if state.sign_in.password_env().is_some() {
+    if body.password_sign_in.is_some() && state.sign_in.password_env().is_some() {
         return Err(ApiError::BadRequest(
             "CABINET_PASSWORD_SIGN_IN decides this.".into(),
         ));
     }
-    providers::set_password_sign_in(&state.db, body.password_sign_in).await?;
-    config_changed(
-        &state,
-        actor,
-        "sign_in",
-        "changed",
-        1,
-        None,
-        &["password_sign_in"],
-    )
-    .await;
+    if body.guest_access.is_some() && state.sign_in.guest_env().is_some() {
+        return Err(ApiError::BadRequest(
+            "CABINET_GUEST_ACCESS decides this.".into(),
+        ));
+    }
+    let mut changed = vec![];
+    if let Some(on) = body.password_sign_in {
+        providers::set_password_sign_in(&state.db, on).await?;
+        changed.push("password_sign_in");
+    }
+    if let Some(on) = body.guest_access {
+        guests::set_enabled(&state.db, on).await?;
+        changed.push("guest_access");
+    }
+    if !changed.is_empty() {
+        config_changed(&state, actor, "sign_in", "changed", 1, None, &changed).await;
+    }
     Ok(StatusCode::NO_CONTENT)
 }

@@ -59,9 +59,11 @@ pub struct User {
     pub incognito: bool,
     pub email: Option<String>,
     pub status: UserStatus,
+    /// A throwaway account from "Continue as guest" ([`crate::guests`]).
+    pub is_guest: bool,
 }
 
-const USER_COLUMNS: &str = "id, name, is_admin, created_at, incognito, email, status";
+const USER_COLUMNS: &str = "id, name, is_admin, created_at, incognito, email, status, is_guest";
 
 fn hash_token(token: &str) -> String {
     hex::encode(Sha256::digest(token.as_bytes()))
@@ -160,9 +162,10 @@ pub async fn user(pool: &SqlitePool, id: i64) -> Result<User, AccountError> {
     .ok_or(AccountError::NotFound)
 }
 
+/// Every user but guests.
 pub async fn list(pool: &SqlitePool) -> Result<Vec<User>, sqlx::Error> {
     sqlx::query_as(sqlx::AssertSqlSafe(format!(
-        "SELECT {USER_COLUMNS} FROM app_user ORDER BY id"
+        "SELECT {USER_COLUMNS} FROM app_user WHERE NOT is_guest ORDER BY id"
     )))
     .fetch_all(pool)
     .await
@@ -396,11 +399,16 @@ pub async fn session_user(pool: &SqlitePool, token: &str) -> Result<Option<User>
     }
 }
 
+/// Ends a session. A guest's last session takes the guest with it.
 pub async fn logout(pool: &SqlitePool, token: &str) -> Result<(), sqlx::Error> {
-    sqlx::query("DELETE FROM session WHERE token_hash = ?")
-        .bind(hash_token(token))
-        .execute(pool)
-        .await?;
+    let user: Option<i64> =
+        sqlx::query_scalar("DELETE FROM session WHERE token_hash = ? RETURNING user_id")
+            .bind(hash_token(token))
+            .fetch_optional(pool)
+            .await?;
+    if let Some(user) = user {
+        crate::guests::forget_if_gone(pool, user).await?;
+    }
     Ok(())
 }
 

@@ -15,6 +15,9 @@
 //! browsing the server's folders.
 //!
 //! Users who aren't active (waiting for approval) may do nothing but sign out.
+//!
+//! Guests (`docs/guests.md`) may do what users do, except change their account
+//! or link another one to it.
 
 use axum::extract::{FromRequestParts, Request, State};
 use axum::http::header::AUTHORIZATION;
@@ -90,6 +93,14 @@ fn is_own_change(path: &str) -> bool {
     }
     path.starts_with("/api/items/")
         && (path.ends_with("/progress") || path.ends_with("/played") || path.ends_with("/play"))
+}
+
+/// Changes a guest may not make, though other users may.
+fn refused_to_guests(method: &Method, path: &str) -> bool {
+    if method == Method::GET || method == Method::HEAD {
+        return false;
+    }
+    path == "/api/me" || path.starts_with("/api/me/logins")
 }
 
 fn needs_admin(method: &Method, path: &str) -> bool {
@@ -188,6 +199,13 @@ pub async fn require_auth(
         && user.status != UserStatus::Active
     {
         return ApiError::ForbiddenBecause("Waiting for an admin to let you in.".into())
+            .into_response();
+    }
+    if let Caller::User(user) = &caller
+        && user.is_guest
+        && refused_to_guests(request.method(), &path)
+    {
+        return ApiError::ForbiddenBecause("Guests can't change their account.".into())
             .into_response();
     }
     let admin = match &caller {
@@ -361,7 +379,21 @@ mod tests {
         assert!(is_public("/api/server-info"));
         assert!(is_public("/api/auth/pair"));
         assert!(is_public("/api/auth/pair/poll"));
+        assert!(is_public("/api/auth/guest"));
+        assert!(is_public("/api/auth/device/guest"));
         assert!(!is_public("/api/me/pair"));
+    }
+
+    #[test]
+    fn guests_keep_their_account_as_it_is() {
+        assert!(refused_to_guests(&Method::PATCH, "/api/me"));
+        assert!(refused_to_guests(&Method::DELETE, "/api/me/logins/3"));
+        assert!(!refused_to_guests(&Method::GET, "/api/me"));
+        assert!(!refused_to_guests(&Method::GET, "/api/me/logins"));
+        assert!(!refused_to_guests(&Method::POST, "/api/me/media-token"));
+        assert!(!refused_to_guests(&Method::POST, "/api/me/pair"));
+        assert!(!refused_to_guests(&Method::PUT, "/api/items/4/progress"));
+        assert!(!refused_to_guests(&Method::POST, "/api/playlists"));
     }
 
     #[test]

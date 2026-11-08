@@ -774,9 +774,11 @@ pub async fn ensure_default_user(pool: &SqlitePool) -> Result<i64, sqlx::Error> 
 
 /// The user per-user state belongs to until there are logins: the first admin.
 pub async fn default_user(pool: &SqlitePool) -> Result<Option<i64>, sqlx::Error> {
-    sqlx::query_scalar("SELECT id FROM app_user ORDER BY is_admin DESC, id LIMIT 1")
-        .fetch_optional(pool)
-        .await
+    sqlx::query_scalar(
+        "SELECT id FROM app_user WHERE NOT is_guest ORDER BY is_admin DESC, id LIMIT 1",
+    )
+    .fetch_optional(pool)
+    .await
 }
 
 pub fn now() -> i64 {

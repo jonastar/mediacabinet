@@ -451,6 +451,36 @@ function SignIn() {
             Off: the login page shows only the providers, with a small “Use a password” link so
             nobody is locked out. With one provider, it goes straight there.
           </p>
+          <label
+            className={settings.check}
+            title={s.guest_access_from_env ? 'Set by CABINET_GUEST_ACCESS' : undefined}
+          >
+            <input
+              type="checkbox"
+              checked={s.guest_access}
+              disabled={s.guest_access_from_env}
+              onChange={(e) => {
+                const on = e.target.checked
+                if (
+                  on ||
+                  !s.guests ||
+                  window.confirm(
+                    `Turn off guests? The ${s.guests === 1 ? 'guest' : `${s.guests} guests`} here now will be signed out and forgotten.`,
+                  )
+                ) {
+                  act(() => api.setGuestAccess(on))
+                }
+              }}
+            />
+            Let people continue as a guest
+          </label>
+          <p className={settings.muted}>
+            For a demo server: anyone who can reach this server can watch without an account, and
+            apps can offer it too. Each guest is their own, can't change anything but their watch
+            history and playlists, and is forgotten when they sign out.
+            {s.guest_access &&
+              ` ${s.guests === 1 ? '1 guest' : `${s.guests} guests`} now. Link straight in with /?guest.`}
+          </p>
           {error && <p className={settings.warning}>{error}</p>}
           {s.providers.length > 0 && (
             <ul className={settings.list}>

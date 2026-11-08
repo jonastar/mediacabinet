@@ -336,6 +336,8 @@ export const api = {
   login: (name: string, password: string) =>
     request<User>('POST', '/api/auth/login', { name, password }),
   logout: () => request<void>('POST', '/api/auth/logout'),
+  /** Signs in as a new guest, when the server lets guests in. */
+  guest: () => request<User>('POST', '/api/auth/guest'),
   updateMe: (changes: {
     name?: string
     email?: string
@@ -399,6 +401,7 @@ export const api = {
     request<TestReport>('GET', `/api/auth-providers/tests/${encodeURIComponent(token)}`),
   setPasswordSignIn: (on: boolean) =>
     request<void>('PUT', '/api/auth-settings', { password_sign_in: on }),
+  setGuestAccess: (on: boolean) => request<void>('PUT', '/api/auth-settings', { guest_access: on }),
 
   versions: (itemId: number) => request<Version[]>('GET', `/api/items/${itemId}/versions`),
   play: (itemId: number, choice: PlayChoice, caps: ClientCaps, startSeconds?: number) =>

@@ -82,6 +82,7 @@ Set these in the environment, or in a `.env` file in the working directory (giti
 | `CABINET_MATCH_THRESHOLD` | `0.85` | Matches at or above this confidence link automatically; below go to review |
 | `CABINET_OIDC_{KEY}_ISSUER`, `_CLIENT_ID`, `_CLIENT_SECRET` (or `_CLIENT_SECRET_FILE`) | none | A sign-in provider (Authentik, Keycloak, Pocket ID…), e.g. `CABINET_OIDC_AUTHENTIK_ISSUER`. Optional: `_NAME`, `_NEW_USERS` (`pending` or `active`), `_ADMIN_GROUP`, `_ALLOWED_GROUPS`, `_GROUPS_CLAIM`, `_SCOPES`, `_REDIRECT_URL`, `_ENABLED`. `_TYPE` names the provider (`keycloak`, `google`, `github`, `apple`…; `google`, `github`, `discord` and `apple` need no issuer, Apple adds `_TEAM_ID` and `_KEY_ID` with the `.p8` key as the secret); `_TYPE=oauth2` adds `_AUTHORIZE_URL`, `_TOKEN_URL`, `_USERINFO_URL` and `_ID_FIELD`, `_NAME_FIELD`, `_EMAIL_FIELD`, `_VERIFIED_FIELD`. Shown read-only in Manage → Users; see [docs/sign-in.md](docs/sign-in.md) |
 | `CABINET_PASSWORD_SIGN_IN` | from the UI | `false` shows only the providers on the login page (a "Use a password" link remains) |
+| `CABINET_GUEST_ACCESS` | from the UI (off) | `true` lets people continue as a guest without an account, for a demo server; see [docs/guests.md](docs/guests.md) |
 | `RUST_LOG` | `info` | Log filter |
 
 The database is backed up to `cabinet.db.<timestamp>.bak` before any migration runs.

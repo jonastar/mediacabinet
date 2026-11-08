@@ -161,6 +161,7 @@ struct Inner {
     http: reqwest::Client,
     env: Vec<EnvProvider>,
     password_env: Option<bool>,
+    guest_env: Option<bool>,
     discovery: Mutex<HashMap<String, (Instant, Arc<Discovery>)>>,
     flows: Mutex<Waiting<Flow>>,
     links: Mutex<Waiting<PendingLink>>,
@@ -172,11 +173,16 @@ struct Inner {
 pub struct SignIn(Arc<Inner>);
 
 impl SignIn {
-    pub fn new(env: Vec<EnvProvider>, password_env: Option<bool>) -> SignIn {
+    pub fn new(
+        env: Vec<EnvProvider>,
+        password_env: Option<bool>,
+        guest_env: Option<bool>,
+    ) -> SignIn {
         SignIn(Arc::new(Inner {
             http: oidc::http_client(),
             env,
             password_env,
+            guest_env,
             discovery: Mutex::new(HashMap::new()),
             flows: Mutex::new(Waiting::new()),
             links: Mutex::new(Waiting::new()),
@@ -192,6 +198,11 @@ impl SignIn {
     /// `CABINET_PASSWORD_SIGN_IN`, if set.
     pub fn password_env(&self) -> Option<bool> {
         self.0.password_env
+    }
+
+    /// `CABINET_GUEST_ACCESS`, if set.
+    pub fn guest_env(&self) -> Option<bool> {
+        self.0.guest_env
     }
 
     async fn discovery(&self, issuer: &str) -> Result<Arc<Discovery>, OidcError> {

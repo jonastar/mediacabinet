@@ -97,6 +97,20 @@
   border-color: var(--accent);
 }
 
+.guest {
+  composes: provider;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.note {
+  margin: 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
 .or {
   margin: 0;
   text-align: center;

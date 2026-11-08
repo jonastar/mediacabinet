@@ -1,21 +1,9 @@
 import { useState } from 'react'
 import { api, type SeriesDetail } from '../../api/client'
 import { ago } from '../../lib/format'
-import { SearchPicker } from '../review/Pickers'
+import { provider } from '../detail/metadata'
 import { LocationActions } from './LocationActions'
 import styles from './ManagePanels.module.css'
-
-const LOCKABLE = ['title', 'year', 'overview']
-
-const PROVIDERS: Record<string, string> = {
-  tmdb: 'TMDB',
-  tvdb: 'TVDB',
-  anidb: 'AniDB',
-  imdb: 'IMDb',
-  trakt: 'Trakt',
-  computed: 'derived',
-}
-const provider = (p: string) => PROVIDERS[p] ?? p
 
 const POLICIES: Record<string, string> = {
   managed: 'managed root',
@@ -40,13 +28,11 @@ export function ManagePanels({
   onChanged,
   onNewPlaylist,
 }: Props) {
-  const [changingMatch, setChangingMatch] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const primary = series.external_ids.find((x) => x.is_primary)
   const others = [
     ...new Set(series.external_ids.filter((x) => !x.is_primary).map((x) => provider(x.provider))),
   ]
-  const locked = series.locked_fields.length > 0
 
   const act = async (action: () => Promise<unknown>) => {
     setError(null)
@@ -131,35 +117,6 @@ export function ManagePanels({
           series.refreshed_at && (
             <span className={styles.muted}>Refreshed {ago(series.refreshed_at)}</span>
           )
-        )}
-        <label className={styles.check}>
-          <input
-            type="checkbox"
-            checked={locked}
-            onChange={() => act(() => api.setLocks(series.id, locked ? [] : LOCKABLE))}
-          />
-          Lock my edits from refresh
-        </label>
-        {locked && <span className={styles.muted}>Locked: {series.locked_fields.join(', ')}</span>}
-        <button
-          type="button"
-          className={styles.button}
-          onClick={() => setChangingMatch(!changingMatch)}
-        >
-          {changingMatch ? 'Cancel' : 'Change match…'}
-        </button>
-        {changingMatch && (
-          <SearchPicker
-            kind="tv"
-            initial={series.title}
-            year={series.year}
-            onPick={(r) =>
-              act(async () => {
-                await api.rematchSeries(series.id, r.id)
-                setChangingMatch(false)
-              })
-            }
-          />
         )}
       </section>
 

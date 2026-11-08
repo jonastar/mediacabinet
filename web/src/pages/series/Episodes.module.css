@@ -1,4 +1,307 @@
-/* ── List ─────────────────────────────────────────────────────────────── */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────────── */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.toolbarStart {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  align-items: center;
+  min-width: 0;
+}
+
+.toolbarStart h2 {
+  margin: 0;
+  scroll-margin-top: 24px;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.toolbarEnd {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.tool {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.select,
+.filter {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.filter {
+  width: 200px;
+  max-width: 100%;
+}
+
+.toolOn {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  color: var(--accent-soft-text);
+}
+
+/* ── Select mode ──────────────────────────────────────────────────────── */
+
+.selectionBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 8px 8px 18px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+}
+
+.selectionStart {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.selectionCount {
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.selectAll,
+.clear {
+  height: 36px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.selectAll {
+  color: var(--accent-soft-text);
+}
+
+.clear {
+  color: var(--text-secondary);
+}
+
+.selectionActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.barAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.barAction:hover:not(:disabled),
+.bulkAction:hover:not(:disabled) {
+  background: var(--border-control);
+}
+
+.barAction:disabled,
+.bulkAction:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.done {
+  height: 40px;
+  margin-left: 6px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: var(--text);
+  color: var(--bg);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ── Seasons ──────────────────────────────────────────────────────────── */
+
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.group {
+  scroll-margin-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.seasonHeader {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 52px;
+}
+
+.seasonStart {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+}
+
+.seasonCheck,
+.rowCheck {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  accent-color: var(--accent);
+}
+
+.seasonCheck {
+  margin: 0 6px 0 12px;
+}
+
+.seasonToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: var(--touch-target);
+  padding: 0 10px 0 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.seasonName {
+  margin: 0;
+  padding: 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.chevron {
+  display: grid;
+  transition: transform 0.15s ease;
+}
+
+.seasonToggle[aria-expanded='false'] .chevron {
+  transform: rotate(-90deg);
+}
+
+.seasonBar {
+  width: 120px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border-control);
+  overflow: hidden;
+}
+
+.seasonBar span {
+  display: block;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.seasonSummary {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.nextBadge,
+.countdown {
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--state-upcoming) 16%, transparent);
+  color: var(--state-upcoming-text);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.nextBadge {
+  padding: 4px 10px;
+  font-size: 12px;
+}
+
+.seasonAction {
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.seasonAction:hover {
+  background: var(--surface-raised);
+  color: var(--text);
+}
+
+/* ── Rows ─────────────────────────────────────────────────────────────── */
 
 .list {
   list-style: none;
@@ -9,319 +312,165 @@
   gap: 4px;
 }
 
-/* ── Seasons ──────────────────────────────────────────────────────────── */
-
-.seasons {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.seasonGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  border-top: 1px solid var(--border);
-}
-
-.seasonGroup:first-child {
-  border-top: 0;
-}
-
-.season {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding-top: 8px;
-}
-
-.seasonToggle {
-  flex: 1;
-  min-height: var(--touch-target);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0 4px;
-  border: 0;
-  background: none;
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-}
-
-.chevron {
-  width: 16px;
-  font-size: 22px;
-  line-height: 1;
-  color: var(--text-muted);
-  transition: transform 0.15s ease;
-}
-
-.seasonToggle[aria-expanded='true'] .chevron {
-  transform: rotate(90deg);
-}
-
-.seasonName {
-  font-size: 17px;
-  font-weight: 800;
-}
-
-.seasonSummary {
-  font-size: 13.5px;
-  color: var(--text-muted);
-}
-
-.seasonToggle:hover .seasonName {
-  text-decoration: underline;
-}
-
 .row {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px 20px;
+  gap: 20px;
   align-items: center;
-  padding: 10px;
+  padding: 12px;
   border-radius: var(--radius-card);
 }
 
-.row.upNext {
-  background: color-mix(in srgb, var(--accent) 7%, transparent);
-}
-
-.check {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--touch-target);
-  height: var(--touch-target);
-}
-
-.check input,
-.cardCheck input {
-  width: 18px;
-  height: 18px;
-  margin: 0;
-  accent-color: var(--accent);
+label.row {
   cursor: pointer;
 }
 
-.seasonAction {
-  min-height: 32px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: var(--text-muted);
-  font: inherit;
-  font-size: 13px;
-  font-weight: 700;
+.wash {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent);
 }
 
-.seasonAction:hover {
-  background: var(--surface-raised);
-  color: var(--text);
+.rowCheck {
+  margin: 0 4px 0 6px;
 }
 
-.thumb {
+.still {
   position: relative;
   isolation: isolate;
-  flex: 0 0 160px;
+  flex: none;
+  width: 192px;
   aspect-ratio: 16 / 9;
-  border-radius: var(--radius-control);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  border-radius: 8px;
   overflow: hidden;
+  display: flex;
+  /* The number at the bottom, as in the grid: less likely to cover what's in the picture. */
+  align-items: flex-end;
 }
 
-/* Behind what's on the thumbnail, under a scrim so that stays readable. */
-.still {
+.upcomingStill {
+  flex: none;
+  width: 192px;
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+
+.upcomingStill {
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+/* Behind what's on the picture, under a scrim so that stays readable. */
+.stillImage {
   position: absolute;
   inset: 0;
   z-index: -1;
 }
 
-.still::after {
+.stillImage::after {
   content: '';
   position: absolute;
   inset: 0;
   background: rgba(15, 17, 21, 0.35);
 }
 
-.thumbNumber {
+.stillNumber {
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
   padding: 8px 10px;
   font-size: 26px;
   font-weight: 800;
   letter-spacing: -0.03em;
 }
 
+.stillProgress {
+  position: absolute;
+  inset: auto 0 0;
+}
+
 .text {
-  flex: 1 1 260px;
+  flex: 999 1 300px;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
 
 .titleLine {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
+  gap: 4px 10px;
+  align-items: baseline;
+}
+
+.code {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
 }
 
 .title {
+  font-size: 18px;
   font-weight: 700;
-  font-size: 16px;
   color: inherit;
   text-decoration: none;
 }
 
 a.title:hover {
+  color: inherit;
   text-decoration: underline;
 }
 
-.tag {
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: 1px solid #3a3f4a;
+.upcomingTitle {
   color: var(--text-secondary);
-  font-size: 11.5px;
-  font-weight: 600;
 }
 
+.tag,
 .gap {
   padding: 2px 8px;
   border-radius: 6px;
-  background: color-mix(in srgb, var(--state-attention) 14%, transparent);
-  color: var(--state-attention);
   font-size: 11.5px;
-  font-weight: 700;
-}
-
-.meta {
-  font-size: 13.5px;
-  color: var(--text-muted);
-}
-
-.tech {
-  font-family: var(--font-mono);
-  font-size: 12.5px;
-  color: var(--text-secondary);
-  overflow-wrap: anywhere;
-}
-
-.more {
-  width: var(--touch-target);
-  height: var(--touch-target);
-  border-radius: var(--radius-control);
-  border: 1px solid var(--border-control);
-  background: transparent;
-  color: var(--text);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.more:disabled {
-  opacity: 0.55;
-}
-
-/* ── Grid ─────────────────────────────────────────────────────────────── */
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 28px 20px;
-}
-
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.cardArt {
-  position: relative;
-  isolation: isolate;
-  aspect-ratio: 16 / 9;
-  border-radius: var(--radius-card);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  overflow: hidden;
-}
-
-.cardArt.upNext {
-  outline: 2px solid var(--accent);
-  outline-offset: 3px;
-}
-
-.cardTop {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 10px;
-}
-
-.cardCheck {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  border-radius: var(--radius-pill);
-  background: rgba(15, 17, 21, 0.7);
-  font-size: 12px;
   font-weight: 600;
 }
 
-.cardCheck input {
-  width: 15px;
-  height: 15px;
+.tag {
+  border: 1px solid var(--border-control);
+  color: var(--text-secondary);
 }
 
-.cardNumber {
-  display: block;
-  padding: 0 12px 8px;
-  font-size: 40px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+.gap {
+  background: color-mix(in srgb, var(--state-attention) 14%, transparent);
+  color: var(--state-attention);
 }
 
-.cardText {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.meta {
+  font-size: 14px;
+  color: var(--text-muted);
 }
 
-.cardText .tech {
-  font-size: 12px;
+.overview {
+  display: -webkit-box;
+  max-width: 960px;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
 }
 
-@media (max-width: 640px) {
-  .row {
-    gap: 8px 14px;
-  }
-
-  .thumb {
-    flex-basis: 120px;
-  }
-
-  /* Keep the text beside the thumbnail; the badge wraps below. */
-  .text {
-    flex-basis: 150px;
-  }
-
-  .thumbNumber {
-    font-size: 20px;
-  }
+.upcoming {
+  border: 1px dashed var(--border-control);
 }
 
-/* ── Playing and watched ─────────────────────────────────────────────── */
+.countdown {
+  padding: 6px 12px;
+  font-size: 13px;
+}
 
 .playable {
-  position: relative;
   color: inherit;
   text-decoration: none;
 }
@@ -348,15 +497,16 @@ a.title:hover {
 }
 
 .watched {
+  flex: none;
   width: var(--touch-target);
   height: var(--touch-target);
-  flex: 0 0 auto;
   display: inline-grid;
   place-items: center;
   border: 0;
   border-radius: 50%;
   background: none;
   color: var(--text-muted);
+  cursor: pointer;
 }
 
 .watched:hover {
@@ -368,14 +518,242 @@ a.title:hover {
   color: var(--state-available);
 }
 
+/* ── Grid ─────────────────────────────────────────────────────────────── */
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 8px 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 28px 20px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cardPick {
+  cursor: pointer;
+}
+
+.cardArt {
+  position: relative;
+  isolation: isolate;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+}
+
+.cardLit {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.upcomingArt {
+  align-items: stretch;
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.upcomingArt > svg {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+}
+
+.cardTop {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 10px;
+}
+
+/* Over a picture, an outlined badge needs something behind it. */
+.cardBadge {
+  display: inline-flex;
+  border-radius: var(--radius-pill);
+  background: rgba(15, 17, 21, 0.7);
+}
+
+.cardNumber {
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.5);
+  padding: 0 12px 8px;
+  font-size: 40px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.cardText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
 .cardTitleLine {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 8px;
-  margin-top: -10px;
 }
 
-.cardTitleLine .title {
+.cardTitleLine .titleLine {
   padding-top: 10px;
+}
+
+/* ── Editor table ─────────────────────────────────────────────────────── */
+
+.bulkBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 6px 6px 14px;
+  border: 1px solid var(--border-control);
+  border-radius: 12px;
+  background: var(--surface-raised);
+}
+
+.bulkCount {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.bulkAction {
+  height: 34px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tableBox {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+
+.table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  padding: 12px 8px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.table td {
+  padding: 12px 8px;
+  border-top: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.table .checkCell {
+  width: 40px;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.table input[type='checkbox'] {
+  display: block;
+  accent-color: var(--accent);
+}
+
+.tableRowOn td {
+  background: var(--surface);
+}
+
+.table .codeCell {
+  width: 70px;
+  color: var(--text-muted);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.table .titleCell {
+  color: var(--text);
+}
+
+.titleCell .title {
+  margin-right: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.fileChip {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--state-neutral-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.noFile {
+  background: color-mix(in srgb, var(--state-missing) 12%, transparent);
+  color: var(--state-missing-text);
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.table .statusCell {
+  padding-right: 16px;
+  text-align: right;
+}
+
+.table .empty {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+/* ── Narrow screens ───────────────────────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .row {
+    gap: 12px;
+  }
+
+  .still,
+  .upcomingStill {
+    width: 100%;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .selectionBar {
+    padding-left: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chevron,
+  .playOverlay {
+    transition: none;
+  }
 }

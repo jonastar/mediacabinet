@@ -1,29 +1,30 @@
 import type { LinkedFile } from '../api/client'
 
 import { bytes, resolution } from '../core/labels'
+import { LOCALE } from '../core/locale'
 
 export { episodeLabel } from '../core/episode'
 export { bytes, resolution }
 
-const dateFormat = new Intl.DateTimeFormat(undefined, {
+const dateFormat = new Intl.DateTimeFormat(LOCALE, {
   day: 'numeric',
   month: 'short',
   year: 'numeric',
 })
-const dayTimeFormat = new Intl.DateTimeFormat(undefined, {
+const dayTimeFormat = new Intl.DateTimeFormat(LOCALE, {
   weekday: 'short',
   day: 'numeric',
   month: 'short',
   hour: '2-digit',
   minute: '2-digit',
 })
-const dayFormat = new Intl.DateTimeFormat(undefined, {
+const dayFormat = new Intl.DateTimeFormat(LOCALE, {
   weekday: 'short',
   day: 'numeric',
   month: 'short',
 })
-const weekdayFormat = new Intl.DateTimeFormat(undefined, { weekday: 'short' })
-const timeFormat = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' })
+const weekdayFormat = new Intl.DateTimeFormat(LOCALE, { weekday: 'short' })
+const timeFormat = new Intl.DateTimeFormat(LOCALE, { hour: '2-digit', minute: '2-digit' })
 
 const date = (seconds: number) => new Date(seconds * 1000)
 
@@ -120,6 +121,15 @@ export function filesSummary(files: LinkedFile[], now = Date.now() / 1000): stri
     return `${missing.root_path} · last seen ${seen}`
   }
   return null
+}
+
+export const hdrName = (format: string | null | undefined) =>
+  format ? (HDR[format] ?? format) : null
+
+/** `1080p · H.264`: what a file is, without its size. */
+export function fileLabel(f: LinkedFile): string {
+  const codec = f.video_codec ? (CODECS[f.video_codec] ?? f.video_codec.toUpperCase()) : null
+  return [resolution(f.height), codec].filter(Boolean).join(' · ') || 'Unknown format'
 }
 
 /** `nfo 1.00 · pinned`; user links have no confidence to show. */

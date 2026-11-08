@@ -7,8 +7,9 @@ import { Failed, Loading } from '../components/Status'
 import { episodeLabel, seriesTone } from '../lib/format'
 import { episodePath, itemPath } from '../lib/router'
 import styles from './PersonPage.module.css'
+import { LOCALE } from '../core/locale'
 
-const dayFormat = new Intl.DateTimeFormat(undefined, {
+const dayFormat = new Intl.DateTimeFormat(LOCALE, {
   day: 'numeric',
   month: 'long',
   year: 'numeric',

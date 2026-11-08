@@ -198,3 +198,64 @@ export const WatchedIcon = ({ watched }: { watched: boolean }) => (
     />
   </svg>
 )
+
+/** Icons from the detail pages' design, drawn on a 24 grid and sized by the caller. */
+const stroke = {
+  viewBox: '0 0 24 24',
+  fill: 'none',
+  stroke: 'currentColor',
+  strokeWidth: 2,
+  strokeLinecap: 'round',
+  strokeLinejoin: 'round',
+  'aria-hidden': true,
+} as const
+
+export const PlusIcon = () => (
+  <svg width="20" height="20" {...stroke}>
+    <path d="M12 5v14M5 12h14" />
+  </svg>
+)
+
+export const ChevronDownIcon = () => (
+  <svg width="16" height="16" {...stroke}>
+    <path d="M6 9l6 6 6-6" />
+  </svg>
+)
+
+export const ArrowLeftIcon = () => (
+  <svg width="20" height="20" {...stroke}>
+    <path d="M20 12H4M10 6l-6 6 6 6" />
+  </svg>
+)
+
+export const ArrowRightIcon = () => (
+  <svg width="20" height="20" {...stroke}>
+    <path d="M4 12h16M14 6l6 6-6 6" />
+  </svg>
+)
+
+export const PencilIcon = () => (
+  <svg width="18" height="18" {...stroke}>
+    <path d="M4 20h4L19 9l-4-4L4 16z" />
+  </svg>
+)
+
+export const CheckIcon = () => (
+  <svg width="16" height="16" {...stroke}>
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+)
+
+export const SelectIcon = () => (
+  <svg width="16" height="16" {...stroke}>
+    <rect x="4" y="4" width="16" height="16" rx="4" />
+    <path d="M8.5 12l2.5 2.5 4.5-5" />
+  </svg>
+)
+
+export const AirDateIcon = () => (
+  <svg width="24" height="24" {...stroke}>
+    <rect x="4" y="5" width="16" height="15" rx="3" />
+    <path d="M8 3v4M16 3v4M4 10h16" />
+  </svg>
+)

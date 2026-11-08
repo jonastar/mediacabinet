@@ -2287,6 +2287,7 @@ export interface components {
             /** Format: int64 */
             series_id: number;
             series_title: string;
+            /** @description The ordering or playlist up next follows, when it isn't the series' default. */
             view_name?: string | null;
         };
         CreateKey: {

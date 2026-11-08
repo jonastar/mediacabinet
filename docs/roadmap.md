@@ -33,9 +33,9 @@ Real API, seeded data. Seeing and testing the design early.
 - [x] Read API for the UI: series list, series detail with episodes per ordering, home rails
 - [x] Simple availability and next up in the read API (replaced by Phase 5's derived views)
 - [x] Routing and data fetching conventions; API types generated from OpenAPI
-- [x] App shell: sidebar, Media Cabinet branding, a Manage menu for admins with a tab per section, and a remembered Details toggle on media pages
+- [x] App shell: sidebar, Media Cabinet branding, a Manage menu for admins with a tab per section, and a remembered Edit mode switch on media pages
 - [x] Shared components: segmented controls, state badges, cards, rails, posters, progress bars
-- [x] Series page: hero (Watch and Manage), ordering switch, list and grid (remembered), wording per mode
+- [x] Series page: hero (Watch and Manage), ordering switch, wording per mode
 - [x] Series page, Manage: counts per state, technical lines, monitor checkboxes, gaps
 - [x] Home: hero, keep watching, coming this week, TV shows; needs attention is the Manage overview
 - [x] Responsive layout down to phone width; focus states
@@ -269,6 +269,7 @@ Design: `docs/people.md`.
 - [x] Ratings: TMDB, and IMDb, Rotten Tomatoes and Metacritic from OMDb
 - [x] UI: cast rails, crew and companies on media pages; a page per person
 - [ ] Search people by name
+- [ ] Choose artwork in Edit mode: pick a poster or backdrop from all of TMDB's images for a movie or series, kept across refreshes like a locked field (TMDB's top backdrop for many movies is the poster's key art laid out wide)
 
 ## After v1
 

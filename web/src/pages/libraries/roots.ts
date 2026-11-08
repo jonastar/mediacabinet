@@ -7,6 +7,7 @@ import type {
   WritePolicy,
 } from '../../api/client'
 import { ago, dayTimeLabel, time } from '../../lib/format'
+import { LOCALE } from '../../core/locale'
 
 export const POLICY_NOTES: Record<WritePolicy, string> = {
   managed: 'Existing files are renamed and moved to match the layout. New files are placed by it.',
@@ -22,14 +23,15 @@ export const POLICIES: [WritePolicy, string][] = [
   ['read_only', 'Read-only'],
 ]
 
-const count = (n: number, noun: string) => `${n.toLocaleString()} ${noun}${n === 1 ? '' : 's'}`
+const count = (n: number, noun: string) =>
+  `${n.toLocaleString(LOCALE)} ${noun}${n === 1 ? '' : 's'}`
 
 function since(seconds: number) {
   return Date.now() / 1000 - seconds < 86400 ? time(seconds) : dayTimeLabel(seconds)
 }
 
 const ofTotal = (s: ScanProgress | RefreshProgress) =>
-  `${s.done.toLocaleString()} of ${s.total.toLocaleString()}`
+  `${s.done.toLocaleString(LOCALE)} of ${s.total.toLocaleString(LOCALE)}`
 
 function scanStep(s: ScanProgress) {
   switch (s.phase) {

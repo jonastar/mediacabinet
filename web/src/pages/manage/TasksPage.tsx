@@ -10,6 +10,7 @@ import { NotFoundPage } from '../NotFoundPage'
 import buttons from '../libraries/Libraries.module.css'
 import manage from './Manage.module.css'
 import styles from './Tasks.module.css'
+import { LOCALE } from '../../core/locale'
 
 const KINDS: Record<string, string> = {
   scan: 'Scan',
@@ -92,7 +93,8 @@ function progressText(t: TaskSummary) {
   if (!p) {
     return null
   }
-  const count = p.total > 0 ? `${p.done.toLocaleString()} of ${p.total.toLocaleString()}` : null
+  const count =
+    p.total > 0 ? `${p.done.toLocaleString(LOCALE)} of ${p.total.toLocaleString(LOCALE)}` : null
   return [p.cancelling ? 'stopping' : p.phase, count].filter(Boolean).join(' · ')
 }
 

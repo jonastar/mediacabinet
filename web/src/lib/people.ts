@@ -1,15 +1,8 @@
 import type { About, Credit } from '../api/client'
 
-/** Whether `AboutSections` has anything to show. */
-export function hasAbout(about: About | null | undefined, cast?: Credit[]) {
-  if (!about) {
-    return false
-  }
-  return (
-    (cast ?? about.cast).length > 0 ||
-    about.guests.length > 0 ||
-    about.crew.length > 0 ||
-    about.networks.length > 0 ||
-    about.studios.length > 0
-  )
+/** The names credited with any of these jobs, each once: `James Cameron, Jon Landau`. */
+export function crewNames(about: About | null | undefined, jobs: string[]): string | null {
+  const people = (about?.crew ?? []).filter((c: Credit) => c.role && jobs.includes(c.role))
+  const names = [...new Set(people.map((c) => c.name))]
+  return names.length > 0 ? names.join(', ') : null
 }

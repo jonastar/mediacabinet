@@ -6670,7 +6670,8 @@
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "The ordering or playlist up next follows, when it isn't the series' default."
           }
         }
       },

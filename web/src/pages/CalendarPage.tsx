@@ -9,11 +9,12 @@ import { episodeLabel, seriesTone, time } from '../lib/format'
 import { useMode } from '../lib/prefs'
 import type { Badge as BadgeValue } from '../lib/wording'
 import styles from './Agenda.module.css'
+import { LOCALE } from '../core/locale'
 
 const DAY = 86400
 type Range = 'upcoming' | 'past'
 
-const dayFormat = new Intl.DateTimeFormat(undefined, {
+const dayFormat = new Intl.DateTimeFormat(LOCALE, {
   weekday: 'long',
   day: 'numeric',
   month: 'long',

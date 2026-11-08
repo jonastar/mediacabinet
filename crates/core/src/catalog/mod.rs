@@ -272,6 +272,7 @@ pub struct EpisodeList {
 pub struct ContinueItem {
     pub series_id: i64,
     pub series_title: String,
+    /// The ordering or playlist up next follows, when it isn't the series' default.
     pub view_name: Option<String>,
     pub episode: EpisodeRef,
     pub position_seconds: f64,
@@ -1092,7 +1093,11 @@ pub async fn home(pool: &SqlitePool, user: Option<i64>, now: i64) -> Result<Home
             keep_watching.push(ContinueItem {
                 series_id: id,
                 series_title: loaded.series.title.clone(),
-                view_name: resolved.view.as_ref().map(|v| v.name.clone()),
+                view_name: resolved
+                    .view
+                    .as_ref()
+                    .filter(|v| !v.is_default)
+                    .map(|v| v.name.clone()),
                 episode: loaded.episode_ref(e, resolved.entries[i].1.clone()),
                 position_seconds: e.position_seconds.unwrap_or(0.0),
                 last_played_at,

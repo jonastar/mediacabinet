@@ -55,10 +55,18 @@
 }
 
 .columns {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 360px), 1fr));
-  gap: 24px;
-  align-items: start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 48px 32px;
+  align-items: flex-start;
+}
+
+.upNext {
+  flex: 3 1 520px;
+}
+
+.addedSection {
+  flex: 2 1 340px;
 }
 
 .section {
@@ -87,7 +95,7 @@
 
 .card {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   border-radius: var(--radius-card);
   background: var(--surface);
   border: 1px solid var(--border);
@@ -95,15 +103,18 @@
 }
 
 .cardArt {
-  aspect-ratio: 16 / 7;
+  flex: 1 1 320px;
+  aspect-ratio: 16 / 9;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
 }
 
 .cardBody {
+  flex: 1 1 240px;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 8px;
   padding: 22px 24px 24px;
 }
@@ -197,23 +208,28 @@
 
 .week {
   list-style: none;
-  margin: 0;
-  padding: 0;
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  overflow: hidden;
+  margin: 0 -48px;
+  padding: 0 48px 4px;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  scroll-padding: 0 48px;
 }
 
-.week li + li {
-  border-top: 1px solid var(--border);
+.week li {
+  flex: 0 0 auto;
+  max-width: 340px;
 }
 
 .weekRow {
+  height: 100%;
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 16px 22px;
+  gap: 16px;
+  padding: 12px 18px 12px 14px;
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  border: 1px solid var(--border);
   color: var(--text);
   text-decoration: none;
 }
@@ -278,6 +294,12 @@
   flex: 0 0 170px;
 }
 
+.addedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 20px 14px;
+}
+
 .added {
   display: flex;
   flex-direction: column;
@@ -324,7 +346,8 @@
     flex-basis: 100%;
   }
 
-  .rail {
+  .rail,
+  .week {
     margin: 0 -16px;
     padding: 0 16px 8px;
     scroll-padding: 0 16px;

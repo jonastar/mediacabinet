@@ -1,24 +1,30 @@
-/* Sits on a hero, beside the back link, so it shares its dark pill. */
+/* Sits in a detail page's top bar, beside the back link, so it shares its pill. */
 .toggle {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   min-height: var(--touch-target);
-  padding: 0 16px;
-  border: 0;
+  padding: 0 16px 0 10px;
+  border: 1px solid transparent;
   border-radius: var(--radius-pill);
-  background: rgba(15, 17, 21, 0.5);
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
   color: var(--text);
   font: inherit;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
 }
 
+.toggle[aria-checked='true'] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--surface) 85%, transparent);
+}
+
 .switch {
   position: relative;
-  width: 30px;
-  height: 18px;
-  border-radius: 9px;
+  width: 36px;
+  height: 22px;
+  border-radius: var(--radius-pill);
   background: var(--border-control);
   transition: background 0.15s;
 }
@@ -26,21 +32,21 @@
 .switch::after {
   content: '';
   position: absolute;
-  top: 2px;
-  left: 2px;
-  width: 14px;
-  height: 14px;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
   background: var(--text);
   transition: transform 0.15s;
 }
 
-.toggle[aria-pressed='true'] .switch {
+.toggle[aria-checked='true'] .switch {
   background: var(--accent);
 }
 
-.toggle[aria-pressed='true'] .switch::after {
-  transform: translateX(12px);
+.toggle[aria-checked='true'] .switch::after {
+  transform: translateX(14px);
   background: var(--accent-ink);
 }
 

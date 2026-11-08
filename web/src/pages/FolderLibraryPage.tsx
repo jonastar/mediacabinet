@@ -10,12 +10,13 @@ import { useMode } from '../lib/prefs'
 import { folderPath, itemPath, useQueryParam } from '../lib/router'
 import pageStyles from './Page.module.css'
 import styles from './FolderLibraryPage.module.css'
+import { LOCALE } from '../core/locale'
 
 /** Sorts `Clip 2` before `Clip 10`. */
-const byName = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' })
+const byName = new Intl.Collator(LOCALE, { numeric: true, sensitivity: 'base' })
 
 function count(n: number, noun: string) {
-  return `${n.toLocaleString()} ${noun}${n === 1 ? '' : 's'}`
+  return `${n.toLocaleString(LOCALE)} ${noun}${n === 1 ? '' : 's'}`
 }
 
 function videoState(v: FolderVideo) {
@@ -95,8 +96,8 @@ export function FolderLibraryPage({ library }: { library: Library }) {
               <span className={styles.meta}>
                 {[
                   count(f.videos, 'video'),
-                  f.watched > 0 ? `${f.watched.toLocaleString()} watched` : null,
-                  manage && f.missing > 0 ? `${f.missing.toLocaleString()} missing` : null,
+                  f.watched > 0 ? `${f.watched.toLocaleString(LOCALE)} watched` : null,
+                  manage && f.missing > 0 ? `${f.missing.toLocaleString(LOCALE)} missing` : null,
                 ]
                   .filter(Boolean)
                   .join(' · ')}

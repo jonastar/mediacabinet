@@ -2,188 +2,357 @@ import { useState, type ReactNode } from 'react'
 import { artworkUrl, type Episode } from '../../api/client'
 import { CoverImage } from '../../components/Artwork'
 import { Badge } from '../../components/Badge'
-import { MoreIcon, PlayIcon, WatchedIcon } from '../../components/Icons'
+import { Countdown } from '../../components/Countdown'
+import {
+  AirDateIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  GridIcon,
+  ListIcon,
+  PlayIcon,
+  SelectIcon,
+  WatchedIcon,
+} from '../../components/Icons'
 import { Link } from '../../components/Link'
 import { Progress } from '../../components/Progress'
-import type { Layout, Mode } from '../../lib/prefs'
-import { episodeView, type EpisodeView } from './episodeView'
+import { Segmented } from '../../components/Segmented'
+import { airDayLabel } from '../../lib/format'
+import { useEpisodeLayout } from '../../lib/prefs'
+import { episodeView, groupBySeason, type EpisodeView, type SeasonGroup } from './episodeView'
 import styles from './Episodes.module.css'
+
+const played = (e: Episode) => e.watch?.played ?? false
+const playable = (e: Episode) => e.availability === 'available'
+const isUpcoming = (e: Episode) => e.availability === 'upcoming'
+
+/** The next episode to air in a season, for its badge. */
+const nextToAir = (episodes: Episode[]) =>
+  episodes
+    .filter((e) => isUpcoming(e) && e.airs_at != null)
+    .sort((a, b) => (a.airs_at ?? 0) - (b.airs_at ?? 0))[0]
 
 interface Props {
   entries: Episode[]
   upNext: number | null | undefined
-  mode: Mode
-  layout: Layout
   /** Where an episode's own page is. */
   episodeLink: (episode: Episode) => string
-  /** Episodes whose monitor change is in flight, with the value being saved. */
-  pendingMonitor: Map<number, boolean>
-  onToggleMonitor: (episode: Episode) => void
-  /** Marks episodes watched or not (watch mode). */
   onSetPlayed: (episodes: Episode[], played: boolean) => void
+  /** Starts a playlist from the selected episodes. */
+  onAddToPlaylist: (episodes: Episode[]) => void
+  /** The ordering picker, and a line about the ordering. */
+  order: ReactNode
+  /** The season to show first, when a link asked for one. */
+  initialSeason: string | null
+  note: ReactNode
+  /** Shown instead of the episodes while they load or if they failed. */
+  status?: ReactNode
 }
 
-/** A run of episodes from one season; `season` is null when the ordering has none. */
-interface Group {
-  key: string
-  season: number | null
-  views: EpisodeView[]
-}
-
-function groupBySeason(views: EpisodeView[]): Group[] {
-  const groups: Group[] = []
-  for (const v of views) {
-    const number = v.episode.number
-    const season = number?.style === 'season' ? (number.season ?? null) : null
-    const last = groups.at(-1)
-    if (last && (season === null || last.season === season)) {
-      last.views.push(v)
-    } else {
-      groups.push({ key: `${groups.length}:${season}`, season, views: [v] })
-    }
-  }
-  return groups
-}
-
+/** The Episodes section in viewing mode: season tabs, collapsible seasons and Select mode. */
 export function Episodes({
   entries,
   upNext,
-  mode,
-  layout,
   episodeLink,
-  pendingMonitor,
-  onToggleMonitor,
   onSetPlayed,
+  onAddToPlaylist,
+  order,
+  initialSeason,
+  note,
+  status,
 }: Props) {
-  /** Seasons opened or closed by hand; the others follow `openByDefault`. */
+  const [layout, setLayout] = useEpisodeLayout()
+  /** Seasons opened or closed by hand; the others follow the default. */
   const [toggled, setToggled] = useState<Record<string, boolean>>({})
-  const views = entries.map((e, i) => episodeView(e, i, upNext, mode))
-  const groups = groupBySeason(views)
-  const props: ViewProps = {
-    mode,
-    episodeLink,
-    monitored: (v) => pendingMonitor.get(v.episode.item_id) ?? v.episode.monitored,
-    onToggle: onToggleMonitor,
-    onSetPlayed,
-  }
-  const body = (g: Group) =>
-    layout === 'list' ? (
-      <ol className={styles.list}>
-        {g.views.map((v) => (
-          <EpisodeRow key={v.key} v={v} {...props} />
-        ))}
-      </ol>
-    ) : (
-      <div className={styles.grid}>
-        {g.views.map((v) => (
-          <EpisodeCard key={v.key} v={v} {...props} />
-        ))}
-      </div>
-    )
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState(new Set<number>())
 
-  if (groups.length <= 1 && groups[0]?.season == null) {
-    return groups[0] ? body(groups[0]) : null
-  }
-  // The season you're in is open; with nothing up next, the first one.
+  const groups = groupBySeason(entries.map((e, i) => episodeView(e, i, upNext, 'watch')))
+  // A season a link asked for is open; otherwise the one you're in, or the first.
+  const linked = groups.findIndex((g) => g.season !== null && String(g.season) === initialSeason)
   const current = groups.findIndex((g) => g.views.some((v) => v.isUpNext))
-  const openByDefault = (i: number) => groups.length === 1 || i === Math.max(current, 0)
+  const opened = linked >= 0 ? linked : Math.max(current, 0)
+  const openByDefault = (g: SeasonGroup) => groups.length === 1 || groups.indexOf(g) === opened
+
+  const selectable = (list: SeasonGroup[]) =>
+    list.flatMap((g) => g.views.map((v) => v.episode)).filter((e) => !isUpcoming(e))
+  const setChosen = (ids: number[], on: boolean) => {
+    setSelected((current) => {
+      const next = new Set(current)
+      for (const id of ids) {
+        if (on) {
+          next.add(id)
+        } else {
+          next.delete(id)
+        }
+      }
+      return next
+    })
+  }
+  const chosen = entries.filter((e) => selected.has(e.item_id))
+  const stopSelecting = () => {
+    setSelecting(false)
+    setSelected(new Set())
+  }
+
   return (
-    <div className={styles.seasons}>
-      {groups.map((g, i) => {
-        const open = toggled[g.key] ?? openByDefault(i)
-        return (
-          <section key={g.key} className={styles.seasonGroup}>
-            <SeasonHeader
-              group={g}
-              open={open}
-              mode={mode}
-              onToggle={() => setToggled((t) => ({ ...t, [g.key]: !open }))}
-              onSetPlayed={onSetPlayed}
-            />
-            {open && body(g)}
-          </section>
-        )
-      })}
-    </div>
+    <section aria-labelledby="episodes-title" className={styles.section}>
+      <div className={styles.toolbar}>
+        <div className={styles.toolbarStart}>
+          <h2 id="episodes-title">Episodes</h2>
+        </div>
+        <div className={styles.toolbarEnd}>
+          {order}
+          <Segmented
+            label="Layout"
+            variant="box"
+            value={layout}
+            onChange={setLayout}
+            options={[
+              { value: 'list', label: 'List', icon: <ListIcon /> },
+              { value: 'grid', label: 'Grid', icon: <GridIcon /> },
+            ]}
+          />
+          <button
+            type="button"
+            className={`${styles.tool} ${selecting ? styles.toolOn : ''}`}
+            aria-pressed={selecting}
+            onClick={() => (selecting ? stopSelecting() : setSelecting(true))}
+          >
+            <SelectIcon />
+            Select
+          </button>
+        </div>
+      </div>
+      {note}
+
+      {selecting && (
+        <div className={styles.selectionBar} role="toolbar" aria-label="Selected episodes">
+          <div className={styles.selectionStart}>
+            <span className={styles.selectionCount} aria-live="polite">
+              {chosen.length} selected
+            </span>
+            <button
+              type="button"
+              className={styles.selectAll}
+              onClick={() =>
+                setChosen(
+                  selectable(groups).map((e) => e.item_id),
+                  true,
+                )
+              }
+            >
+              Select all
+            </button>
+            <button type="button" className={styles.clear} onClick={() => setSelected(new Set())}>
+              Clear
+            </button>
+          </div>
+          <div className={styles.selectionActions}>
+            <button
+              type="button"
+              className={styles.barAction}
+              disabled={chosen.length === 0}
+              onClick={() => onSetPlayed(chosen, true)}
+            >
+              <CheckIcon />
+              Mark watched
+            </button>
+            <button
+              type="button"
+              className={styles.barAction}
+              disabled={chosen.length === 0}
+              onClick={() => onSetPlayed(chosen, false)}
+            >
+              Mark unwatched
+            </button>
+            <button
+              type="button"
+              className={styles.barAction}
+              disabled={chosen.length === 0}
+              onClick={() => onAddToPlaylist(chosen)}
+            >
+              Add to playlist
+            </button>
+            <button type="button" className={styles.done} onClick={stopSelecting}>
+              Done
+            </button>
+          </div>
+        </div>
+      )}
+
+      {status ?? (
+        <div className={styles.groups}>
+          {groups.map((g) => {
+            const collapsible = groups.length > 1
+            const open = !collapsible || (toggled[g.key] ?? openByDefault(g))
+            const grid = layout === 'grid'
+            const Upcoming = grid ? UpcomingCard : UpcomingRow
+            const Available = grid ? EpisodeCard : EpisodeRow
+            const rows = (
+              <ol className={grid ? styles.grid : styles.list}>
+                {g.views.map((v) =>
+                  isUpcoming(v.episode) ? (
+                    <Upcoming key={v.key} v={v} />
+                  ) : (
+                    <Available
+                      key={v.key}
+                      v={v}
+                      episodeLink={episodeLink}
+                      selecting={selecting}
+                      checked={selected.has(v.episode.item_id)}
+                      onToggle={(on) => setChosen([v.episode.item_id], on)}
+                      onSetPlayed={onSetPlayed}
+                    />
+                  ),
+                )}
+              </ol>
+            )
+            if (g.season === null) {
+              return <div key={g.key}>{rows}</div>
+            }
+            return (
+              <section key={g.key} id={`season-${g.season}`} className={styles.group}>
+                <SeasonHeader
+                  group={g}
+                  open={open}
+                  collapsible={collapsible}
+                  selecting={selecting}
+                  allChosen={selectable([g]).every((e) => selected.has(e.item_id))}
+                  onChoose={(on) =>
+                    setChosen(
+                      selectable([g]).map((e) => e.item_id),
+                      on,
+                    )
+                  }
+                  onToggle={() => setToggled((t) => ({ ...t, [g.key]: !open }))}
+                  onSetPlayed={onSetPlayed}
+                />
+                {open && rows}
+              </section>
+            )
+          })}
+        </div>
+      )}
+    </section>
   )
 }
 
 function SeasonHeader({
   group,
   open,
-  mode,
+  collapsible,
+  selecting,
+  allChosen,
+  onChoose,
   onToggle,
   onSetPlayed,
 }: {
-  group: Group
+  group: SeasonGroup
   open: boolean
-  mode: Mode
+  collapsible: boolean
+  selecting: boolean
+  allChosen: boolean
+  onChoose: (on: boolean) => void
   onToggle: () => void
   onSetPlayed: Props['onSetPlayed']
 }) {
-  const episodes = group.views.map((v) => v.episode)
-  const name = group.season === 0 ? 'Specials' : `Season ${group.season}`
-  const allWatched = episodes.every(played)
-  const summary =
-    mode === 'manage'
-      ? `${episodes.filter(playable).length} of ${episodes.length} available`
-      : `${episodes.filter(played).length} of ${episodes.length} watched`
+  const all = group.views.map((v) => v.episode)
+  const aired = all.filter((e) => !isUpcoming(e))
+  const watched = aired.filter(played).length
+  const upcoming = all.length - aired.length
+  const allWatched = aired.length > 0 && watched === aired.length
+  const next = nextToAir(all)
+  const summary = [
+    `${watched} of ${aired.length} watched`,
+    upcoming > 0 ? `${upcoming} upcoming` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
   return (
-    <div className={styles.season}>
-      <button type="button" className={styles.seasonToggle} aria-expanded={open} onClick={onToggle}>
-        <span className={styles.chevron} aria-hidden="true">
-          ›
+    <div className={styles.seasonHeader}>
+      <div className={styles.seasonStart}>
+        {selecting && (
+          <input
+            type="checkbox"
+            className={styles.seasonCheck}
+            checked={aired.length > 0 && allChosen}
+            disabled={aired.length === 0}
+            aria-label={`Select all of ${group.name}`}
+            onChange={() => onChoose(!allChosen)}
+          />
+        )}
+        {collapsible ? (
+          <button
+            type="button"
+            className={styles.seasonToggle}
+            aria-expanded={open}
+            onClick={onToggle}
+          >
+            <span className={styles.chevron}>
+              <ChevronDownIcon />
+            </span>
+            {group.name}
+          </button>
+        ) : (
+          <h3 className={styles.seasonName}>{group.name}</h3>
+        )}
+        <span className={styles.seasonBar} aria-hidden="true">
+          <span style={{ width: `${aired.length ? (watched / aired.length) * 100 : 0}%` }} />
         </span>
-        <span className={styles.seasonName}>{name}</span>
         <span className={styles.seasonSummary}>{summary}</span>
-      </button>
-      {mode === 'watch' && (
+        {next?.airs_at != null && (
+          <span className={styles.nextBadge}>
+            Next <Countdown airsAt={next.airs_at} timeKnown={next.airs_time_known} short />
+          </span>
+        )}
+      </div>
+      {!selecting && aired.length > 0 && (
         <button
           type="button"
           className={styles.seasonAction}
-          onClick={() => onSetPlayed(episodes, !allWatched)}
+          onClick={() => onSetPlayed(aired, !allWatched)}
         >
-          {allWatched ? 'Mark unwatched' : 'Mark watched'}
+          {allWatched ? 'Mark season unwatched' : 'Mark season watched'}
         </button>
       )}
     </div>
   )
 }
 
-interface ViewProps {
-  mode: Mode
-  episodeLink: (episode: Episode) => string
-  monitored: (v: EpisodeView) => boolean
-  onToggle: (episode: Episode) => void
-  onSetPlayed: (episodes: Episode[], played: boolean) => void
-}
-
-const played = (e: Episode) => e.watch?.played ?? false
-const playable = (e: Episode) => e.availability === 'available'
-
-/** The thumbnail: plays the episode when there's a file. */
-function Thumb({
+/** The picture, with the episode's number on it; plays the episode when there's a file. */
+function Still({
   v,
+  selecting,
   className,
   children,
 }: {
   v: EpisodeView
+  selecting: boolean
   className: string
   children: ReactNode
 }) {
   const style = { background: v.tone }
   const still = artworkUrl({ id: v.episode.item_id, artwork: v.episode.artwork }, 'still')
-  const picture = still && (
-    <span className={styles.still}>
-      <CoverImage src={still} />
-    </span>
+  const contents = (
+    <>
+      {still && (
+        <span className={styles.stillImage}>
+          <CoverImage src={still} />
+        </span>
+      )}
+      {children}
+      {v.progress > 0 && (
+        <span className={styles.stillProgress}>
+          <Progress value={v.progress} />
+        </span>
+      )}
+    </>
   )
-  if (!playable(v.episode)) {
+  if (selecting || !playable(v.episode)) {
     return (
-      <div className={className} style={style}>
-        {picture}
-        {children}
-      </div>
+      <span className={className} style={style}>
+        {contents}
+      </span>
     )
   }
   return (
@@ -193,8 +362,7 @@ function Thumb({
       style={style}
       aria-label={`Play ${v.episode.title}`}
     >
-      {picture}
-      {children}
+      {contents}
       <span className={styles.playOverlay} aria-hidden="true">
         <PlayIcon />
       </span>
@@ -207,7 +375,7 @@ function WatchedToggle({
   onSetPlayed,
 }: {
   episode: Episode
-  onSetPlayed: ViewProps['onSetPlayed']
+  onSetPlayed: Props['onSetPlayed']
 }) {
   const watched = played(episode)
   return (
@@ -224,102 +392,173 @@ function WatchedToggle({
   )
 }
 
-const numberColor = (v: EpisodeView) => (v.hasArt ? 'rgba(255, 255, 255, 0.92)' : '#5C6270')
+/** Light over a picture or a tinted placeholder; dim on an empty one. */
+const numberColor = (v: EpisodeView) =>
+  v.hasArt || v.episode.artwork.includes('still') ? 'rgba(255, 255, 255, 0.92)' : '#5C6270'
 
-function EpisodeRow({
-  v,
-  mode,
-  episodeLink,
-  monitored,
-  onToggle,
-  onSetPlayed,
-}: ViewProps & { v: EpisodeView }) {
-  const manage = mode === 'manage'
-  const title = v.episode.title
-  return (
-    <li className={`${styles.row} ${v.isUpNext && !manage ? styles.upNext : ''}`}>
-      {manage && (
-        <label className={styles.check}>
-          <input
-            type="checkbox"
-            checked={monitored(v)}
-            onChange={() => onToggle(v.episode)}
-            aria-label={`Monitor ${title}`}
-          />
-        </label>
+function EpisodeTitle({ v, episodeLink, selecting }: EpisodeProps) {
+  const e = v.episode
+  return selecting ? (
+    <span className={styles.title}>{e.title}</span>
+  ) : (
+    <Link to={episodeLink(e)} className={styles.title}>
+      {e.title}
+    </Link>
+  )
+}
+
+interface EpisodeProps {
+  v: EpisodeView
+  episodeLink: Props['episodeLink']
+  selecting: boolean
+  checked: boolean
+  onToggle: (on: boolean) => void
+  onSetPlayed: Props['onSetPlayed']
+}
+
+function EpisodeRow(props: EpisodeProps) {
+  const { v, selecting, checked, onToggle, onSetPlayed } = props
+  const e = v.episode
+  const wash = selecting ? checked : v.isUpNext
+  const className = `${styles.row} ${wash ? styles.wash : ''}`
+  const contents = (
+    <>
+      {selecting && (
+        <input
+          type="checkbox"
+          className={styles.rowCheck}
+          checked={checked}
+          aria-label={`Select ${v.label}`}
+          onChange={() => onToggle(!checked)}
+        />
       )}
-      <Thumb v={v} className={styles.thumb}>
-        <span className={styles.thumbNumber} style={{ color: numberColor(v) }}>
+      <Still v={v} selecting={selecting} className={styles.still}>
+        <span className={styles.stillNumber} style={{ color: numberColor(v) }}>
           {v.label}
         </span>
-        <Progress value={v.progress} />
-      </Thumb>
-      <div className={styles.text}>
-        <div className={styles.titleLine}>
-          <Link to={episodeLink(v.episode)} className={styles.title}>
-            {title}
-          </Link>
-          {v.episode.is_filler && <span className={styles.tag}>Filler</span>}
-          {manage && v.episode.is_gap && <span className={styles.gap}>Gap</span>}
-        </div>
+      </Still>
+      <span className={styles.text}>
+        <span className={styles.titleLine}>
+          <EpisodeTitle {...props} />
+          {e.is_filler && <span className={styles.tag}>Filler</span>}
+        </span>
         <span className={styles.meta}>{v.meta}</span>
-        {manage && <span className={styles.tech}>{v.tech}</span>}
-      </div>
+        {e.overview && <span className={styles.overview}>{e.overview}</span>}
+      </span>
       <Badge badge={v.badge} />
-      {!manage && <WatchedToggle episode={v.episode} onSetPlayed={onSetPlayed} />}
-      {manage && (
-        <button
-          type="button"
-          className={styles.more}
-          aria-label={`More actions for ${title}`}
-          title="Episode actions aren't built yet"
-          disabled
-        >
-          <MoreIcon />
-        </button>
+      {!selecting && <WatchedToggle episode={e} onSetPlayed={onSetPlayed} />}
+    </>
+  )
+  // While selecting, anywhere on the row toggles it.
+  return (
+    <li>
+      {selecting ? (
+        <label className={className}>{contents}</label>
+      ) : (
+        <div className={className}>{contents}</div>
       )}
     </li>
   )
 }
 
-function EpisodeCard({
-  v,
-  mode,
-  episodeLink,
-  monitored,
-  onToggle,
-  onSetPlayed,
-}: ViewProps & { v: EpisodeView }) {
-  const manage = mode === 'manage'
-  return (
-    <div className={styles.card}>
-      <Thumb v={v} className={`${styles.cardArt} ${v.isUpNext && !manage ? styles.upNext : ''}`}>
-        <div className={styles.cardTop}>
-          <Badge badge={v.badge} small />
-          {manage && (
-            <label className={styles.cardCheck}>
-              <input type="checkbox" checked={monitored(v)} onChange={() => onToggle(v.episode)} />
-              Monitored
-            </label>
+function EpisodeCard(props: EpisodeProps) {
+  const { v, selecting, checked, onToggle, onSetPlayed } = props
+  const e = v.episode
+  const lit = selecting ? checked : v.isUpNext
+  const contents = (
+    <>
+      <Still
+        v={v}
+        selecting={selecting}
+        className={`${styles.cardArt} ${lit ? styles.cardLit : ''}`}
+      >
+        <span className={styles.cardTop}>
+          {selecting && (
+            <input
+              type="checkbox"
+              className={styles.rowCheck}
+              checked={checked}
+              aria-label={`Select ${v.label}`}
+              onChange={() => onToggle(!checked)}
+            />
           )}
-        </div>
-        <div>
-          <span className={styles.cardNumber} style={{ color: numberColor(v) }}>
-            {v.label}
+          <span className={styles.cardBadge}>
+            <Badge badge={v.badge} small />
           </span>
-          <Progress value={v.progress} />
-        </div>
-      </Thumb>
+        </span>
+        <span className={styles.cardNumber} style={{ color: numberColor(v) }}>
+          {v.label}
+        </span>
+      </Still>
       <span className={styles.cardText}>
         <span className={styles.cardTitleLine}>
-          <Link to={episodeLink(v.episode)} className={styles.title}>
-            {v.episode.title}
-          </Link>
-          {!manage && <WatchedToggle episode={v.episode} onSetPlayed={onSetPlayed} />}
+          <span className={styles.titleLine}>
+            <EpisodeTitle {...props} />
+            {e.is_filler && <span className={styles.tag}>Filler</span>}
+          </span>
+          {!selecting && <WatchedToggle episode={e} onSetPlayed={onSetPlayed} />}
         </span>
         <span className={styles.meta}>{v.meta}</span>
-        {manage && <span className={styles.tech}>{v.tech}</span>}
       </span>
-    </div>
+    </>
+  )
+  return (
+    <li>
+      {selecting ? (
+        <label className={`${styles.card} ${styles.cardPick}`}>{contents}</label>
+      ) : (
+        <div className={styles.card}>{contents}</div>
+      )}
+    </li>
+  )
+}
+
+const airsLine = (e: Episode) =>
+  e.airs_at != null ? `Airs ${airDayLabel(e.airs_at, e.airs_time_known)}` : 'No air date yet'
+
+/** An episode that hasn't aired: nothing to play or select yet. */
+function UpcomingRow({ v }: { v: EpisodeView }) {
+  const e = v.episode
+  return (
+    <li className={`${styles.row} ${styles.upcoming}`}>
+      <span className={styles.upcomingStill}>
+        <AirDateIcon />
+      </span>
+      <span className={styles.text}>
+        <span className={styles.titleLine}>
+          <span className={styles.code}>{v.label}</span>
+          <span className={`${styles.title} ${styles.upcomingTitle}`}>{e.title}</span>
+        </span>
+        <span className={styles.meta}>{airsLine(e)}</span>
+      </span>
+      {e.airs_at != null && (
+        <span className={styles.countdown}>
+          <Countdown airsAt={e.airs_at} timeKnown={e.airs_time_known} short />
+        </span>
+      )}
+    </li>
+  )
+}
+
+function UpcomingCard({ v }: { v: EpisodeView }) {
+  const e = v.episode
+  return (
+    <li className={styles.card}>
+      <span className={`${styles.cardArt} ${styles.upcoming} ${styles.upcomingArt}`}>
+        <span className={styles.cardTop}>
+          {e.airs_at != null && (
+            <span className={styles.countdown}>
+              <Countdown airsAt={e.airs_at} timeKnown={e.airs_time_known} short />
+            </span>
+          )}
+        </span>
+        <AirDateIcon />
+        <span className={styles.cardNumber}>{v.label}</span>
+      </span>
+      <span className={styles.cardText}>
+        <span className={`${styles.title} ${styles.upcomingTitle}`}>{e.title}</span>
+        <span className={styles.meta}>{airsLine(e)}</span>
+      </span>
+    </li>
   )
 }

@@ -1,10 +1,11 @@
 import type { components } from '../api/schema.d.ts'
+import { LOCALE } from './locale.ts'
 
 type Version = components['schemas']['Version']
 
 let names: Intl.DisplayNames | null = null
 try {
-  names = new Intl.DisplayNames(undefined, { type: 'language' })
+  names = new Intl.DisplayNames(LOCALE, { type: 'language' })
 } catch {
   // Older engines have no language names: see COMMON_LANGUAGES.
   names = null

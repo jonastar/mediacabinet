@@ -57,6 +57,11 @@ export function episodePath(seriesId: number, episodeId: number, libraryId?: num
   return `${itemPath('series', seriesId, libraryId)}/${episodeId}`
 }
 
+/** A series' page with one of its seasons showing. */
+export function seasonPath(seriesPath: string, season: number) {
+  return `${seriesPath}?season=${season}`
+}
+
 /** Matches `/tv/:id`-style patterns. Returns the params, or null. */
 export function match(pattern: string, path: string): Record<string, string> | null {
   const want = pattern.split('/')

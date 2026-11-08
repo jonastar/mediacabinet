@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Movie · Media Cabinet mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#12161c}
+a{color:#5fd3c4}a:hover{color:#8fe3d8}
+.ph{background-color:#1d232c;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 1px,transparent 1px 14px)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="tpl">
+<div style="font-family: Manrope, system-ui, sans-serif; color: #eef1f4; background: #12161c; min-height: 100vh; position: relative">
+  <div class="ph" style="position: absolute; left: 0; right: 0; top: 0; height: 440px"><span style="position: absolute; right: 40px; top: 96px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #7d8794">Backdrop</span></div>
+  <div style="position: absolute; left: 0; right: 0; top: 0; height: 440px; background: linear-gradient(180deg, rgba(18,22,28,.4) 0%, rgba(18,22,28,.8) 55%, #12161c 100%)"></div>
+
+  <div style="position: relative; max-width: 1280px; margin: 0 auto; padding: 24px 40px 80px; display: flex; flex-direction: column; gap: 56px">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+      <a href="#" style="display: inline-flex; align-items: center; gap: 8px; color: #eef1f4; text-decoration: none; font-weight: 600; font-size: 15px; padding: 10px 14px; border-radius: 999px; background: rgba(26,31,39,.7)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Movies</a>
+      <button role="switch" aria-checked="false" style="display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 10px; border-radius: 999px; border: 0; background: rgba(26,31,39,.7); color: #eef1f4; font: 600 14px Manrope, sans-serif">
+        <span style="width: 36px; height: 22px; border-radius: 999px; background: #3a424e; position: relative; display: inline-block"><span style="position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 999px; background: #eef1f4"></span></span>Edit mode</button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start; margin-top: 96px">
+      <div style="flex: none; display: flex; flex-direction: column; gap: 14px; width: 280px">
+        <div class="ph" style="width: 280px; height: 420px; border-radius: 14px; display: grid; place-items: center; box-shadow: 0 28px 56px rgba(0,0,0,.5); border: 1px solid #2b323d"><span style="font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #7d8794">Poster</span></div>
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 14px; background: #1a1f27; border: 1px solid #2b323d">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="5">
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span style="color: #a3adb9">{{f.k}}</span><span style="font-weight: 600; text-align: right">{{f.v}}</span></div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+        <h1 style="margin: 0; font-size: 72px; line-height: .98; font-weight: 800; letter-spacing: -.03em">Avatar</h1>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 15px; color: #c9d0d8">
+          <span>2009</span><span aria-hidden="true">·</span><span>Science Fiction</span><span aria-hidden="true">·</span><span>2 h 42 min</span>
+          <span style="font-size: 12px; font-weight: 700; padding: 4px 8px; border: 1px solid #4a5361; border-radius: 6px; color: #eef1f4">PG-13</span>
+          <span style="color: #eef1f4"><b>7.6</b> TMDB</span>
+        </div>
+        <p style="margin: 0; font-size: 17px; font-style: italic; color: #c9d0d8">Enter the world of Pandora.</p>
+        <p style="margin: 0; max-width: 680px; font-size: 16px; line-height: 1.6; color: #c9d0d8">In the 22nd century, a paraplegic Marine is dispatched to the moon Pandora on a unique mission, but becomes torn between following orders and protecting an alien civilization.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
+          <div style="display: inline-flex; border-radius: 999px; overflow: hidden; background: {{accent}}">
+            <button style="height: 54px; padding: 0 22px 0 26px; border: 0; background: transparent; color: #06201d; font: 700 16px Manrope, sans-serif; display: inline-flex; align-items: center; gap: 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Play</button>
+            <button aria-label="Choose version" style="height: 54px; padding: 0 16px; border: 0; border-left: 1px solid rgba(6,32,29,.25); background: transparent; color: #06201d; font: 700 13px Manrope, sans-serif; display: inline-flex; align-items: center; gap: 6px">4K DV<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+          </div>
+          <button style="height: 54px; padding: 0 22px; border-radius: 999px; border: 1px solid #3a424e; background: transparent; color: #eef1f4; font: 600 15px Manrope, sans-serif">Mark watched</button>
+          <button aria-label="Add to collection" style="width: 54px; height: 54px; border-radius: 999px; border: 1px solid #3a424e; background: transparent; color: #eef1f4; display: grid; place-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px">
+          <h2 style="margin: 0; font-size: 22px; font-weight: 700">Versions</h2>
+          <sc-for list="{{versions}}" as="v" hint-placeholder-count="2">
+            <label style="{{v.style}}">
+              <input type="radio" name="version" checked="{{v.on}}" style="width: 18px; height: 18px; accent-color: {{accent}}; flex: none">
+              <span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+                <span style="font-size: 16px; font-weight: 700">{{v.name}}</span>
+                <span style="display: flex; flex-wrap: wrap; gap: 6px">
+                  <sc-for list="{{v.chips}}" as="c" hint-placeholder-count="3"><span style="font-size: 12px; font-weight: 700; padding: 3px 8px; border-radius: 6px; background: #2a313b; color: #dfe4ea">{{c}}</span></sc-for>
+                </span>
+              </span>
+              <span style="font-size: 14px; color: #a3adb9; font-variant-numeric: tabular-nums">{{v.size}}</span>
+            </label>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <h2 style="margin: 0; font-size: 24px; font-weight: 700">Cast</h2>
+        <a href="#" style="font-size: 14px; font-weight: 600; text-decoration: none">Full cast &amp; crew</a>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px">
+        <sc-for list="{{cast}}" as="c" hint-placeholder-count="10">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <div style="aspect-ratio: 2 / 3; border-radius: 12px; background: #1d2632; color: #cfd8e3; display: grid; place-items: center; font-weight: 800; font-size: 28px">{{c.ini}}</div>
+            <span style="font-size: 15px; font-weight: 700">{{c.name}}</span>
+            <span style="font-size: 13px; color: #a3adb9; margin-top: -4px">{{c.role}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</template>
+<script src="dc-lite.js"></script>
+<script>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#34bfae';
+    const facts = [
+      { k: 'Director', v: 'James Cameron' },
+      { k: 'Writer', v: 'James Cameron' },
+      { k: 'Studio', v: '20th Century Fox' },
+      { k: 'Released', v: '2009' },
+      { k: 'Added', v: '[date added]' }
+    ];
+    const base = 'display: flex; align-items: center; gap: 16px; padding: 16px 18px; border-radius: 14px; cursor: pointer; ';
+    const versions = [
+      { name: 'Extended · 2160p', chips: ['Dolby Vision', 'HEVC', '[audio track]'], size: '22.4 GB', on: true },
+      { name: 'Theatrical · 1080p (example)', chips: ['SDR', 'H.264', '[audio track]'], size: '[size]', on: false }
+    ].map(v => ({ ...v, style: base + (v.on ? 'background: #1f252e; border: 1px solid ' + accent : 'background: #1a1f27; border: 1px solid #2b323d') }));
+    const ini = (n) => n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const cast = [['Sam Worthington','Jake Sully'],['Zoe Saldaña','Neytiri'],['Sigourney Weaver','Dr. Grace Augustine'],['Stephen Lang','Col. Miles Quaritch'],['Michelle Rodriguez','Trudy Chacón'],['Giovanni Ribisi','Parker Selfridge'],['Joel David Moore','Norm Spellman'],['CCH Pounder','Mo’at'],['Wes Studi','Eytukan'],['Laz Alonso','Tsu’tey']].map(([name, role]) => ({ name, role, ini: ini(name) }));
+    return { accent, facts, versions, cast };
+  }
+}
+mountDC(Component, {"accent": "#34bfae"});
+</script>
+</body>
+</html>

@@ -13,13 +13,13 @@
 }
 
 .ready {
-  background: var(--text);
-  color: var(--bg);
+  border: 1px solid var(--border-control);
+  color: var(--text-secondary);
 }
 
 .watched {
-  background: rgba(15, 17, 21, 0.7);
-  color: var(--text);
+  background: var(--state-neutral-bg);
+  color: var(--text-muted);
 }
 
 .next {

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Series · editor mode · Media Cabinet mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#12161c}
+a{color:#5fd3c4}a:hover{color:#8fe3d8}
+.ph{background-color:#1d232c;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 1px,transparent 1px 14px)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="tpl">
+<div style="font-family: Manrope, system-ui, sans-serif; color: #eef1f4; background: #12161c; min-height: 100vh; position: relative">
+  <div class="ph" style="position: absolute; left: 0; right: 0; top: 0; height: 440px"><span style="position: absolute; right: 40px; top: 96px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #7d8794">Backdrop</span></div>
+  <div style="position: absolute; left: 0; right: 0; top: 0; height: 440px; background: linear-gradient(180deg, rgba(18,22,28,.4) 0%, rgba(18,22,28,.8) 55%, #12161c 100%)"></div>
+
+  <div style="position: relative; max-width: 1280px; margin: 0 auto; padding: 24px 40px 80px; display: flex; flex-direction: column; gap: 56px">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+      <a href="#" style="display: inline-flex; align-items: center; gap: 8px; color: #eef1f4; text-decoration: none; font-weight: 600; font-size: 15px; padding: 10px 14px; border-radius: 999px; background: rgba(26,31,39,.7)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Shows</a>
+      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap">
+        <button style="height: 44px; padding: 0 16px; border-radius: 999px; border: 0; background: rgba(26,31,39,.7); color: #eef1f4; font: 600 14px Manrope, sans-serif">Refresh metadata</button>
+        <button style="height: 44px; padding: 0 16px; border-radius: 999px; border: 0; background: rgba(26,31,39,.7); color: #eef1f4; font: 600 14px Manrope, sans-serif">Fix match</button>
+        <button role="switch" aria-checked="true" style="display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 10px; border-radius: 999px; border: 1px solid {{accent}}; background: rgba(26,31,39,.85); color: #eef1f4; font: 600 14px Manrope, sans-serif">
+          <span style="width: 36px; height: 22px; border-radius: 999px; background: {{accent}}; position: relative; display: inline-block"><span style="position: absolute; left: 17px; top: 3px; width: 16px; height: 16px; border-radius: 999px; background: #06201d"></span></span>Edit mode</button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start; margin-top: 96px">
+      <div style="flex: none; display: flex; flex-direction: column; gap: 14px; width: 280px">
+        <div class="ph" style="width: 280px; height: 420px; border-radius: 14px; display: grid; place-items: center; box-shadow: 0 28px 56px rgba(0,0,0,.5); border: 1px dashed {{accent}}; position: relative">
+          <span style="font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #7d8794">Poster</span>
+          <button style="position: absolute; left: 12px; right: 12px; bottom: 12px; height: 40px; border-radius: 10px; border: 0; background: rgba(18,22,28,.9); color: #eef1f4; font: 600 13px Manrope, sans-serif">Change artwork</button>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 14px; background: #1a1f27; border: 1px solid #2b323d">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="5">
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span style="color: #a3adb9">{{f.k}}</span><span style="font-weight: 600; text-align: right">{{f.v}}</span></div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+        <div style="display: flex; gap: 12px; align-items: flex-start">
+          <h1 style="margin: 0; font-size: 72px; line-height: .98; font-weight: 800; letter-spacing: -.03em">Aqua Teen Hunger Force</h1>
+          <button aria-label="Edit title" style="flex: none; width: 44px; height: 44px; margin-top: 10px; border-radius: 999px; border: 1px solid #3a424e; background: transparent; color: #eef1f4; display: grid; place-items: center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg></button>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 15px; color: #c9d0d8">
+          <span>2000</span><span aria-hidden="true">·</span><span>Animation</span><span aria-hidden="true">·</span><span>Adult Swim</span><span aria-hidden="true">·</span><span>Ended</span>
+          <span style="font-size: 12px; font-weight: 700; padding: 4px 8px; border: 1px solid #4a5361; border-radius: 6px; color: #eef1f4">TV-14</span>
+          <span style="color: #eef1f4"><b>7.5</b> TMDB</span>
+        </div>
+        <p style="margin: 0; font-size: 17px; font-style: italic; color: #c9d0d8">Dancing is forbidden!</p>
+        <p style="margin: 0; max-width: 680px; font-size: 16px; line-height: 1.6; color: #c9d0d8">The surreal adventures of three anthropomorphic fast food items: Master Shake, Frylock and Meatwad, and their human next-door neighbor, Carl Brutananadilewski.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap">
+          <button style="height: 54px; padding: 0 24px; border-radius: 999px; border: 0; background: {{accent}}; color: #06201d; font: 700 16px Manrope, sans-serif">Edit metadata</button>
+          <button style="height: 54px; padding: 0 22px; border-radius: 999px; border: 1px solid #3a424e; background: transparent; color: #eef1f4; font: 600 15px Manrope, sans-serif">Lock fields</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px">
+          <h2 style="margin: 0; font-size: 22px; font-weight: 700">Library health</h2>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px">
+            <div style="padding: 14px; border-radius: 14px; background: #1a1f27; border: 1px solid #2b323d; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 600; color: #a3adb9; text-transform: uppercase; letter-spacing: .06em">Episodes</span><span style="font-size: 20px; font-weight: 700">[n]</span></div>
+            <div style="padding: 14px; border-radius: 14px; background: #1a1f27; border: 1px solid #2b323d; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 600; color: #a3adb9; text-transform: uppercase; letter-spacing: .06em">Missing</span><span style="font-size: 20px; font-weight: 700; color: #f0a54a">[n]</span></div>
+            <div style="padding: 14px; border-radius: 14px; background: #1a1f27; border: 1px solid #2b323d; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 600; color: #a3adb9; text-transform: uppercase; letter-spacing: .06em">Unmatched</span><span style="font-size: 20px; font-weight: 700">[n]</span></div>
+            <div style="padding: 14px; border-radius: 14px; background: #1a1f27; border: 1px solid #2b323d; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 12px; font-weight: 600; color: #a3adb9; text-transform: uppercase; letter-spacing: .06em">On disk</span><span style="font-size: 20px; font-weight: 700">[size]</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between">
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+          <h2 style="margin: 0 8px 0 0; font-size: 24px; font-weight: 700">Episodes</h2>
+          <label for="season" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Season</label>
+          <select id="season" style="height: 40px; padding: 0 12px; border-radius: 10px; background: #1a1f27; color: #eef1f4; border: 1px solid #2b323d; font: 600 14px Manrope, sans-serif"><option>Season 1</option><option>Season 2</option><option>All seasons</option></select>
+          <div style="display: inline-flex; padding: 3px; border-radius: 10px; background: #1a1f27; border: 1px solid #2b323d" role="group" aria-label="Episode order">
+            <button style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: #2f3743; color: #eef1f4; font: 700 13px Manrope, sans-serif">Aired</button>
+            <button style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: #a3adb9; font: 600 13px Manrope, sans-serif">DVD</button>
+            <button style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: #a3adb9; font: 600 13px Manrope, sans-serif">Absolute</button>
+          </div>
+          <label for="filter" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">Filter episodes</label>
+          <input id="filter" placeholder="Filter episodes" style="height: 40px; width: 200px; padding: 0 12px; border-radius: 10px; background: #1a1f27; color: #eef1f4; border: 1px solid #2b323d; font: 500 14px Manrope, sans-serif">
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; padding: 6px 6px 6px 14px; border-radius: 12px; background: #222833; border: 1px solid #3a424e">
+          <span style="font-size: 14px; font-weight: 600">2 selected</span>
+          <button style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: #eef1f4; font: 600 13px Manrope, sans-serif">Mark watched</button>
+          <button style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: #eef1f4; font: 600 13px Manrope, sans-serif">Add to playlist</button>
+          <button style="height: 34px; padding: 0 12px; border-radius: 8px; border: 0; background: transparent; color: #eef1f4; font: 600 13px Manrope, sans-serif">Refresh metadata</button>
+        </div>
+      </div>
+
+      <div style="overflow-x: auto; border-radius: 14px; border: 1px solid #2b323d">
+        <table style="width: 100%; min-width: 900px; border-collapse: collapse; font-size: 14px">
+          <thead>
+            <tr style="background: #1a1f27; text-align: left; color: #a3adb9; font-size: 12px; text-transform: uppercase; letter-spacing: .06em">
+              <th style="padding: 12px 16px; width: 40px"><input type="checkbox" aria-label="Select all"></th>
+              <th style="padding: 12px 8px; width: 70px">#</th>
+              <th style="padding: 12px 8px">Title</th>
+              <th style="padding: 12px 8px">Aired</th>
+              <th style="padding: 12px 8px">Runtime</th>
+              <th style="padding: 12px 8px">File</th>
+              <th style="padding: 12px 8px">Size</th>
+              <th style="padding: 12px 16px; text-align: right">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr data-for="{{eps}}" data-as="e" style="{{e.rowStyle}}">
+                <td style="padding: 12px 16px"><input type="checkbox" aria-label="Select {{e.code}}" checked="{{e.sel}}"></td>
+                <td style="padding: 12px 8px; color: #a3adb9; font-weight: 700; font-variant-numeric: tabular-nums">{{e.code}}</td>
+                <td style="padding: 12px 8px; font-weight: 600">{{e.title}}</td>
+                <td style="padding: 12px 8px; color: #c9d0d8">{{e.aired}}</td>
+                <td style="padding: 12px 8px; color: #c9d0d8">11 min</td>
+                <td style="padding: 12px 8px"><span style="{{e.fileStyle}}">{{e.file}}</span></td>
+                <td style="padding: 12px 8px; color: #c9d0d8; font-variant-numeric: tabular-nums">{{e.size}}</td>
+                <td style="padding: 12px 16px; text-align: right"><span style="{{e.chipStyle}}">{{e.state}}</span></td>
+              </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+</template>
+<script src="dc-lite.js"></script>
+<script>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#34bfae';
+    const facts = [
+      { k: 'Matched to', v: 'TMDB · TVDB' },
+      { k: 'Library', v: 'Shows' },
+      { k: 'Path', v: '[folder path]' },
+      { k: 'Added', v: '[date added]' },
+      { k: 'Locked fields', v: 'None' }
+    ];
+    const titles = ['Rabbot','Escape from Leprechaupolis','Bus of the Undead','Mayhem of the Mooninites','Love Mummy','Circus','Dumber Dolls','Mail Order Bride','Space Conflict from Beyond Pluto','Bart Oates'];
+    const eps = titles.map((title, i) => {
+      const missing = i === 8;
+      const state = i === 0 ? 'Watched' : i === 1 ? 'Up next' : missing ? 'Missing' : 'Ready';
+      const chip = 'font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; ';
+      return {
+        title, state, sel: i === 2 || i === 3,
+        code: 'S01E' + String(i + 1).padStart(2, '0'),
+        aired: i === 0 ? '30. des. 2000' : '[date]',
+        file: missing ? 'No file' : '1080p · H.264',
+        size: missing ? '—' : '[size]',
+        fileStyle: 'font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; ' + (missing ? 'color: #f0a54a; background: rgba(240,165,74,.12)' : 'color: #c9d0d8; background: #222833'),
+        rowStyle: 'border-top: 1px solid #232a34; ' + ((i === 2 || i === 3) ? 'background: #1a1f27' : ''),
+        chipStyle: chip + (state === 'Up next' ? 'background: ' + accent + '; color: #06201d' : state === 'Watched' ? 'background: #222833; color: #a3adb9' : state === 'Missing' ? 'color: #f0a54a; border: 1px solid rgba(240,165,74,.5)' : 'color: #c9d0d8; border: 1px solid #3a424e')
+      };
+    });
+    return { accent, facts, eps };
+  }
+}
+mountDC(Component, {"accent": "#34bfae"});
+</script>
+</body>
+</html>

@@ -1,9 +1,9 @@
 import { useMode } from '../lib/prefs'
 import { useUser } from '../lib/session'
-import styles from './DetailsToggle.module.css'
+import styles from './EditModeToggle.module.css'
 
-/** Shows or hides the admin detail (Manage mode) on media pages; admins only. */
-export function DetailsToggle() {
+/** Switches media pages between viewing and editing (Manage mode); admins only. */
+export function EditModeToggle() {
   const user = useUser()
   const [mode, setMode] = useMode()
   if (!user.is_admin) {
@@ -13,13 +13,14 @@ export function DetailsToggle() {
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={on}
       className={styles.toggle}
-      aria-pressed={on}
       title="System states, files and settings that apply for everyone"
       onClick={() => setMode(on ? 'watch' : 'manage')}
     >
       <span className={styles.switch} aria-hidden="true" />
-      Details
+      Edit mode
     </button>
   )
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { api, type Playlist, type SeriesDetail } from '../../api/client'
 import { useApi } from '../../api/useApi'
 import { Segmented } from '../../components/Segmented'
@@ -18,12 +18,15 @@ const orderingId = (view: string) => Number(view.replace('ordering:', ''))
 export function PlaylistEditor({
   series,
   playlist,
+  picks,
   canShare,
   onSaved,
   onCancel,
 }: {
   series: SeriesDetail
   playlist?: Playlist
+  /** A new playlist starts with these episodes, picked by hand. */
+  picks?: number[]
   canShare: boolean
   onSaved: (playlist: Playlist) => void
   onCancel: () => void
@@ -31,17 +34,23 @@ export function PlaylistEditor({
   const orderings = series.views.filter((v) => v.kind !== 'playlist')
   const defaultOrdering = orderings.find((v) => v.is_default) ?? orderings[0]
   const [name, setName] = useState(playlist?.name ?? '')
-  const [kind, setKind] = useState<Kind>((playlist?.kind as Kind) ?? 'smart')
+  const [kind, setKind] = useState<Kind>((playlist?.kind as Kind) ?? (picks ? 'manual' : 'smart'))
   const [base, setBase] = useState(
     playlist?.base_ordering_id
       ? `ordering:${playlist.base_ordering_id}`
       : (defaultOrdering?.id ?? ''),
   )
   const [tags, setTags] = useState((playlist?.exclude_tags ?? ['filler']).join(', '))
-  const [picked, setPicked] = useState(new Set(playlist?.items ?? []))
+  const [picked, setPicked] = useState(new Set(playlist?.items ?? picks ?? []))
   const [shared, setShared] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const panel = useRef<HTMLElement>(null)
+
+  // It may open from further down the page, as Add to playlist does.
+  useEffect(() => {
+    panel.current?.scrollIntoView({ block: 'nearest' })
+  }, [])
 
   // Episodes to pick from, in the series' default order.
   const episodes = useApi(kind === 'manual' ? `playlist-episodes:${series.id}` : null, () =>
@@ -88,7 +97,7 @@ export function PlaylistEditor({
   }
 
   return (
-    <section className={styles.editor} aria-labelledby="playlist-editor">
+    <section ref={panel} className={styles.editor} aria-labelledby="playlist-editor">
       <h2 id="playlist-editor">{playlist ? `Change ${playlist.name}` : 'New playlist'}</h2>
       <label className={styles.field}>
         Name

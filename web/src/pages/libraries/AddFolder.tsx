@@ -10,6 +10,7 @@ import {
 import { FolderLayout } from './FolderLayout'
 import { PolicyPicker } from './PolicyPicker'
 import styles from './Libraries.module.css'
+import { LOCALE } from '../../core/locale'
 
 interface Props {
   library: Library
@@ -30,8 +31,8 @@ function Fit({ proposal }: { proposal: FolderProposal }) {
     <div className={`${styles.fit} ${tone}`} role="status">
       <strong>
         {all
-          ? `All ${proposal.files.toLocaleString()} videos fit this layout. Nothing to change.`
-          : `${proposal.grouped.toLocaleString()} of ${proposal.files.toLocaleString()} videos fit this layout.`}
+          ? `All ${proposal.files.toLocaleString(LOCALE)} videos fit this layout. Nothing to change.`
+          : `${proposal.grouped.toLocaleString(LOCALE)} of ${proposal.files.toLocaleString(LOCALE)} videos fit this layout.`}
       </strong>
       <span>
         {examples && `Found${examples.slice(1)}. `}
@@ -169,7 +170,7 @@ export function AddFolder({ library, onAdded, onCancel }: Props) {
 
       {proposal && isFolders && (
         <p className={styles.muted} role="status">
-          {proposal.files.toLocaleString()} video{proposal.files === 1 ? '' : 's'} found.{' '}
+          {proposal.files.toLocaleString(LOCALE)} video{proposal.files === 1 ? '' : 's'} found.{' '}
           {proposal.reason}
         </p>
       )}

@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Series · viewer · Media Cabinet mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#12161c}
+a{color:#5fd3c4}a:hover{color:#8fe3d8}
+.ph{background-color:#1d232c;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 1px,transparent 1px 14px)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="tpl">
+<div style="font-family: Manrope, system-ui, sans-serif; color: #eef1f4; background: #12161c; min-height: 100vh; position: relative">
+  <div class="ph" style="position: absolute; left: 0; right: 0; top: 0; height: 440px"><span style="position: absolute; right: 40px; top: 96px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #7d8794">Backdrop</span></div>
+  <div style="position: absolute; left: 0; right: 0; top: 0; height: 440px; background: linear-gradient(180deg, rgba(18,22,28,.4) 0%, rgba(18,22,28,.8) 55%, #12161c 100%)"></div>
+
+  <div style="position: relative; max-width: 1280px; margin: 0 auto; padding: 24px 40px 80px; display: flex; flex-direction: column; gap: 56px">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+      <a href="#" style="display: inline-flex; align-items: center; gap: 8px; color: #eef1f4; text-decoration: none; font-weight: 600; font-size: 15px; padding: 10px 14px; border-radius: 999px; background: rgba(26,31,39,.7)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Shows</a>
+      <button role="switch" aria-checked="false" style="display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 10px; border-radius: 999px; border: 0; background: rgba(26,31,39,.7); color: #eef1f4; font: 600 14px Manrope, sans-serif">
+        <span style="width: 36px; height: 22px; border-radius: 999px; background: #3a424e; position: relative; display: inline-block"><span style="position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 999px; background: #eef1f4"></span></span>Edit mode</button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start; margin-top: 96px">
+      <div style="flex: none; display: flex; flex-direction: column; gap: 14px; width: 280px">
+        <div class="ph" style="width: 280px; height: 420px; border-radius: 14px; display: grid; place-items: center; box-shadow: 0 28px 56px rgba(0,0,0,.5); border: 1px solid #2b323d"><span style="font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #7d8794">Poster</span></div>
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 14px; background: #1a1f27; border: 1px solid #2b323d">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="5">
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span style="color: #a3adb9">{{f.k}}</span><span style="font-weight: 600; text-align: right">{{f.v}}</span></div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex: 999 1 520px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+        <h1 style="margin: 0; font-size: 72px; line-height: .98; font-weight: 800; letter-spacing: -.03em">Aqua Teen Hunger Force</h1>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 15px; color: #c9d0d8">
+          <span>2000</span><span aria-hidden="true">·</span><span>Animation</span><span aria-hidden="true">·</span><span>Adult Swim</span><span aria-hidden="true">·</span><span>{{statusLabel}}</span>
+          <span style="font-size: 12px; font-weight: 700; padding: 4px 8px; border: 1px solid #4a5361; border-radius: 6px; color: #eef1f4">TV-14</span>
+          <span style="color: #eef1f4"><b>7.5</b> TMDB</span>
+        </div>
+        <p style="margin: 0; font-size: 17px; font-style: italic; color: #c9d0d8">Dancing is forbidden!</p>
+        <p style="margin: 0; max-width: 680px; font-size: 16px; line-height: 1.6; color: #c9d0d8">The surreal adventures of three anthropomorphic fast food items: Master Shake, Frylock and Meatwad, and their human next-door neighbor, Carl Brutananadilewski.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
+          <button style="height: 54px; padding: 0 26px; border-radius: 999px; border: 0; background: {{accent}}; color: #06201d; font: 700 16px Manrope, sans-serif; display: inline-flex; align-items: center; gap: 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Resume S01E02</button>
+          <button style="height: 54px; padding: 0 22px; border-radius: 999px; border: 1px solid #3a424e; background: transparent; color: #eef1f4; font: 600 15px Manrope, sans-serif">Watch from start</button>
+          <button aria-label="Add to collection" style="width: 54px; height: 54px; border-radius: 999px; border: 1px solid #3a424e; background: transparent; color: #eef1f4; display: grid; place-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px">
+          <h2 style="margin: 0; font-size: 22px; font-weight: 700">Continue watching</h2>
+          <a href="#" style="display: flex; flex-wrap: wrap; align-items: center; gap: 18px; padding: 14px; border-radius: 14px; background: #1f252e; border: 1px solid {{accent}}; text-decoration: none; color: #eef1f4">
+            <span class="ph" style="width: 168px; height: 94px; border-radius: 10px; flex: none; position: relative; display: grid; place-items: center">
+              <span style="width: 40px; height: 40px; border-radius: 999px; background: rgba(238,241,244,.95); color: #12161c; display: grid; place-items: center"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></span>
+              <span style="position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: #2b323d; border-radius: 0 0 10px 10px"><span style="display: block; width: 35%; height: 4px; background: {{accent}}"></span></span>
+            </span>
+            <span style="flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 4px">
+              <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: {{accent}}">Up next · S01E02</span>
+              <span style="font-size: 18px; font-weight: 700">Escape from Leprechaupolis</span>
+              <span style="font-size: 14px; color: #a3adb9">11 min · 7 min left</span>
+            </span>
+          </a>
+          <sc-if value="{{airing}}" hint-placeholder-val="{{true}}">
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 18px; padding: 14px 18px; border-radius: 14px; background: #1a1f27; border: 1px solid #2b323d">
+              <span style="width: 52px; height: 52px; border-radius: 12px; background: rgba(106,168,255,.14); color: #9cc4ff; display: grid; place-items: center; flex: none">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><circle cx="12" cy="15" r="1.4" fill="currentColor"/></svg>
+              </span>
+              <span style="flex: 1 1 240px; min-width: 0; display: flex; flex-direction: column; gap: 3px">
+                <span style="font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #9cc4ff">Next episode · S05E04</span>
+                <span style="font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums">{{countdown}}</span>
+                <span style="font-size: 14px; color: #a3adb9">[Episode title] · {{airDate}} · Adult Swim</span>
+              </span>
+              <button role="switch" aria-checked="true" style="display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px 0 10px; border-radius: 999px; border: 1px solid #3a424e; background: transparent; color: #eef1f4; font: 600 14px Manrope, sans-serif">
+                <span style="width: 36px; height: 22px; border-radius: 999px; background: {{accent}}; position: relative; display: inline-block"><span style="position: absolute; left: 17px; top: 3px; width: 16px; height: 16px; border-radius: 999px; background: #06201d"></span></span>Download when available</button>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 20px">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap">
+        <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap">
+          <h2 style="margin: 0; font-size: 24px; font-weight: 700">Episodes</h2>
+          <div style="display: flex; gap: 6px; flex-wrap: wrap" role="tablist" aria-label="Seasons">
+            <sc-for list="{{seasons}}" as="s" hint-placeholder-count="7">
+              <button role="tab" aria-selected="{{s.on}}" onClick="{{s.pick}}" style="{{s.style}}">{{s.label}}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center">
+          <label for="order" style="font-size: 13px; color: #a3adb9">Order</label>
+          <select id="order" style="height: 40px; padding: 0 12px; border-radius: 10px; background: #1a1f27; color: #eef1f4; border: 1px solid #2b323d; font: 500 14px Manrope, sans-serif"><option>Aired</option><option>DVD</option><option>Absolute</option></select>
+          <sc-if value="{{notSelecting}}" hint-placeholder-val="{{false}}">
+            <button onClick="{{startSelect}}" style="height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid #3a424e; background: transparent; color: #eef1f4; font: 600 14px Manrope, sans-serif; display: inline-flex; align-items: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 4.5-5"/></svg>Select</button>
+          </sc-if>
+        </div>
+      </div>
+
+      <sc-if value="{{selecting}}" hint-placeholder-val="{{true}}">
+        <div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 8px 8px 8px 18px; border-radius: 14px; background: #222833; border: 1px solid #3a424e">
+          <div style="display: flex; gap: 14px; align-items: center">
+            <span style="font-size: 15px; font-weight: 700">{{selCount}} selected</span>
+            <button onClick="{{selectAllVisible}}" style="height: 36px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: #5fd3c4; font: 600 14px Manrope, sans-serif">Select all</button>
+            <button onClick="{{clearSel}}" style="height: 36px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; color: #c9d0d8; font: 600 14px Manrope, sans-serif">Clear</button>
+          </div>
+          <div style="display: flex; gap: 4px; flex-wrap: wrap; align-items: center">
+            <button style="height: 40px; padding: 0 12px; border-radius: 10px; border: 0; background: transparent; color: #eef1f4; font: 600 14px Manrope, sans-serif; display: inline-flex; align-items: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Mark watched</button>
+            <button style="height: 40px; padding: 0 12px; border-radius: 10px; border: 0; background: transparent; color: #eef1f4; font: 600 14px Manrope, sans-serif">Mark unwatched</button>
+            <button style="height: 40px; padding: 0 12px; border-radius: 10px; border: 0; background: transparent; color: #eef1f4; font: 600 14px Manrope, sans-serif; display: inline-flex; align-items: center; gap: 8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Download for offline</button>
+            <button style="height: 40px; padding: 0 12px; border-radius: 10px; border: 0; background: transparent; color: #eef1f4; font: 600 14px Manrope, sans-serif">Remove download</button>
+            <button style="height: 40px; padding: 0 12px; border-radius: 10px; border: 0; background: transparent; color: #eef1f4; font: 600 14px Manrope, sans-serif">Add to playlist</button>
+            <button onClick="{{stopSelect}}" style="height: 40px; padding: 0 16px; margin-left: 6px; border-radius: 10px; border: 0; background: #eef1f4; color: #12161c; font: 700 14px Manrope, sans-serif">Done</button>
+          </div>
+        </div>
+      </sc-if>
+
+      <div style="display: flex; flex-direction: column; gap: 12px">
+        <sc-for list="{{groups}}" as="g" hint-placeholder-count="2">
+          <div style="display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid #232a34; padding-bottom: 8px">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; min-height: 52px">
+              <div style="display: flex; align-items: center; gap: 12px">
+                <sc-if value="{{g.selecting}}" hint-placeholder-val="{{false}}">
+                  <input type="checkbox" checked="{{g.allSel}}" onChange="{{g.toggleAll}}" aria-label="Select all of {{g.label}}" style="width: 20px; height: 20px; accent-color: {{accent}}; margin: 0 6px 0 12px">
+                </sc-if>
+                <button onClick="{{g.toggleOpen}}" aria-expanded="{{g.open}}" style="height: 44px; padding: 0 10px 0 6px; border: 0; background: transparent; color: #eef1f4; font: 700 18px Manrope, sans-serif; display: inline-flex; align-items: center; gap: 10px">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true" style="{{g.chevron}}"><path d="M6 9l6 6 6-6"/></svg>{{g.label}}</button>
+                <div style="width: 120px; height: 6px; background: #2b323d; border-radius: 3px"><div style="width: {{g.pct}}; height: 6px; background: {{accent}}; border-radius: 3px"></div></div>
+                <span style="font-size: 14px; color: #a3adb9">{{g.sub}}</span>
+                <sc-if value="{{g.hasUpcoming}}" hint-placeholder-val="{{false}}">
+                  <span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: rgba(106,168,255,.14); color: #9cc4ff; font-variant-numeric: tabular-nums">Next {{countdownShort}}</span>
+                </sc-if>
+              </div>
+              <sc-if value="{{g.notSelecting}}" hint-placeholder-val="{{true}}">
+                <button style="height: 40px; padding: 0 14px; border-radius: 10px; border: 0; background: transparent; color: #c9d0d8; font: 600 14px Manrope, sans-serif">Mark season watched</button>
+              </sc-if>
+            </div>
+            <sc-if value="{{g.open}}" hint-placeholder-val="{{true}}">
+              <div style="display: flex; flex-direction: column; gap: 4px">
+                <sc-for list="{{g.eps}}" as="e" hint-placeholder-count="5">
+                  <label style="{{e.rowStyle}}">
+                    <sc-if value="{{e.selecting}}" hint-placeholder-val="{{false}}">
+                      <input type="checkbox" checked="{{e.checked}}" onChange="{{e.toggle}}" aria-label="Select {{e.code}}" style="width: 20px; height: 20px; accent-color: {{accent}}; flex: none; margin: 0 4px 0 6px">
+                    </sc-if>
+                    <span class="ph" style="width: 192px; height: 108px; border-radius: 8px; flex: none; position: relative; display: grid; place-items: center">
+                      <span style="font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #7d8794">Still</span>
+                      <sc-if value="{{e.hasProgress}}" hint-placeholder-val="{{false}}">
+                        <span style="position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: #2b323d; border-radius: 0 0 8px 8px"><span style="display: block; width: {{e.pct}}; height: 4px; background: {{accent}}"></span></span>
+                      </sc-if>
+                    </span>
+                    <span style="flex: 999 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+                      <span style="display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap">
+                        <span style="font-size: 13px; font-weight: 700; color: #a3adb9">{{e.code}}</span>
+                        <span style="font-size: 18px; font-weight: 700">{{e.title}}</span>
+                      </span>
+                      <span style="font-size: 14px; color: #a3adb9">{{e.meta}}</span>
+                      <span style="font-size: 14px; line-height: 1.5; color: #c9d0d8; max-width: 720px">{{e.syn}}</span>
+                    </span>
+                    <span style="display: flex; gap: 8px; align-items: center">
+                      <sc-if value="{{e.offline}}" hint-placeholder-val="{{false}}">
+                        <span title="Available offline" style="font-size: 12px; font-weight: 700; padding: 5px 10px; border-radius: 999px; background: rgba(106,168,255,.14); color: #9cc4ff; display: inline-flex; align-items: center; gap: 6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>Offline</span>
+                      </sc-if>
+                      <span style="{{e.chipStyle}}">{{e.state}}</span>
+                    </span>
+                  </label>
+                </sc-for>
+                <sc-if value="{{g.hasUpcoming}}" hint-placeholder-val="{{false}}">
+                  <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: center; padding: 12px; border-radius: 14px; border: 1px dashed #3a424e">
+                    <span style="width: 192px; height: 108px; border-radius: 8px; flex: none; background: #161a20; color: #7d8794; display: grid; place-items: center">
+                      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/></svg>
+                    </span>
+                    <span style="flex: 999 1 300px; min-width: 0; display: flex; flex-direction: column; gap: 6px">
+                      <span style="display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap">
+                        <span style="font-size: 13px; font-weight: 700; color: #a3adb9">S05E04</span>
+                        <span style="font-size: 18px; font-weight: 700; color: #c9d0d8">[Episode title]</span>
+                      </span>
+                      <span style="font-size: 14px; color: #a3adb9">Airs {{airDate}}</span>
+                    </span>
+                    <span style="font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; background: rgba(106,168,255,.14); color: #9cc4ff; font-variant-numeric: tabular-nums">{{countdownShort}}</span>
+                  </div>
+                </sc-if>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 18px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline">
+        <h2 style="margin: 0; font-size: 24px; font-weight: 700">Cast</h2>
+        <a href="#" style="font-size: 14px; font-weight: 600; text-decoration: none">Full cast &amp; crew</a>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 20px">
+        <sc-for list="{{cast}}" as="c" hint-placeholder-count="7">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <div style="aspect-ratio: 2 / 3; border-radius: 12px; background: #1d2632; color: #cfd8e3; display: grid; place-items: center; font-weight: 800; font-size: 28px">{{c.ini}}</div>
+            <span style="font-size: 15px; font-weight: 700">{{c.name}}</span>
+            <span style="font-size: 13px; color: #a3adb9; margin-top: -4px">{{c.role}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</template>
+<script src="dc-lite.js"></script>
+<script>
+class Component extends DCLogic {
+  componentDidMount() { this._tick = setInterval(() => this.forceUpdate(), 30000); }
+  componentWillUnmount() { clearInterval(this._tick); }
+  renderVals() {
+    const accent = this.props.accent ?? '#34bfae';
+    const airing = this.props.airing ?? true;
+
+    // Sample next air time: 1 day 2 hours from when the board loads.
+    if (!this._target) this._target = Date.now() + (26 * 60 + 5) * 60000;
+    const ms = Math.max(0, this._target - Date.now());
+    const d = Math.floor(ms / 86400000), h = Math.floor(ms / 3600000) % 24, m = Math.floor(ms / 60000) % 60;
+    const plural = (n, w) => n + ' ' + w + (n === 1 ? '' : 's');
+    const countdown = d > 0 ? 'in ' + plural(d, 'day') + ' and ' + plural(h, 'hour')
+      : h > 0 ? 'in ' + plural(h, 'hour') + ' and ' + plural(m, 'minute')
+      : ms > 0 ? 'in ' + plural(m, 'minute') : 'Airing now';
+    const countdownShort = d > 0 ? 'in ' + d + 'd ' + h + 'h' : h > 0 ? 'in ' + h + 'h ' + m + 'm' : ms > 0 ? 'in ' + m + 'm' : 'Now';
+    let airDate = '';
+    try {
+      airDate = new Intl.DateTimeFormat('nb-NO', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(new Date(this._target));
+    } catch (e) { airDate = '[air date]'; }
+
+    const facts = [
+      { k: 'Network', v: 'Adult Swim' },
+      { k: 'First aired', v: '30. des. 2000' },
+      { k: 'Status', v: airing ? 'Returning series' : 'Ended' }
+    ].concat(airing ? [{ k: 'Next episode', v: airDate }] : []).concat([
+      { k: 'Seasons', v: '[n]' },
+      { k: 'In library', v: '[n] episodes' }
+    ]);
+    const st = this.state || {};
+    const selecting = st.selecting ?? (this.props.startSelecting ?? true);
+    const season = st.season ?? 'all';
+    const sel = st.sel ?? ['S01E03', 'S01E04', 'S01E05'];
+    const open = st.open ?? { 1: true, 2: false, 3: false, 4: false, 5: false, 0: false };
+
+    // Data: Season 1 uses real titles where known; other seasons are placeholders.
+    const s1 = [
+      ['S01E01','Rabbot','30. des. 2000 · 11 min','Dr. Weird builds a Rabbot to solve the world’s vegetable problem; after Steve sprays it with French perfume it escapes the lab.','Watched',100,true],
+      ['S01E02','Escape from Leprechaupolis','11 min','[Episode synopsis]','Up next',35,false],
+      ['S01E03','Bus of the Undead','11 min','[Episode synopsis]','Ready',0,true],
+      ['S01E04','Mayhem of the Mooninites','11 min','[Episode synopsis]','Ready',0,false],
+      ['S01E05','Love Mummy','11 min','[Episode synopsis]','Ready',0,false]
+    ];
+    const ph = (s, n) => Array.from({ length: n }, (_, i) => {
+      const code = (s === 0 ? 'S00' : 'S0' + s) + 'E0' + (i + 1);
+      return [code, '[Episode title]', '11 min', '[Episode synopsis]', 'Ready', 0, false];
+    });
+    const seasonDefs = [
+      { n: 1, label: 'Season 1', sub: '1 of 18 watched', pct: '6%', eps: s1 },
+      { n: 2, label: 'Season 2', sub: '0 of [n] watched', pct: '0%', eps: ph(2, 3) },
+      { n: 3, label: 'Season 3', sub: '0 of [n] watched', pct: '0%', eps: ph(3, 3) },
+      { n: 4, label: 'Season 4', sub: '0 of [n] watched', pct: '0%', eps: ph(4, 3) },
+      { n: 5, label: 'Season 5', sub: airing ? '0 of 3 watched · 1 upcoming' : '0 of [n] watched', pct: '0%', eps: ph(5, 3), upcoming: true },
+      { n: 0, label: 'Specials', sub: '0 of [n] watched', pct: '0%', eps: ph(0, 2) }
+    ];
+
+    const set = (patch) => this.setState({ selecting, season, sel, open, ...patch });
+    const has = (c) => sel.indexOf(c) !== -1;
+    const visible = season === 'all' ? seasonDefs : seasonDefs.filter(d => d.n === season);
+
+    const pill = 'height: 40px; padding: 0 16px; border-radius: 999px; font: 600 14px Manrope, sans-serif; ';
+    const pillDefs = [{ key: 'all', label: 'All seasons' }].concat(seasonDefs.map(d => ({ key: d.n, label: d.label })));
+    const seasons = pillDefs.map(p => {
+      const on = p.key === season;
+      return { label: p.label, on,
+        pick: () => set({ season: p.key, open: p.key === 'all' ? open : { ...open, [p.key]: true } }),
+        style: pill + (on ? 'background: #eef1f4; color: #12161c; border: 0' : 'background: transparent; color: #c9d0d8; border: 1px solid #2b323d') };
+    });
+
+    const groups = visible.map(d => {
+      const codes = d.eps.map(r => r[0]);
+      const allSel = codes.every(has);
+      const isOpen = season !== 'all' || !!open[d.n];
+      const eps = d.eps.map(([code,title,meta,syn,state,p,offline]) => {
+        const up = state === 'Up next';
+        const checked = has(code);
+        let bg = 'background: transparent';
+        if (selecting && checked) bg = 'background: rgba(52,191,174,.10); box-shadow: inset 0 0 0 1px rgba(52,191,174,.55)';
+        else if (!selecting && up) bg = 'background: rgba(52,191,174,.08); box-shadow: inset 0 0 0 1px rgba(52,191,174,.45)';
+        return { code, title, meta, syn, state, offline, selecting, checked,
+          hasProgress: p > 0, pct: p + '%',
+          toggle: () => set({ sel: checked ? sel.filter(c => c !== code) : sel.concat(code) }),
+          rowStyle: 'display: flex; flex-wrap: wrap; gap: 20px; align-items: center; padding: 12px; border-radius: 14px; ' + (selecting ? 'cursor: pointer; ' : '') + bg,
+          chipStyle: 'font-size: 13px; font-weight: 700; padding: 6px 12px; border-radius: 999px; ' + (up ? 'background: ' + accent + '; color: #06201d' : state === 'Watched' ? 'background: #222833; color: #a3adb9' : 'background: transparent; color: #c9d0d8; border: 1px solid #3a424e') };
+      });
+      return { label: d.label, sub: d.sub, pct: d.pct, eps, allSel, selecting, notSelecting: !selecting,
+        hasUpcoming: airing && !!d.upcoming,
+        open: isOpen,
+        chevron: isOpen ? '' : 'transform: rotate(-90deg)',
+        toggleOpen: () => set({ open: { ...open, [d.n]: !open[d.n] } }),
+        toggleAll: () => set({ sel: allSel ? sel.filter(c => codes.indexOf(c) === -1) : sel.concat(codes.filter(c => !has(c))) }) };
+    });
+
+    const allVisibleCodes = visible.reduce((acc, d) => acc.concat(d.eps.map(r => r[0])), []);
+    const ini = (n) => n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const cast = [['Dana Snyder','Master Shake'],['Carey Means','Frylock'],['Dave Willis','Meatwad / Carl'],['C. Martin Croker','Dr. Weird / Steve'],['Schoolly D','Narrator'],['Andy Merrill','Oglethorpe / Merle'],['Mike Schatz','Emory']].map(([name, role]) => ({ name, role, ini: ini(name) }));
+    return { accent, facts, seasons, groups, cast,
+      airing, countdown, countdownShort, airDate, statusLabel: airing ? 'Returning series' : 'Ended',
+      selecting, notSelecting: !selecting, selCount: sel.length,
+      startSelect: () => set({ selecting: true }),
+      stopSelect: () => set({ selecting: false, sel: [] }),
+      clearSel: () => set({ sel: [] }),
+      selectAllVisible: () => set({ sel: sel.concat(allVisibleCodes.filter(c => !has(c))) }) };
+  }
+}
+mountDC(Component, {"accent": "#34bfae", "startSelecting": false, "airing": true});
+</script>
+</body>
+</html>

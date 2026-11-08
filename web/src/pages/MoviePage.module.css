@@ -1,0 +1,151 @@
+.split {
+  position: relative;
+  display: inline-flex;
+  border-radius: var(--radius-pill);
+  background: var(--accent);
+}
+
+.splitPlay,
+.splitCaret {
+  display: inline-flex;
+  align-items: center;
+  min-height: 54px;
+  border: 0;
+  background: transparent;
+  color: var(--accent-ink);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.splitPlay {
+  gap: 10px;
+  padding: 0 22px 0 26px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.splitPlay:hover {
+  color: var(--accent-ink);
+}
+
+.splitCaret {
+  gap: 6px;
+  padding: 0 16px;
+  border-left: 1px solid color-mix(in srgb, var(--accent-ink) 25%, transparent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.menu {
+  position: absolute;
+  z-index: 2;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 280px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border-control);
+  border-radius: var(--radius-card);
+  background: var(--surface-raised);
+  box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
+}
+
+.menuItem {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  min-height: var(--touch-target);
+  padding: 0 12px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItem:hover,
+.menuItem[aria-checked='true'] {
+  background: var(--border-control);
+}
+
+.version {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+}
+
+label.version {
+  cursor: pointer;
+}
+
+.on {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+}
+
+.radio {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--accent);
+}
+
+.versionText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.versionName {
+  font-size: 16px;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--state-neutral-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.size {
+  flex: none;
+  font-size: 14px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.gone {
+  font-size: 13.5px;
+  color: var(--state-missing-text);
+}
+
+.path {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}

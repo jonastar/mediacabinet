@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Episode · Media Cabinet mockup</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#12161c}
+a{color:#5fd3c4}a:hover{color:#8fe3d8}
+.ph{background-color:#1d232c;background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 1px,transparent 1px 14px)}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="tpl">
+<div style="font-family: Manrope, system-ui, sans-serif; color: #eef1f4; background: #12161c; min-height: 100vh; position: relative">
+  <div class="ph" style="position: absolute; left: 0; right: 0; top: 0; height: 440px"><span style="position: absolute; right: 40px; top: 96px; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #7d8794">Series backdrop</span></div>
+  <div style="position: absolute; left: 0; right: 0; top: 0; height: 440px; background: linear-gradient(180deg, rgba(18,22,28,.4) 0%, rgba(18,22,28,.8) 55%, #12161c 100%)"></div>
+
+  <div style="position: relative; max-width: 1280px; margin: 0 auto; padding: 24px 40px 80px; display: flex; flex-direction: column; gap: 56px">
+    <div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+      <a href="#" style="display: inline-flex; align-items: center; gap: 8px; color: #eef1f4; text-decoration: none; font-weight: 600; font-size: 15px; padding: 10px 14px; border-radius: 999px; background: rgba(26,31,39,.7)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>Aqua Teen Hunger Force</a>
+      <button role="switch" aria-checked="false" style="display: inline-flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 10px; border-radius: 999px; border: 0; background: rgba(26,31,39,.7); color: #eef1f4; font: 600 14px Manrope, sans-serif">
+        <span style="width: 36px; height: 22px; border-radius: 999px; background: #3a424e; position: relative; display: inline-block"><span style="position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 999px; background: #eef1f4"></span></span>Edit mode</button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 48px; align-items: flex-start; margin-top: 96px">
+      <div style="flex: none; display: flex; flex-direction: column; gap: 14px; width: 360px">
+        <div class="ph" style="width: 360px; height: 203px; border-radius: 14px; position: relative; display: grid; place-items: center; box-shadow: 0 28px 56px rgba(0,0,0,.5); border: 1px solid #2b323d">
+          <span style="position: absolute; left: 12px; top: 10px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #7d8794">Still</span>
+          <button aria-label="Play S01E01" style="width: 60px; height: 60px; border-radius: 999px; border: 0; background: rgba(238,241,244,.95); color: #12161c; display: grid; place-items: center"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4l13 8-13 8z"/></svg></button>
+          <div style="position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: {{accent}}; border-radius: 0 0 14px 14px"></div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 14px; background: #1a1f27; border: 1px solid #2b323d">
+          <sc-for list="{{facts}}" as="f" hint-placeholder-count="6">
+            <div style="display: flex; justify-content: space-between; gap: 12px; font-size: 14px"><span style="color: #a3adb9">{{f.k}}</span><span style="font-weight: 600; text-align: right">{{f.v}}</span></div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex: 999 1 480px; min-width: 0; display: flex; flex-direction: column; gap: 18px">
+        <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap">
+          <a href="#" style="font-size: 13px; font-weight: 800; letter-spacing: .06em; text-decoration: none; color: #c9d0d8">SEASON 1 · EPISODE 1</a>
+          <span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #222833; color: #c9d0d8; display: inline-flex; gap: 6px; align-items: center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>Watched</span>
+        </div>
+        <h1 style="margin: 0; font-size: 72px; line-height: .98; font-weight: 800; letter-spacing: -.03em">Rabbot</h1>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center; font-size: 15px; color: #c9d0d8">
+          <span>30. des. 2000</span><span aria-hidden="true">·</span><span>11 min</span>
+          <span style="font-size: 12px; font-weight: 700; padding: 4px 8px; border: 1px solid #4a5361; border-radius: 6px; color: #eef1f4">TV-14</span>
+          <span style="color: #eef1f4"><b>7.0</b> TMDB</span>
+        </div>
+        <p style="margin: 0; max-width: 680px; font-size: 16px; line-height: 1.6; color: #c9d0d8">Dr. Weird proclaims he has obtained the funds to build a Rabbot to solve the world’s “vegetable problem”. Dr. Weird tells Steve to spray it in the eyes with French perfume and after the spraying, the Rabbot gets annoyed and escapes the lab.</p>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center">
+          <button style="height: 54px; padding: 0 26px; border-radius: 999px; border: 0; background: {{accent}}; color: #06201d; font: 700 16px Manrope, sans-serif; display: inline-flex; align-items: center; gap: 10px"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M6 4l14 8-14 8z"/></svg>Play again</button>
+          <button style="height: 54px; padding: 0 22px; border-radius: 999px; border: 1px solid #3a424e; background: transparent; color: #eef1f4; font: 600 15px Manrope, sans-serif">Mark unwatched</button>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 20px">
+          <h2 style="margin: 0; font-size: 22px; font-weight: 700">Up next</h2>
+          <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+            <div style="padding: 14px 16px; border-radius: 14px; border: 1px dashed #2b323d; display: flex; flex-direction: column; gap: 2px; justify-content: center; color: #7d8794">
+              <span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em">Previous</span>
+              <span style="font-size: 14px">First episode</span>
+            </div>
+            <a href="#" style="padding: 12px; border-radius: 14px; background: #1f252e; border: 1px solid {{accent}}; display: flex; align-items: center; gap: 14px; text-decoration: none; color: #eef1f4">
+              <span class="ph" style="width: 112px; height: 63px; border-radius: 8px; flex: none"></span>
+              <span style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: {{accent}}">Next · S01E02</span><span style="font-size: 15px; font-weight: 700">Escape from Leprechaupolis</span></span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 16px">
+      <div style="display: flex; justify-content: space-between; align-items: baseline; gap: 12px">
+        <h2 style="margin: 0; font-size: 24px; font-weight: 700">More from Season 1</h2>
+        <span style="font-size: 14px; color: #a3adb9">1 of 18 watched</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px">
+        <sc-for list="{{eps}}" as="e" hint-placeholder-count="6">
+          <div style="display: flex; flex-direction: column; gap: 8px">
+            <div class="ph" style="{{e.thumb}}"><span style="font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: #7d8794">{{e.tag}}</span></div>
+            <span style="font-size: 12px; font-weight: 700; color: #a3adb9">{{e.code}}</span>
+            <span style="font-size: 15px; font-weight: 600; line-height: 1.3">{{e.title}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 40px">
+      <div style="flex: 1 1 360px; display: flex; flex-direction: column; gap: 16px">
+        <h2 style="margin: 0; font-size: 24px; font-weight: 700">Main cast</h2>
+        <sc-for list="{{main}}" as="c" hint-placeholder-count="3">
+          <div style="display: flex; gap: 14px; align-items: center">
+            <div style="width: 56px; height: 56px; border-radius: 999px; background: #243241; color: #cfd8e3; display: grid; place-items: center; font-weight: 800; font-size: 17px; flex: none">{{c.ini}}</div>
+            <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0"><span style="font-size: 16px; font-weight: 700">{{c.name}}</span><span style="font-size: 14px; color: #a3adb9">{{c.role}}</span></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="flex: 2 1 480px; display: flex; flex-direction: column; gap: 16px">
+        <h2 style="margin: 0; font-size: 24px; font-weight: 700">Also in this episode</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px 20px">
+          <sc-for list="{{guests}}" as="c" hint-placeholder-count="6">
+            <div style="display: flex; gap: 12px; align-items: center">
+              <div style="width: 44px; height: 44px; border-radius: 999px; background: #222833; color: #c9d0d8; display: grid; place-items: center; font-weight: 800; font-size: 14px; flex: none">{{c.ini}}</div>
+              <div style="display: flex; flex-direction: column; min-width: 0"><span style="font-size: 15px; font-weight: 600">{{c.name}}</span><span style="font-size: 13px; color: #a3adb9; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{c.role}}</span></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</template>
+<script src="dc-lite.js"></script>
+<script>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#34bfae';
+    const facts = [
+      { k: 'Aired', v: '30. des. 2000' },
+      { k: 'Runtime', v: '11 min' },
+      { k: 'Aired order', v: 'S01E01' },
+      { k: 'DVD order', v: '[S·E]' },
+      { k: 'Absolute', v: '1' },
+      { k: 'File', v: '1080p · H.264' }
+    ];
+    const titles = ['Rabbot','Escape from Leprechaupolis','Bus of the Undead','Mayhem of the Mooninites','Love Mummy','Circus'];
+    const eps = titles.map((title, i) => ({
+      title, code: 'S01E0' + (i + 1) + (i === 0 ? ' · Now viewing' : i === 1 ? ' · Up next' : ''),
+      tag: i === 0 ? 'Current' : 'Still',
+      thumb: 'aspect-ratio: 16 / 9; border-radius: 10px; display: grid; place-items: center; ' + (i === 0 ? 'box-shadow: 0 0 0 2px ' + accent : '')
+    }));
+    const ini = (n) => n.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase();
+    const main = [['Dana Snyder','Master Shake'],['Carey Means','Frylock'],['Dave Willis','Meatwad / Carl']].map(([name,role]) => ({ name, role, ini: ini(name) }));
+    const guests = [['Mike Schatz','Emory'],['Andy Merrill','Oglethorpe / Merle'],['Schoolly D','Narrator'],['Matt Maiellaro','Err'],['C. Martin Croker','Dr. Weird / Steve'],['Natasha Leggero','Computer Technician']].map(([name,role]) => ({ name, role, ini: ini(name) }));
+    return { accent, facts, eps, main, guests };
+  }
+}
+mountDC(Component, {"accent": "#34bfae"});
+</script>
+</body>
+</html>

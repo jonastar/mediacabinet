@@ -22,12 +22,13 @@ import { Link } from '../components/Link'
 import { ActivityList } from '../components/ActivityFeed'
 import { useUser } from '../lib/session'
 import styles from './HomePage.module.css'
+import { LOCALE } from '../core/locale'
 
 const RAIL_LIMIT = 12
 const UP_NEXT_LIMIT = 3
 const ADDED_LIMIT = 6
 
-const headerDate = new Intl.DateTimeFormat(undefined, {
+const headerDate = new Intl.DateTimeFormat(LOCALE, {
   weekday: 'long',
   day: 'numeric',
   month: 'long',
@@ -85,13 +86,11 @@ export function HomePage() {
   return (
     <div className={styles.page}>
       <Header />
-      {(data.keep_watching.length > 0 || data.coming_up.length > 0) && (
-        <div className={styles.columns}>
-          <UpNext home={data} />
-          <ThisWeek home={data} />
-        </div>
-      )}
-      <RecentlyAdded home={data} />
+      {data.coming_up.length > 0 && <ThisWeek home={data} />}
+      <div className={styles.columns}>
+        <UpNext home={data} />
+        <RecentlyAdded home={data} />
+      </div>
       <FriendsWatching />
       {data.movies.length > 0 && (
         <section aria-labelledby="home-movies" className={styles.section}>
@@ -177,7 +176,7 @@ function backdropOf(home: Home, seriesId: number) {
 function UpNext({ home }: { home: Home }) {
   const [first, ...rest] = home.keep_watching
   return (
-    <section aria-labelledby="home-up-next" className={styles.section}>
+    <section aria-labelledby="home-up-next" className={`${styles.section} ${styles.upNext}`}>
       <div className={styles.sectionHead}>
         <h2 id="home-up-next">Up next</h2>
       </div>
@@ -260,6 +259,7 @@ function UpNextRow({ item: c, home }: { item: ContinueItem; home: Home }) {
   )
 }
 
+/** What airs in the next seven days, as a strip across the top. */
 function ThisWeek({ home }: { home: Home }) {
   return (
     <section aria-labelledby="home-week" className={styles.section}>
@@ -269,31 +269,27 @@ function ThisWeek({ home }: { home: Home }) {
           Calendar
         </Link>
       </div>
-      {home.coming_up.length === 0 ? (
-        <p className={styles.muted}>Nothing airing in the next seven days.</p>
-      ) : (
-        <ul className={styles.week}>
-          {home.coming_up.map((u) => {
-            const day = airDayTile(u.episode.airs_at ?? 0, u.episode.airs_time_known)
-            return (
-              <li key={u.episode.item_id}>
-                <Link to={`/tv/${u.series_id}/${u.episode.item_id}`} className={styles.weekRow}>
-                  <span className={`${styles.day} ${day.today ? styles.today : ''}`}>
-                    <small>{day.label}</small>
-                    <b>{day.day}</b>
+      <ul className={styles.week}>
+        {home.coming_up.map((u) => {
+          const day = airDayTile(u.episode.airs_at ?? 0, u.episode.airs_time_known)
+          return (
+            <li key={u.episode.item_id}>
+              <Link to={`/tv/${u.series_id}/${u.episode.item_id}`} className={styles.weekRow}>
+                <span className={`${styles.day} ${day.today ? styles.today : ''}`}>
+                  <small>{day.label}</small>
+                  <b>{day.day}</b>
+                </span>
+                <span className={styles.stack}>
+                  <b>{u.series_title}</b>
+                  <span className={styles.muted}>
+                    {episodeLabel(u.episode.number)} · {u.episode.title}
                   </span>
-                  <span className={styles.stack}>
-                    <b>{u.series_title}</b>
-                    <span className={styles.muted}>
-                      {episodeLabel(u.episode.number)} · {u.episode.title}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
-      )}
+                </span>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
     </section>
   )
 }
@@ -333,14 +329,14 @@ function RecentlyAdded({ home }: { home: Home }) {
     return null
   }
   return (
-    <section aria-labelledby="home-added" className={styles.section}>
+    <section aria-labelledby="home-added" className={`${styles.section} ${styles.addedSection}`}>
       <div className={styles.sectionHead}>
         <h2 id="home-added">Recently added</h2>
         <Link to="/activity" className={styles.seeAll}>
           Activity
         </Link>
       </div>
-      <div className={`${styles.rail} ${styles.posterRail}`}>
+      <div className={styles.addedGrid}>
         {additions.map(({ item, at, episodes }) => {
           const movie = item.kind === 'movie'
           const summary = movie

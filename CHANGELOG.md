@@ -13,6 +13,7 @@ The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
 - Home is laid out as rails: Up next as smaller stills, a day-by-day This week strip from yesterday on (`recently_aired` in `GET /api/home`), then Recently added; Up next only names the ordering when it isn't the default (`view_name`).
+- The calendar is a month grid you can page through, with the picked day's episodes below it; a List view shows the month day by day.
 - Pages fade in as you move between them, and a slow load fades in the logo in place of "Loading…".
 - Dates, numbers and language names are in English to match the wording, keeping an English browser locale's conventions.
 - Series, movie and episode pages have a new shared layout with a facts card, collapsible seasons, Select mode for marking many episodes, next-episode countdowns, a version picker and a breadcrumb back through library, series and season; admins' Details toggle is now Edit mode, with a dense episode table.

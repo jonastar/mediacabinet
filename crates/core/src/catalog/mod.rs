@@ -18,6 +18,9 @@ pub use rules::Availability;
 
 /// Episodes airing within this window count as "coming up".
 const COMING_UP_SECONDS: i64 = 7 * 24 * 3600;
+/// Episodes that aired within this window count as "recently aired": long enough
+/// to hold yesterday in any time zone, so clients can pick out their own.
+const RECENTLY_AIRED_SECONDS: i64 = 2 * 24 * 3600;
 /// Files first seen within this window make an episode "new".
 const NEW_SECONDS: i64 = 7 * 24 * 3600;
 /// Custom statuses that mean an external tool is working on an item.
@@ -305,6 +308,8 @@ pub struct Home {
     pub hero: Option<ContinueItem>,
     pub keep_watching: Vec<ContinueItem>,
     pub coming_up: Vec<ComingUp>,
+    /// Episodes that aired in the last two days, oldest first.
+    pub recently_aired: Vec<ComingUp>,
     pub shows: Vec<SeriesSummary>,
     pub movies: Vec<movies::MovieSummary>,
     pub attention: Attention,
@@ -1063,6 +1068,7 @@ pub async fn home(pool: &SqlitePool, user: Option<i64>, now: i64) -> Result<Home
     let mut shows = Vec::new();
     let mut keep_watching = Vec::new();
     let mut coming_up = Vec::new();
+    let mut recently_aired = Vec::new();
     let mut attention = Attention::default();
 
     for id in series_ids(&mut conn, None).await? {
@@ -1105,15 +1111,21 @@ pub async fn home(pool: &SqlitePool, user: Option<i64>, now: i64) -> Result<Home
         }
 
         for e in loaded.episodes.values() {
-            if e.airs_at
-                .is_some_and(|t| t > now && t <= now + COMING_UP_SECONDS)
-            {
-                coming_up.push(ComingUp {
-                    series_id: id,
-                    series_title: loaded.series.title.clone(),
-                    episode: loaded.episode_ref(e, numbers.get(&e.id).cloned()),
-                });
-            }
+            let Some(t) = e.airs_at else {
+                continue;
+            };
+            let list = if t > now && t <= now + COMING_UP_SECONDS {
+                &mut coming_up
+            } else if t <= now && t > now - RECENTLY_AIRED_SECONDS {
+                &mut recently_aired
+            } else {
+                continue;
+            };
+            list.push(ComingUp {
+                series_id: id,
+                series_title: loaded.series.title.clone(),
+                episode: loaded.episode_ref(e, numbers.get(&e.id).cloned()),
+            });
         }
 
         // Gaps are counted in the default ordering, the same for every user.
@@ -1135,6 +1147,7 @@ pub async fn home(pool: &SqlitePool, user: Option<i64>, now: i64) -> Result<Home
 
     keep_watching.sort_by_key(|c| std::cmp::Reverse(c.last_played_at));
     coming_up.sort_by_key(|c| (c.episode.airs_at, c.episode.item_id));
+    recently_aired.sort_by_key(|c| (c.episode.airs_at, c.episode.item_id));
 
     attention.review =
         sqlx::query_scalar("SELECT count(*) FROM match_candidate WHERE state = 'pending'")
@@ -1175,6 +1188,7 @@ pub async fn home(pool: &SqlitePool, user: Option<i64>, now: i64) -> Result<Home
         hero: keep_watching.first().cloned(),
         keep_watching,
         coming_up,
+        recently_aired,
         shows,
         attention,
     })

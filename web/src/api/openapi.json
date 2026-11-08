@@ -7608,6 +7608,7 @@
         "required": [
           "keep_watching",
           "coming_up",
+          "recently_aired",
           "shows",
           "movies",
           "attention"
@@ -7644,6 +7645,13 @@
             "items": {
               "$ref": "#/components/schemas/MovieSummary"
             }
+          },
+          "recently_aired": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ComingUp"
+            },
+            "description": "Episodes that aired in the last two days, oldest first."
           },
           "shows": {
             "type": "array",

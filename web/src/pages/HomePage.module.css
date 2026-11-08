@@ -10,17 +10,12 @@
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
 }
 
-.greeting {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 .eyebrow {
+  margin: 0;
   font-size: 13px;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -28,18 +23,9 @@
   color: var(--text-muted);
 }
 
-.title {
-  margin: 0;
-  font-size: clamp(32px, 5vw, 42px);
-  font-weight: 800;
-  line-height: 1.05;
-  letter-spacing: -0.03em;
-}
-
 .searchForm {
   flex: 0 1 320px;
   min-width: 0;
-  margin-bottom: 4px;
 }
 
 .search {
@@ -52,21 +38,6 @@
   color: var(--text);
   font: inherit;
   font-size: 14px;
-}
-
-.columns {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 48px 32px;
-  align-items: flex-start;
-}
-
-.upNext {
-  flex: 3 1 520px;
-}
-
-.addedSection {
-  flex: 2 1 340px;
 }
 
 .section {
@@ -93,107 +64,55 @@
   font-weight: 600;
 }
 
-.card {
-  display: flex;
-  flex-wrap: wrap;
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  overflow: hidden;
+.upNextRail > * {
+  flex: 0 0 210px;
 }
 
-.cardArt {
-  flex: 1 1 320px;
-  aspect-ratio: 16 / 9;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.cardBody {
-  flex: 1 1 240px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 8px;
-  padding: 22px 24px 24px;
-}
-
-.cardTitle {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 8px;
-}
-
-.primary,
-.secondary {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--touch-target);
-  padding: 0 22px;
-  border-radius: var(--radius-pill);
-  text-decoration: none;
-  font-weight: 700;
-  font-size: 15px;
-}
-
-.primary {
-  background: var(--accent);
-  color: var(--accent-ink);
-}
-
-.primary:hover {
-  color: var(--accent-ink);
-  filter: brightness(1.08);
-}
-
-.secondary {
-  border: 1px solid var(--border-control);
-  color: var(--text);
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px;
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  border: 1px solid var(--border);
-}
-
-.rowLink {
-  flex: 1;
+.upNextCard {
+  position: relative;
   min-width: 0;
+}
+
+.upNextLink {
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: 10px;
   color: var(--text);
   text-decoration: none;
 }
 
-.thumb {
-  flex: 0 0 120px;
+.still {
   aspect-ratio: 16 / 9;
-  border-radius: var(--radius-control);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.upNextLink:hover .still {
+  border-color: var(--border-control);
 }
 
 .play {
-  flex: 0 0 var(--touch-target);
-  height: var(--touch-target);
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--surface-raised);
+  background: rgba(15, 17, 21, 0.75);
   color: var(--text);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.upNextCard:hover .play,
+.play:focus-visible {
+  opacity: 1;
 }
 
 .play:hover {
@@ -202,66 +121,92 @@
 }
 
 .play svg {
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
+}
+
+@media (hover: none) {
+  .play {
+    opacity: 1;
+  }
+}
+
+.clip {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .week {
   list-style: none;
   margin: 0 -48px;
   padding: 0 48px 4px;
-  display: flex;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(8, minmax(104px, 1fr));
+  gap: 8px;
   overflow-x: auto;
   scroll-padding: 0 48px;
 }
 
-.week li {
-  flex: 0 0 auto;
-  max-width: 340px;
-}
-
-.weekRow {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 12px 18px 12px 14px;
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--text);
-  text-decoration: none;
-}
-
-.weekRow:hover {
-  background: var(--surface-raised);
-}
-
-.day {
-  flex: 0 0 44px;
+.weekDay {
+  min-height: 116px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  min-width: 0;
 }
 
-.day small {
+.weekDay.airing {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+}
+
+.weekDay.today {
+  border-color: var(--accent);
+}
+
+.dayLabel {
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--text-muted);
 }
 
-.day b {
-  font-size: 22px;
+.dayLabel b {
+  color: var(--text);
   font-weight: 800;
-  line-height: 1;
 }
 
-.today small {
-  color: var(--accent);
+.weekEpisode {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--text);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.weekEpisode b {
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.weekEpisode span {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.weekEpisode:hover b {
+  color: var(--accent-hover);
 }
 
 .stack {
@@ -294,10 +239,8 @@
   flex: 0 0 170px;
 }
 
-.addedGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 20px 14px;
+.addedRail > * {
+  flex: 0 0 140px;
 }
 
 .added {
@@ -314,6 +257,17 @@
   aspect-ratio: 2 / 3;
   border-radius: 12px;
   padding: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.addedTitle {
+  position: relative;
+  margin-top: auto;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1.15;
 }
 
 .badge {
@@ -353,7 +307,7 @@
     scroll-padding: 0 16px;
   }
 
-  .thumb {
-    flex-basis: 88px;
+  .upNextRail > * {
+    flex-basis: 180px;
   }
 }

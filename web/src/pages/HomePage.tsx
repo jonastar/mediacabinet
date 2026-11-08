@@ -3,6 +3,7 @@ import {
   api,
   artworkUrl,
   type ActivityEntry,
+  type ComingUp,
   type ContinueItem,
   type Home,
   type ItemRef,
@@ -16,7 +17,7 @@ import { CoverImage } from '../components/Artwork'
 import { MoviePoster, Poster } from '../components/Poster'
 import { Progress } from '../components/Progress'
 import { Failed, Loading } from '../components/Status'
-import { ago, airDayTile, episodeLabel, minutesLeft, progress, seriesTone } from '../lib/format'
+import { ago, airDay, episodeLabel, minutesLeft, progress, seriesTone } from '../lib/format'
 import { useMode } from '../lib/prefs'
 import { Link } from '../components/Link'
 import { ActivityList } from '../components/ActivityFeed'
@@ -25,24 +26,13 @@ import styles from './HomePage.module.css'
 import { LOCALE } from '../core/locale'
 
 const RAIL_LIMIT = 12
-const UP_NEXT_LIMIT = 3
-const ADDED_LIMIT = 6
+const ADDED_LIMIT = 12
 
 const headerDate = new Intl.DateTimeFormat(LOCALE, {
   weekday: 'long',
   day: 'numeric',
   month: 'long',
 })
-
-function greeting(hour: number) {
-  if (hour < 5) {
-    return 'Good night'
-  }
-  if (hour < 12) {
-    return 'Good morning'
-  }
-  return hour < 18 ? 'Good afternoon' : 'Good evening'
-}
 
 function episodeLine(c: ContinueItem) {
   return `${episodeLabel(c.episode.number)} · ${c.episode.title}`
@@ -86,11 +76,9 @@ export function HomePage() {
   return (
     <div className={styles.page}>
       <Header />
-      {data.coming_up.length > 0 && <ThisWeek home={data} />}
-      <div className={styles.columns}>
-        <UpNext home={data} />
-        <RecentlyAdded home={data} />
-      </div>
+      <UpNext home={data} />
+      <ThisWeek home={data} />
+      <RecentlyAdded home={data} />
       <FriendsWatching />
       {data.movies.length > 0 && (
         <section aria-labelledby="home-movies" className={styles.section}>
@@ -137,10 +125,7 @@ function Header() {
   const [now] = useState(() => new Date())
   return (
     <header className={styles.header}>
-      <div className={styles.greeting}>
-        <span className={styles.eyebrow}>{headerDate.format(now)}</span>
-        <h1 className={styles.title}>{greeting(now.getHours())}</h1>
-      </div>
+      <h1 className={styles.eyebrow}>{headerDate.format(now)}</h1>
       <form
         role="search"
         className={styles.searchForm}
@@ -172,21 +157,19 @@ function backdropOf(home: Home, seriesId: number) {
   return show ? artworkUrl(show, 'backdrop') : null
 }
 
-/** The episode to carry on with as a large card, then the next few as rows. */
+/** The next episode of each series in progress, most recently watched first. */
 function UpNext({ home }: { home: Home }) {
-  const [first, ...rest] = home.keep_watching
   return (
-    <section aria-labelledby="home-up-next" className={`${styles.section} ${styles.upNext}`}>
+    <section aria-labelledby="home-up-next" className={styles.section}>
       <div className={styles.sectionHead}>
         <h2 id="home-up-next">Up next</h2>
       </div>
-      {first ? (
-        <>
-          <UpNextCard item={first} home={home} />
-          {rest.slice(0, UP_NEXT_LIMIT).map((c) => (
-            <UpNextRow key={c.series_id} item={c} home={home} />
+      {home.keep_watching.length > 0 ? (
+        <div className={`${styles.rail} ${styles.upNextRail}`}>
+          {home.keep_watching.slice(0, RAIL_LIMIT).map((c) => (
+            <UpNextCard key={c.series_id} item={c} home={home} />
           ))}
-        </>
+        </div>
       ) : (
         <p className={styles.muted}>Nothing in progress. Pick something from your shows below.</p>
       )}
@@ -195,63 +178,34 @@ function UpNext({ home }: { home: Home }) {
 }
 
 function UpNextCard({ item: c, home }: { item: ContinueItem; home: Home }) {
-  const left = minutesLeft(c.episode.runtime_seconds, c.position_seconds)
   return (
-    <div className={styles.card}>
+    <div className={styles.upNextCard}>
       <Link
         to={`/tv/${c.series_id}/${c.episode.item_id}`}
-        className={styles.cardArt}
-        style={{
-          background: heroBackground(backdropOf(home, c.series_id), seriesTone(c.series_title)),
-        }}
+        className={styles.upNextLink}
         aria-label={`${c.series_title} · ${episodeLine(c)}`}
       >
-        <span />
-        <Progress value={progress(c.episode.runtime_seconds, c.position_seconds, false)} />
-      </Link>
-      <div className={styles.cardBody}>
-        <h3 className={styles.cardTitle}>{c.series_title}</h3>
-        <p className={styles.muted}>
-          {[episodeLine(c), left ? `${left} min left` : null, c.view_name]
-            .filter(Boolean)
-            .join(' · ')}
-        </p>
-        <div className={styles.actions}>
-          <Link to={`/play/${c.episode.item_id}`} className={styles.primary}>
-            {c.position_seconds > 0 ? 'Resume' : 'Play'}
-          </Link>
-          <Link to={`/tv/${c.series_id}`} className={styles.secondary}>
-            Episodes
-          </Link>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function UpNextRow({ item: c, home }: { item: ContinueItem; home: Home }) {
-  return (
-    <div className={styles.row}>
-      <Link to={`/tv/${c.series_id}/${c.episode.item_id}`} className={styles.rowLink}>
         <span
-          className={styles.thumb}
+          className={styles.still}
           style={{
             background: heroBackground(backdropOf(home, c.series_id), seriesTone(c.series_title)),
           }}
-        />
+        >
+          <Progress value={progress(c.episode.runtime_seconds, c.position_seconds, false)} />
+        </span>
         <span className={styles.stack}>
-          <b>{c.series_title}</b>
-          <span className={styles.muted}>
+          <b className={styles.clip}>{c.series_title}</b>
+          <span className={`${styles.muted} ${styles.clip}`}>
             {[episodeLine(c), leftLine(c), c.view_name].filter(Boolean).join(' · ')}
           </span>
         </span>
       </Link>
-      {/* Beside the row's link rather than in it: playing skips the episode page. */}
+      {/* Beside the card's link rather than in it: playing skips the episode page. */}
       <Link
         to={`/play/${c.episode.item_id}`}
         className={styles.play}
-        aria-label={`Play ${c.series_title} ${episodeLine(c)}`}
-        title="Play"
+        aria-label={`${c.position_seconds > 0 ? 'Resume' : 'Play'} ${c.series_title} ${episodeLine(c)}`}
+        title={c.position_seconds > 0 ? 'Resume' : 'Play'}
       >
         <PlayIcon />
       </Link>
@@ -259,8 +213,30 @@ function UpNextRow({ item: c, home }: { item: ContinueItem; home: Home }) {
   )
 }
 
-/** What airs in the next seven days, as a strip across the top. */
+const WEEK_DAYS = 8
+const DAY_MS = 24 * 3600 * 1000
+const weekdayShort = new Intl.DateTimeFormat(LOCALE, { weekday: 'short' })
+
+/** Yesterday, today and the six days after, each with what airs that day. */
+function weekDays(home: Home, now: Date) {
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1)
+  const days = Array.from({ length: WEEK_DAYS }, (_, i) => {
+    const date = new Date(start.getTime() + i * DAY_MS + 12 * 3600 * 1000)
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    return { date: day, today: i === 1, episodes: [] as ComingUp[] }
+  })
+  const byDay = new Map(days.map((d) => [d.date.toDateString(), d]))
+  for (const u of [...home.recently_aired, ...home.coming_up]) {
+    const date = airDay(u.episode.airs_at ?? 0, u.episode.airs_time_known)
+    byDay.get(date.toDateString())?.episodes.push(u)
+  }
+  return days
+}
+
+/** What aired yesterday and airs over the coming week, a column per day. */
 function ThisWeek({ home }: { home: Home }) {
+  const [now] = useState(() => new Date())
+  const days = weekDays(home, now)
   return (
     <section aria-labelledby="home-week" className={styles.section}>
       <div className={styles.sectionHead}>
@@ -269,27 +245,35 @@ function ThisWeek({ home }: { home: Home }) {
           Calendar
         </Link>
       </div>
-      <ul className={styles.week}>
-        {home.coming_up.map((u) => {
-          const day = airDayTile(u.episode.airs_at ?? 0, u.episode.airs_time_known)
-          return (
-            <li key={u.episode.item_id}>
-              <Link to={`/tv/${u.series_id}/${u.episode.item_id}`} className={styles.weekRow}>
-                <span className={`${styles.day} ${day.today ? styles.today : ''}`}>
-                  <small>{day.label}</small>
-                  <b>{day.day}</b>
-                </span>
-                <span className={styles.stack}>
-                  <b>{u.series_title}</b>
-                  <span className={styles.muted}>
-                    {episodeLabel(u.episode.number)} · {u.episode.title}
-                  </span>
+      <ol className={styles.week}>
+        {days.map((d) => (
+          <li
+            key={d.date.toDateString()}
+            className={[
+              styles.weekDay,
+              d.today ? styles.today : '',
+              d.episodes.length > 0 ? styles.airing : '',
+            ].join(' ')}
+            aria-current={d.today ? 'date' : undefined}
+          >
+            <span className={styles.dayLabel}>
+              {weekdayShort.format(d.date)} <b>{d.date.getDate()}</b>
+            </span>
+            {d.episodes.map((u) => (
+              <Link
+                key={u.episode.item_id}
+                to={`/tv/${u.series_id}/${u.episode.item_id}`}
+                className={styles.weekEpisode}
+              >
+                <b>{u.series_title}</b>
+                <span>
+                  {episodeLabel(u.episode.number)} · {u.episode.title}
                 </span>
               </Link>
-            </li>
-          )
-        })}
-      </ul>
+            ))}
+          </li>
+        ))}
+      </ol>
     </section>
   )
 }
@@ -329,14 +313,14 @@ function RecentlyAdded({ home }: { home: Home }) {
     return null
   }
   return (
-    <section aria-labelledby="home-added" className={`${styles.section} ${styles.addedSection}`}>
+    <section aria-labelledby="home-added" className={styles.section}>
       <div className={styles.sectionHead}>
         <h2 id="home-added">Recently added</h2>
         <Link to="/activity" className={styles.seeAll}>
           Activity
         </Link>
       </div>
-      <div className={styles.addedGrid}>
+      <div className={`${styles.rail} ${styles.addedRail}`}>
         {additions.map(({ item, at, episodes }) => {
           const movie = item.kind === 'movie'
           const summary = movie
@@ -356,11 +340,9 @@ function RecentlyAdded({ home }: { home: Home }) {
                     {episodes} {episodes === 1 ? 'ep' : 'eps'}
                   </span>
                 )}
+                {!poster && <span className={styles.addedTitle}>{item.title}</span>}
               </span>
-              <span className={styles.stack}>
-                <b>{item.title}</b>
-                <span className={styles.muted}>Added {ago(at)}</span>
-              </span>
+              <span className={styles.muted}>Added {ago(at)}</span>
             </Link>
           )
         })}

@@ -50,7 +50,7 @@ export function airDate(
  * Date-only air times are stored as the end of that day in UTC; step back into
  * the day itself, so time zones west of UTC don't show the next day.
  */
-function airDay(seconds: number, timeKnown: boolean) {
+export function airDay(seconds: number, timeKnown: boolean) {
   if (timeKnown) {
     return date(seconds)
   }

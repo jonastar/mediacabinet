@@ -2587,6 +2587,8 @@ export interface components {
             hero?: components["schemas"]["ContinueItem"] | null;
             keep_watching: components["schemas"]["ContinueItem"][];
             movies: components["schemas"]["MovieSummary"][];
+            /** @description Episodes that aired in the last two days, oldest first. */
+            recently_aired: components["schemas"]["ComingUp"][];
             shows: components["schemas"]["SeriesSummary"][];
         };
         IdentifyFolder: {

@@ -26,6 +26,14 @@ export const TvIcon = () => (
   </svg>
 )
 
+export const RemoteIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" {...line}>
+    <rect x="6.5" y="2.5" width="7" height="15" rx="2.5" />
+    <circle cx="10" cy="7" r="1.5" />
+    <path d="M8.5 11.5h3M8.5 14h3" />
+  </svg>
+)
+
 export const CalendarIcon = () => (
   <svg width="18" height="18" viewBox="0 0 20 20" {...line}>
     <rect x="3" y="4" width="14" height="13" rx="2" />

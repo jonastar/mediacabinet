@@ -12,6 +12,7 @@ Details belong in the commit, docs or API reference.
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
+- TV mode: the TV app is served at `/tv-mode/` for TV browsers and linked from the web UI's sidebar, signed in with your web session.
 - Home is laid out as rails: Up next as smaller stills, a day-by-day This week strip from yesterday on (`recently_aired` in `GET /api/home`), then Recently added; Up next only names the ordering when it isn't the default (`view_name`).
 - The calendar is a month grid you can page through, with the picked day's episodes below it; a List view shows the month day by day.
 - Pages fade in as you move between them, and a slow load fades in the logo in place of "Loading…".

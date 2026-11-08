@@ -22,3 +22,9 @@ export function episodeLine(episode: { number?: EpisodeNumber | null; title: str
   }
   return `${episodeLabel(episode.number)} · ${episode.title}`
 }
+
+/** The season an episode is in, or null when its ordering has no seasons. */
+export const seasonOf = (n: EpisodeNumber | null | undefined): number | null =>
+  n?.style === 'season' ? (n.season ?? null) : null
+
+export const seasonName = (season: number) => (season === 0 ? 'Specials' : `Season ${season}`)

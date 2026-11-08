@@ -14,6 +14,17 @@ export type ServerInfo = Schemas['ServerInfo']
 export type MediaToken = Schemas['MediaToken']
 export type Version = Schemas['Version']
 
+/** Where the server hosts this app for TV browsers, beside the web UI. */
+export const HOSTED_PATH = '/tv-mode/'
+
+/**
+ * Opened from the server at `HOSTED_PATH`, not packaged: the server is this page's
+ * origin, and the web UI's session cookie signs requests in, so there's nothing
+ * to connect or pair.
+ */
+export const hosted =
+  /^https?:$/.test(location.protocol) && location.pathname.indexOf(HOSTED_PATH) === 0
+
 const SERVER_KEY = 'mc-server'
 const TOKEN_KEY = 'mc-token'
 
@@ -37,8 +48,8 @@ function write(key: string, value: string | null) {
   }
 }
 
-let server = read(SERVER_KEY)
-let token = read(TOKEN_KEY)
+let server = hosted ? location.origin : read(SERVER_KEY)
+let token = hosted ? null : read(TOKEN_KEY)
 let media: MediaToken | null = null
 let onSignedOut = () => {}
 
@@ -79,15 +90,16 @@ async function send(method: string, path: string, body?: unknown, base = server)
   if (body !== undefined) {
     headers['content-type'] = 'application/json'
   }
-  if (token) {
-    headers.authorization = `Bearer ${token}`
+  const auth = authorization()
+  if (auth) {
+    headers.authorization = auth
   }
   const res = await fetch(`${base}${path}`, {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),
   })
-  if (res.status === 401 && token) {
+  if (res.status === 401 && (token || hosted)) {
     session.setToken(null)
     onSignedOut()
   }
@@ -149,6 +161,11 @@ export const api = {
   signOut: () => call('post', '/api/auth/logout'),
   /** Subtitles as WebVTT, from the URL in a play plan. */
   subtitles: (url: string) => send('GET', url).then((res) => res.text()),
+}
+
+/** The bearer header for what can send one; hosted, the cookie goes instead. */
+export function authorization(): string | null {
+  return token ? `Bearer ${token}` : null
 }
 
 /** A media token that's still good for a while; for what can't send a header. */

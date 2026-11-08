@@ -5,14 +5,22 @@ WORKDIR /src/web
 RUN corepack enable
 COPY web/package.json web/pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
+# The TV app, which the server also hosts at /tv-mode/. It builds here because the
+# core it shares takes its types from web/node_modules. Run from web/, pnpm is the
+# version web/package.json pins.
+COPY players/web/package.json players/web/pnpm-lock.yaml players/web/pnpm-workspace.yaml ../players/web/
+RUN pnpm --dir ../players/web install --frozen-lockfile
 COPY web/ ./
 RUN pnpm build
+COPY players/web/ ../players/web/
+RUN pnpm --dir ../players/web build
 
 FROM rust:1.97-bookworm AS server
 WORKDIR /src
 COPY Cargo.toml Cargo.lock ./
 COPY crates crates
 COPY --from=web /src/web/dist web/dist
+COPY --from=web /src/players/web/dist players/web/dist
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/src/target \
     cargo build --release --locked -p media-cabinet \

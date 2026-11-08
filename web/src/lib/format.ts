@@ -4,6 +4,7 @@ import { bytes, resolution } from '../core/labels'
 import { LOCALE } from '../core/locale'
 
 export { episodeLabel } from '../core/episode'
+export { minutesLeft, progress } from '../core/progress'
 export { bytes, resolution }
 
 const dateFormat = new Intl.DateTimeFormat(LOCALE, {
@@ -76,23 +77,6 @@ export const shortDay = (seconds: number) => dayFormat.format(date(seconds))
 export const dayTimeLabel = (seconds: number) => dayTimeFormat.format(date(seconds))
 export const weekday = (seconds: number) => weekdayFormat.format(date(seconds))
 export const time = (seconds: number) => timeFormat.format(date(seconds))
-
-export function minutesLeft(runtime: number | null | undefined, position: number): number | null {
-  if (!runtime || position <= 0) {
-    return null
-  }
-  return Math.max(1, Math.round((runtime - position) / 60))
-}
-
-export function progress(runtime: number | null | undefined, position: number, played: boolean) {
-  if (played) {
-    return 1
-  }
-  if (!runtime || position <= 0) {
-    return 0
-  }
-  return Math.min(1, position / runtime)
-}
 
 const CODECS: Record<string, string> = { hevc: 'HEVC', h264: 'H.264', av1: 'AV1', vp9: 'VP9' }
 const HDR: Record<string, string> = { hdr10: 'HDR10', hlg: 'HLG', dolby_vision: 'Dolby Vision' }

@@ -9,6 +9,8 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': 'http://127.0.0.1:8420',
+      // The TV app (players/web), which the server hosts from its build.
+      '/tv-mode': 'http://127.0.0.1:8420',
     },
   },
 })

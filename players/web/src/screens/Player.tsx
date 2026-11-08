@@ -6,7 +6,15 @@ import { PlaybackSession } from '@core/session'
 import { parseVtt, textAt, type Cue } from '@core/subtitles'
 import { subtitleUrl, type PlayChoice } from '@core/tracks'
 import type { Screen } from '../App'
-import { api, mediaToken, mediaUrl, session as signIn, sessionApi, type Version } from '../api'
+import {
+  api,
+  authorization,
+  mediaToken,
+  mediaUrl,
+  session as signIn,
+  sessionApi,
+  type Version,
+} from '../api'
 import { useBack, useInitialFocus, useKeys, usePointerMove, useRemote } from '../focus'
 import { loadHls } from '../hls'
 import { platform, type RemoteAction } from '../platform'
@@ -140,7 +148,10 @@ export function Player({
       hlsConfig: {
         ...HLS_LIMITS,
         xhrSetup: (xhr) => {
-          xhr.setRequestHeader('Authorization', `Bearer ${signIn.token()}`)
+          const auth = authorization()
+          if (auth) {
+            xhr.setRequestHeader('Authorization', auth)
+          }
         },
       },
       fileUrl: (url) => mediaUrl(url, token),

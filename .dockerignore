@@ -2,5 +2,7 @@ target
 data
 web/node_modules
 web/dist
+players/web/node_modules
+players/web/dist
 media-cabinet-handoff
 .git

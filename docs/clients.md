@@ -40,7 +40,7 @@ web/
 ```
 
 - **A folder per build, not per target.** Six targets come from four builds. Gradle and Xcode each want one root to share code between phone and TV, and iOS and tvOS ship under one app record.
-- **The TV app is its own project in `players/web`.** It has its own dependencies and build settings, so Preact, the legacy plugin and polyfills can't reach the web UI, and web UI CSS can't slip into the TV app. It shares only `web/src/core/`, through an alias, and uses the same lint and format rules. The Docker build copies only `web/`, so the server image doesn't depend on it. `players/tizen` and `players/webos` stay thin.
+- **The TV app is its own project in `players/web`.** It has its own dependencies and build settings, so Preact, the legacy plugin and polyfills can't reach the web UI, and web UI CSS can't slip into the TV app. It shares only `web/src/core/`, through an alias, and uses the same lint and format rules. The Docker build builds it beside the web UI, since the server hosts it at `/tv-mode/` (below). `players/tizen` and `players/webos` stay thin.
 - **The core has no framework or CSS.** It holds the API client, playback session, fallback, capabilities, wording and formatting. A lint rule stops it importing React or CSS, and polyfills load only from the TV app's entry point, so the web UI isn't affected. It has no runtime dependencies either, because its imports would resolve against `web/node_modules` even in a TV build, so each app passes in hls.js. Swift and Kotlin can't use the code, but it's the reference for how playback should behave.
 
 ## Order
@@ -101,7 +101,7 @@ As many as possible, but two separate limits apply: what the stores let a new ap
 - **Older Samsung TVs** that the store can't reach would sideload a `.wgt`, as older TVs do for Jellyfin today. It's a bonus, not a promise.
 - **The LG answer decides the real floor:** Chromium 53 if the store stops at webOS 4, Chromium 38 if it reaches webOS 3.
 - **WebKit models and older** aren't planned. They'd need older flexbox and possibly older-style HLS from the server.
-- **Hosting the build at `/tv` on the server** is worth testing. Any TV could open it in its built-in browser with no install, and being same-origin, cookies would work without CORS. TV browsers can be limited for video and may not capture Back, so it's an extra, not the main route. It would also mean building `players/web` in the Docker image.
+- **The server also hosts the build at `/tv-mode/`** (`/tv` is the web UI's shows), and the web UI links to it as TV mode. Any TV can open it in its built-in browser with no install, and any other window gets the 1920×1080 layout zoomed to fit. Being same-origin, it skips connecting and pairing: the web UI's session cookie signs requests in, and a signed-out visit goes to the web UI to sign in. TV browsers can be limited for video and may not capture Back, so it's an extra, not the main route.
 
 | Model year | Samsung | LG |
 | --- | --- | --- |

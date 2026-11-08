@@ -1,4 +1,5 @@
 import type { Episode } from '../../api/client'
+import { seasonName, seasonOf } from '../../core/episode'
 import {
   EMPTY_TONE,
   ago,
@@ -93,14 +94,13 @@ export interface SeasonGroup {
   views: EpisodeView[]
 }
 
-export const seasonName = (season: number) => (season === 0 ? 'Specials' : `Season ${season}`)
+export { seasonName }
 
 /** Episodes by season in the ordering's order, with specials last. */
 export function groupBySeason(views: EpisodeView[]): SeasonGroup[] {
   const groups = new Map<number | null, SeasonGroup>()
   for (const v of views) {
-    const number = v.episode.number
-    const season = number?.style === 'season' ? (number.season ?? null) : null
+    const season = seasonOf(v.episode.number)
     const group = groups.get(season)
     if (group) {
       group.views.push(v)

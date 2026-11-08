@@ -22,6 +22,8 @@ To reach a server from `pnpm dev`, start it with `CABINET_CORS_ORIGINS=http://lo
 
 To put it on a TV, see [`../webos`](../webos/) and [`../tizen`](../tizen/).
 
+The server also hosts the build at `/tv-mode/`, where it's same-origin: it skips connecting and pairing, signs in with the web UI's cookie, and zooms the 1920×1080 layout to fit the window. A debug server reads `dist/` from disk, so run `pnpm build` and reload. The Docker image builds it beside the web UI.
+
 ## Setup
 
 This is its own project, separate from the web UI in [`web/`](../../web/):

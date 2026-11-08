@@ -1,4 +1,5 @@
-import { episodeLabel, episodeLine } from '@core/episode'
+import { episodeLabel, episodeLine, seasonName, seasonOf } from '@core/episode'
+import { isStarted, progress } from '@core/progress'
 import { useEffect, useRef, useState } from 'preact/hooks'
 import type { Screen } from '../App'
 import {
@@ -27,16 +28,16 @@ interface Season {
 function seasonsOf(episodes: Episode[]): Season[] {
   const seasons: Array<Season & { number: number | null }> = []
   for (const episode of episodes) {
-    const number = episode.number?.style === 'season' ? (episode.number.season ?? null) : null
+    const number = seasonOf(episode.number)
     const last = seasons[seasons.length - 1]
     if (last && last.number === number) {
       last.episodes.push(episode)
     } else {
-      let name = null
-      if (number !== null) {
-        name = number === 0 ? 'Specials' : `Season ${number}`
-      }
-      seasons.push({ number, name, episodes: [episode] })
+      seasons.push({
+        number,
+        name: number === null ? null : seasonName(number),
+        episodes: [episode],
+      })
     }
   }
   return seasons
@@ -47,9 +48,6 @@ const playableIn = (list: EpisodeList) => list.entries.filter((entry) => entry.f
 /** Picks out the episode up next in a list. */
 const isNext = (list: EpisodeList) => (episode: Episode) =>
   list.up_next != null && list.entries[list.up_next] === episode
-
-const isStarted = (episode: Episode) =>
-  !episode.watch?.played && (episode.watch?.position_seconds ?? 0) > 0
 
 function EpisodeRow({
   episode,
@@ -66,11 +64,9 @@ function EpisodeRow({
   onFocus: () => void
   onSelect: () => void
 }) {
-  const position = episode.watch?.position_seconds ?? 0
-  const percent =
-    isStarted(episode) && episode.runtime_seconds
-      ? Math.min(100, (position / episode.runtime_seconds) * 100)
-      : null
+  const watched = isStarted(episode.watch)
+    ? progress(episode.runtime_seconds, episode.watch?.position_seconds ?? 0, false)
+    : 0
   let state = null
   if (upNext) {
     state = 'Up next'
@@ -88,9 +84,9 @@ function EpisodeRow({
     >
       <span className="episode-still">
         {image && <img src={image} alt="" />}
-        {percent !== null && (
+        {watched > 0 && (
           <span className="card-progress">
-            <span style={{ width: `${percent}%` }} />
+            <span style={{ width: `${watched * 100}%` }} />
           </span>
         )}
       </span>
@@ -203,7 +199,7 @@ export function Series({
             data-key="play"
             onClick={() => playEpisode(main)}
           >
-            {isStarted(main) ? 'Resume' : 'Play'} {episodeLabel(main.number)}
+            {isStarted(main.watch) ? 'Resume' : 'Play'} {episodeLabel(main.number)}
           </button>
         )}
       </header>

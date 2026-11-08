@@ -1,19 +1,12 @@
 import { episodeLine } from '@core/episode'
+import { progress } from '@core/progress'
 import { useEffect, useState } from 'preact/hooks'
 import type { Screen } from '../App'
-import { api, mediaToken, mediaUrl, type Home } from '../api'
+import { api, hosted, mediaToken, mediaUrl, type Home } from '../api'
 import { useInitialFocus } from '../focus'
 import { Rail } from './Rail'
 
 type ContinueItem = Home['keep_watching'][number]
-
-/** How far through an episode someone is, as a percentage, once they've started it. */
-function percentWatched({ episode, position_seconds: position }: ContinueItem) {
-  if (!episode.runtime_seconds || position <= 0) {
-    return null
-  }
-  return Math.min(100, (position / episode.runtime_seconds) * 100)
-}
 
 function Card({
   title,
@@ -22,7 +15,7 @@ function Card({
   first,
   focusKey,
   landscape,
-  percent,
+  watched,
   onSelect,
 }: {
   title: string
@@ -31,7 +24,8 @@ function Card({
   first?: boolean
   focusKey: string
   landscape?: boolean
-  percent?: number | null
+  /** How far through it someone is, from 0 to 1. */
+  watched?: number
   onSelect: () => void
 }) {
   return (
@@ -43,9 +37,9 @@ function Card({
     >
       <span className="poster">
         {image && <img src={image} alt="" />}
-        {percent != null && (
+        {!!watched && (
           <span className="card-progress">
-            <span style={{ width: `${percent}%` }} />
+            <span style={{ width: `${watched * 100}%` }} />
           </span>
         )}
       </span>
@@ -106,6 +100,7 @@ export function Browse({
     return show ? artwork(show.id, show.artwork, ['backdrop', 'poster']) : null
   }
 
+  const leaveLabel = hosted ? 'Leave TV mode' : 'Change server'
   const empty = home && !home.keep_watching.length && !home.shows.length && !home.movies.length
 
   return (
@@ -118,7 +113,7 @@ export function Browse({
           </p>
           <div className="actions">
             <button onClick={() => setAttempt((n) => n + 1)}>Try again</button>
-            <button onClick={onChangeServer}>Change server</button>
+            <button onClick={onChangeServer}>{leaveLabel}</button>
           </div>
         </div>
       )}
@@ -135,7 +130,7 @@ export function Browse({
               title={item.series_title}
               detail={episodeLine(item.episode)}
               image={episodeImage(item)}
-              percent={percentWatched(item)}
+              watched={progress(item.episode.runtime_seconds, item.position_seconds, false)}
               onSelect={() =>
                 open({ name: 'player', itemId: item.episode.item_id, title: item.series_title })
               }
@@ -172,9 +167,9 @@ export function Browse({
       {home && (
         <div className="actions">
           <button data-key="about" onClick={() => open({ name: 'diagnostics' })}>
-            About this TV
+            {hosted ? 'About this browser' : 'About this TV'}
           </button>
-          <button onClick={onChangeServer}>Change server</button>
+          <button onClick={onChangeServer}>{leaveLabel}</button>
         </div>
       )}
     </main>

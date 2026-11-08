@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'preact/hooks'
-import { session } from './api'
+import { hosted, session } from './api'
 import { currentPlace, returnTo, screenHandledBack, useRemote, type Place } from './focus'
 import { Browse } from './screens/Browse'
 import { Connect } from './screens/Connect'
@@ -17,14 +17,24 @@ export type Screen =
 /** A screen in the stack, and where focus was when the next one opened over it. */
 type Entry = Screen & { place?: Place | null }
 
-/** Connect, then pair, then a stack of screens, with Back going down it. */
+/**
+ * Connect, then pair, then a stack of screens, with Back going down it. Hosted by
+ * the server, it starts at the stack: the web UI has already signed in.
+ */
 export function App() {
   const [server, setServer] = useState(session.server())
   const [token, setToken] = useState(session.token())
   const [stack, setStack] = useState<Entry[]>([{ name: 'browse' }])
 
   useEffect(() => {
-    session.listen(() => setToken(null))
+    session.listen(() => {
+      if (hosted) {
+        // Signing in happens in the web UI, which hosts this app.
+        location.replace('/')
+      } else {
+        setToken(null)
+      }
+    })
   }, [])
 
   const open = useCallback((screen: Screen) => {
@@ -74,13 +84,17 @@ export function App() {
     )
   }
   const changeServer = () => {
+    if (hosted) {
+      location.assign('/')
+      return
+    }
     session.setToken(null)
     session.setServer(null)
     setToken(null)
     setServer(null)
     setStack([{ name: 'browse' }])
   }
-  if (!token) {
+  if (!token && !hosted) {
     return (
       <Pair
         server={server}

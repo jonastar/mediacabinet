@@ -12,6 +12,7 @@ import {
   FolderIcon,
   HomeIcon,
   MoviesIcon,
+  RemoteIcon,
   SettingsIcon,
   SignOutIcon,
   TvIcon,
@@ -78,6 +79,15 @@ export function Shell({ children }: { children: ReactNode }) {
         {WATCH_NAV.map((item) => (
           <NavLink key={item.to} item={item} path={path} />
         ))}
+        {/* The TV app, served beside this one: a page load, not a route here. */}
+        <a
+          href="/tv-mode/"
+          className={styles.link}
+          title="Browse and watch with a remote or arrow keys"
+        >
+          <RemoteIcon />
+          TV mode
+        </a>
         {libraries.data && libraries.data.length > 0 && (
           <>
             <div className={styles.divider} />

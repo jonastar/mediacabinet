@@ -58,6 +58,7 @@ Implementation notes:
 - **Outline colour in animations.** In the animations the play symbol's outline is drawn in the background colour rather than cut out, because it moves independently of the doors. It reads the CSS variable `--mc-bg` (default `#121214`). When the SVG is inlined in a page, set `--mc-bg` to match the surface behind it; when used via `<img>`, the default applies.
 - **Reveal content.** The playback animations contain a `<g id="reveal-content">` with a placeholder rectangle. Replace it with the poster (`<image … preserveAspectRatio="xMidYMid slice">`) or position the poster behind a transparent version.
 - **Don't let motion delay the user.** If playback is ready before the reveal finishes, jump to the end state.
+- **Light leak in the app.** The web app's loading mark (`LoadingMark` in `web/src/components/Brand.tsx`) starts the light at opacity 0 instead of the file's 0.25, so at rest the seam is dark like the logo's cut-out; at small sizes the dim seam made the doors read as one block and the play as an outlined icon.
 - **Reduced motion.** SMIL ignores `prefers-reduced-motion`. In the app, check the setting and show the static mark (launch/loading) or cut straight to the poster (playback).
 - **Native clients.** The motion is only translate, scale and opacity on four shapes, so it's straightforward to rebuild with Android animators, SwiftUI or Lottie. Timings and easing are in the SVG `keyTimes`/`keySplines`.
 

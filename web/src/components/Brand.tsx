@@ -34,8 +34,9 @@ export function LoadingMark({ size = 64 }: { size?: number }) {
         </clipPath>
       </defs>
       <g clipPath={`url(#${clip})`}>
-        <rect x="10" y="7" width="44" height="50" fill="var(--brand-play)" opacity="0.25">
-          <animate attributeName="opacity" values="0.25;1;0.25" keySplines={spline} {...ease} />
+        {/* Dark at rest, so the seam reads as the logo's cut-out; light leaks in as the doors part. */}
+        <rect x="10" y="7" width="44" height="50" fill="var(--brand-play)" opacity="0">
+          <animate attributeName="opacity" values="0;1;0" keySplines={spline} {...ease} />
         </rect>
         <g>
           <animateTransform

@@ -4,6 +4,31 @@
   color: var(--text-muted);
 }
 
+/* As a page it fills the main column (a flex column); in a section it takes a
+   modest block. Hidden for the first moment, then faded in. */
+.loading {
+  flex: 1;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 40px;
+  color: var(--text-muted);
+  animation: appear 300ms ease-out 400ms backwards;
+}
+
+.label {
+  font-size: 14px;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
 .retry {
   min-height: var(--touch-target);
   padding: 0 18px;

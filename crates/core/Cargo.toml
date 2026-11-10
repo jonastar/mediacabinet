@@ -3,6 +3,7 @@ name = "cabinet-core"
 version.workspace = true
 edition.workspace = true
 publish.workspace = true
+license.workspace = true
 
 [dependencies]
 argon2 = "0.5"

@@ -7,7 +7,8 @@ Self-hosted media library manager and streaming server. Rust backend (`crates/`)
 - Backend: `cargo run -p media-cabinet` (port 8420), `cargo test`, `cargo clippy --all-targets`
 - Web: `cd web && pnpm dev` (proxies `/api` to 8420), `pnpm build`, `pnpm lint`, `pnpm test`
 - After changing `design/tokens.json`: `cd web && pnpm tokens`
-- After changing API handlers: `cd web && pnpm api:types`
+- After changing API handlers: `cd web && pnpm api:types` (also regenerates the Android models)
+- Android: `cd players/android && ./gradlew :phone:assembleDebug`, `./gradlew :core:testDebugUnitTest` (see `players/android/README.md`)
 - Format before committing: `cargo fmt` and `cd web && pnpm format`
 
 ## Database

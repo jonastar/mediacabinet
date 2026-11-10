@@ -17,5 +17,5 @@ One Xcode project:
 - **Subtitles:** AVPlayer can't load separate subtitle files with an HLS stream, so the app draws them itself from the WebVTT URLs.
 - **Plain HTTP:** App Transport Security blocks it by default. `NSAllowsLocalNetworking` covers home network addresses. Tailscale addresses and names need testing.
 - **TV screens:** follow the layouts and focus behaviour of [`players/web/`](../web/), with tvOS's own focus effect and blur on top.
-- **Licence:** GPL-family licences conflict with App Store terms, so the licence has to be chosen before publishing.
+- **Licence:** MIT, chosen because GPL-family licences conflict with App Store terms.
 - **Store:** iOS and tvOS can ship under one app record. Review needs the demo server.

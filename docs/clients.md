@@ -52,6 +52,8 @@ The apps follow v1 as 1.x. Android might be ready for 1.0, but 1.0 doesn't wait 
 3. **Android and Android TV.** No Mac needed.
 4. **iOS and Apple TV.** Needs a Mac and the most outside setup.
 
+Android and Apple don't wait for every `players/web` screen. There's enough of the TV app, its player and the web UI to model an early access build on, and the rest of the TV screens catch up alongside.
+
 ## Samsung and LG TVs
 
 ### Packaged, not loaded from the server
@@ -282,7 +284,7 @@ Judgement calls, not measurements. The right-hand column assumes the pace of thi
 
 - **Google Play:** a one-time fee of about $25. New personal accounts must run a closed test with at least 12 testers, opted in for 14 days straight, before applying for production. Organisation accounts are generally exempt, but need a D-U-N-S number. TV apps are reviewed separately for TV requirements. Start finding testers early.
 - **App Store:** review uses the demo server. iOS and tvOS can ship under one app record.
-- **Licence:** choose it before publishing. GPL-family licences are known to conflict with App Store terms, so this choice limits where the apps can ship.
+- **Licence:** MIT. GPL-family licences are known to conflict with App Store terms; MIT doesn't.
 
 ## Testing
 

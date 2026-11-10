@@ -79,8 +79,8 @@ Settles the stack and the build-blocking open questions in `media-cabinet-handof
 - **Playback.** The browser reports which codecs, containers and HDR it supports. The server then picks one of three ways to play a file. It plays directly (range requests) when everything fits. It repackages to HLS when only the container or audio doesn't fit. Otherwise it converts the video to H.264 in HLS: for an unsupported codec, a lower quality, HDR on an SDR screen (tone-mapped), or picture subtitles (burned in). Text subtitles are always WebVTT for the player to draw. An HLS session can start partway into the file, and seeking past what's converted starts a new one there. ffmpeg is paused when it's three minutes ahead of the player, and a session nobody uses for a minute is ended.
 - **Hardware encoding.** Hardware encoding (`CABINET_HWACCEL`: VAAPI, NVENC or QSV) is opt-in and only covers the encode. Decoding and filters stay in software, so everything ffmpeg can read still works. At startup a short test encode checks the hardware, and the server falls back to software if it fails. H.264 is the only output for now. A browser without H.264 can only play files directly.
 - **Remote access.** Use your own reverse proxy (Caddy, nginx, Traefik) or a VPN (WireGuard, Tailscale). There is no relay service in v1: it would need infrastructure someone has to run, and it would route everyone's media through it. Behind HTTPS the session cookie is marked Secure (from `X-Forwarded-Proto`).
+- **Licence.** MIT, for the server, web UI and every player. GPL-family licences conflict with App Store terms, and a permissive licence keeps the apps shippable in every store.
 
 ## Still open
 
-- Licence.
 - The rest of the spec's open questions (quality profile ownership, confidence thresholds, wanted following a playlist, writing `.nfo` back out). None of them block the schema and scanner work.

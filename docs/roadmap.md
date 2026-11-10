@@ -15,7 +15,7 @@ Tick items as they land. Open questions from the spec are listed in the phase th
 - [x] Backup before migrating an existing database
 - [x] Fixture library generator (`scripts/make-fixtures.sh`)
 - [ ] CI: format, lint, test and build on every push (needs a remote)
-- [ ] Choose a licence
+- [x] Choose a licence: MIT
 
 ## Phase 1 — Scanning core
 
@@ -174,7 +174,7 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 - [x] Decide: Samsung and LG apps are packaged, not loaded from the server
 - [x] Decide: one small Preact app for all Samsung and LG TVs, which is also the reference for Android TV and tvOS
 - [x] Folders with READMEs: `players/` (with `players/web`, the shared TV app), `design/`, `web/src/core/`
-- [ ] Choose a licence with the App Store in mind (same item as Phase 0)
+- [x] Choose a licence with the App Store in mind: MIT, which the App Store allows
 - [x] Device tokens: `Authorization: Bearer`, device names, a year from last use
 - [x] Pairing: start and poll from the app, approve on the web at `/pair`, for passwords and every provider
 - [x] UI: signed-in devices in Account, with sign out
@@ -182,7 +182,7 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 - [x] Play reasons worded for any client, not just browsers
 - [x] `GET /api/server-info`: name, version, minimum app version
 - [x] Rule for API changes: additive, removals wait for a minimum version
-- [ ] Generate Swift and Kotlin API clients from the OpenAPI spec
+- [ ] Generate Swift and Kotlin API clients from the OpenAPI spec (Kotlin models done: `scripts/generate-api-clients.mjs`)
 - [ ] Git remote and macOS CI: build, sign, upload to TestFlight
 - [ ] Spike on a rented Mac: AVPlayer plays direct, remuxed and transcoded streams with the cookie, on an iPhone and an Apple TV
 - [ ] Spike: Media3 plays the same streams on an Android phone and TV
@@ -210,7 +210,7 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 
 ### Android and Android TV
 
-- [ ] Project in `players/android`: API client, data layer, playback logic
+- [x] Project in `players/android`: API client, data layer, playback logic
 - [ ] Connect to a server, including plain HTTP on a home network
 - [ ] Sign in: password, pairing through the browser
 - [ ] Phone: home, shows, movies, series and episode pages, search

@@ -2,7 +2,7 @@
 
 Kotlin, Compose (Compose for TV on TV) and Media3. See [`docs/clients.md`](../../docs/clients.md). This may be ready for 1.0, but 1.0 doesn't wait for it.
 
-**Status:** the phone app connects, signs in (password, browser, guest), shows Home and series pages, and plays with custom controls. It builds and its core is tested, but it hasn't run on a device yet. The TV app isn't started.
+**Status:** the phone app connects, signs in (password, browser, guest), shows Home and series pages, and plays with custom controls. It builds and its core is tested, and `LiveServerTest` has played plans from a real library (direct, and transcoded to HLS) with the token, but the app hasn't run on a device yet. The TV app isn't started.
 
 ## Layout
 
@@ -48,7 +48,7 @@ An Android TV device works the same way, or with **Network debugging** and `adb 
 - **HLS sessions look live to Media3,** since the playlist grows as ffmpeg works. The session plays them from the start at normal speed, and uses the plan's `offset_seconds` for the timeline.
 - **Failures:** a stream Media3 can't decode often plays on without its picture or sound, so the session treats an unsupported video or audio track as a failure and falls back, as well as errors and the no-picture watchdog.
 - **Plain HTTP and own certificates:** both are allowed in the network security config, for servers on a home network or behind a private certificate authority.
-- **Subtitles:** drawn by the app from the server's WebVTT, in the file's time, like the web player.
+- **Subtitles:** drawn by the app from the server's WebVTT, like the TV app. The server shifts cues by the plan's `offset_seconds`, so they're timed against the stream, not the file.
 - **Sizes:** Android TV lays out at 960×540 dp, so TV values in `docs/design-language.md` are halved here.
 - **TV screens:** follow the layouts and focus behaviour of [`players/web/`](../web/), and use what Compose for TV does well on top.
 - **One app ID:** phone and TV both use `app.mediacabinet`. Google Play takes a separate build for its Android TV track.

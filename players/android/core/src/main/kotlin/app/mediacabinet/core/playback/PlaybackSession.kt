@@ -150,6 +150,17 @@ class PlaybackSession(
 
     fun duration(): Double = state.value.plan?.version?.durationSeconds ?: 0.0
 
+    /**
+     * The subtitles on screen now. The server shifts cues by the plan's offset,
+     * so they're matched against the stream's time, not the file's.
+     */
+    fun subtitleText(): String {
+        if (seekTarget != null || player.playbackState == Player.STATE_IDLE) {
+            return ""
+        }
+        return state.value.cues.textAt(player.currentPosition / 1000.0)
+    }
+
     fun togglePause() {
         player.playWhenReady = !player.playWhenReady
     }

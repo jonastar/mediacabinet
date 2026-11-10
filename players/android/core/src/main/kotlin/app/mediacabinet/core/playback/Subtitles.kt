@@ -5,7 +5,10 @@ import app.mediacabinet.core.api.PlayPlan
 
 // Ports of web/src/core/subtitles.ts and tracks.ts, which are the reference.
 
-/** A subtitle: its time on screen in seconds of the file, and its text without markup. */
+/**
+ * A subtitle: its time on screen in seconds of the stream (the server shifts
+ * cues by the plan's `offset_seconds`), and its text without markup.
+ */
 data class Cue(val start: Double, val end: Double, val text: String)
 
 private val TIMING = Regex("""(\d+:)?(\d+):(\d+)[.,](\d+)\s*-->\s*(\d+:)?(\d+):(\d+)[.,](\d+)""")

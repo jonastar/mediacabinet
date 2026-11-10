@@ -67,7 +67,6 @@ import app.mediacabinet.core.Tokens
 import app.mediacabinet.core.clock
 import app.mediacabinet.core.episodeLine
 import app.mediacabinet.core.playback.PlaybackSession
-import app.mediacabinet.core.playback.textAt
 import app.mediacabinet.phone.AppModel
 import kotlinx.coroutines.delay
 
@@ -92,6 +91,7 @@ fun PlayerScreen(model: AppModel, itemId: Long, title: String) {
 
     val state by session.state.collectAsStateWithLifecycle()
     var position by remember { mutableDoubleStateOf(0.0) }
+    var subtitle by remember { mutableStateOf("") }
     var scrubbing by remember { mutableStateOf<Double?>(null) }
     var controls by remember { mutableStateOf(true) }
     var lastTouch by remember { mutableStateOf(0L) }
@@ -99,6 +99,7 @@ fun PlayerScreen(model: AppModel, itemId: Long, title: String) {
     LaunchedEffect(session) {
         while (true) {
             position = session.position()
+            subtitle = session.subtitleText()
             delay(250)
         }
     }
@@ -130,7 +131,6 @@ fun PlayerScreen(model: AppModel, itemId: Long, title: String) {
                 .resizeWithContentScale(ContentScale.Fit, presentation.videoSizeDp),
         )
 
-        val subtitle = state.cues.textAt(position)
         if (subtitle.isNotEmpty()) {
             Text(
                 subtitle,

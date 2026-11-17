@@ -77,6 +77,38 @@
   cursor: not-allowed;
 }
 
+/* Inbox files that need a person. */
+.inboxList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.inboxList li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background: var(--surface-raised);
+  font-size: 13.5px;
+  word-break: break-all;
+}
+
+/* A link that leads somewhere, looking like the button that does. */
+.buttonLink {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.buttonLink:hover {
+  color: var(--text);
+}
+
 .link {
   border: 0;
   background: none;

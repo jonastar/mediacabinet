@@ -4,7 +4,8 @@
     "title": "Media Cabinet API",
     "description": "",
     "license": {
-      "name": ""
+      "name": "MIT",
+      "identifier": "MIT"
     },
     "version": "1.0.0-dev"
   },
@@ -1941,7 +1942,7 @@
         "tags": [
           "integration"
         ],
-        "summary": "Hands a file over: places it by the destination root's write policy and\ntemplate, transfers it with its sidecars, and links it. Requires an API key.",
+        "summary": "Hands a file over: places it by the naming asked for and the destination\nroot's layout, transfers it with its sidecars, and links it. Requires an API key.",
         "operationId": "import",
         "requestBody": {
           "content": {
@@ -1982,6 +1983,111 @@
             }
           },
           "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports/file": {
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Imports one file by hand, as the import tool does: into the series' folder,\nor the library's folder for new items, with its sidecars.",
+        "operationId": "import_file",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ImportFile"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/imports/list": {
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "The videos in a folder that could be imported into a library, each with a\nguess at which series episode or movie of the library it is, and whether it\nlooks finished downloading.",
+        "operationId": "list_imports",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListImports"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportListing"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
             "content": {
               "application/json": {
                 "schema": {
@@ -2350,7 +2456,7 @@
         "tags": [
           "items"
         ],
-        "summary": "Renames a series' or movie's files on managed roots to match the template.",
+        "summary": "Renames a series' or movie's files on writable roots to match the layout.",
         "operationId": "organize_item",
         "parameters": [
           {
@@ -3092,6 +3198,95 @@
         }
       }
     },
+    "/api/libraries/{id}/inbox": {
+      "get": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "A library's inbox, and the videos in it that need a person.",
+        "operationId": "library_inbox",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Inbox"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/libraries/{id}/inbox/check": {
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Looks in a library's inbox now, and again at what needed attention.",
+        "operationId": "check_inbox",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxCheckStarted"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/libraries/{id}/placement-example": {
       "get": {
         "tags": [
@@ -3762,6 +3957,93 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MovieDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/organize/apply": {
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "Applies moves from an Organise preview. Each is checked against its file as it\nis now, so a stale preview fails per file instead of moving the wrong thing.",
+        "operationId": "apply_organize",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApplyOrganize"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizeApplied"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/organize/preview": {
+      "post": {
+        "tags": [
+          "libraries"
+        ],
+        "summary": "What renaming files to their folder's layout would change, for a library, a\nfolder, or a series or movie. Changes nothing; apply what you want to keep\nwith `/organize/apply`.",
+        "operationId": "preview_organize",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewOrganize"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrganizePreview"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorBody"
                 }
               }
             }
@@ -4503,7 +4785,7 @@
         "tags": [
           "libraries"
         ],
-        "summary": "Changes a root's write policy, layout template or import target flag.",
+        "summary": "Changes whether a root is read-only, its layout template, or makes it the\nroot new items of its library go to.",
         "operationId": "update_root",
         "parameters": [
           {
@@ -4817,7 +5099,7 @@
         "tags": [
           "items"
         ],
-        "summary": "Renames a series' folder on a root so the provider IDs in its name, such as\n`[tmdb-1399]`, are the series' own. Read-only roots need `force`.",
+        "summary": "Renames a series' folder on a root so the provider IDs in its name, such as\n`[tmdb-1399]`, are the series' own. Refused on read-only roots.",
         "operationId": "fix_folder_ids",
         "parameters": [
           {
@@ -6195,7 +6477,8 @@
         ],
         "properties": {
           "is_import_target": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "New series and movies of the library go here."
           },
           "layout_template": {
             "type": "string"
@@ -6204,9 +6487,16 @@
             "type": "string",
             "description": "Absolute path on the server."
           },
+          "read_only": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Media Cabinet never writes here. Overrides `write_policy` when given."
+          },
           "write_policy": {
             "type": "string",
-            "description": "`managed`, `adaptive` (default) or `read_only`."
+            "description": "`managed`, `adaptive` (default) or `read_only`. Prefer `read_only`."
           }
         }
       },
@@ -6240,6 +6530,21 @@
           "prefix": {
             "type": "string",
             "description": "The key's first characters, to recognise it."
+          }
+        }
+      },
+      "ApplyOrganize": {
+        "type": "object",
+        "required": [
+          "moves"
+        ],
+        "properties": {
+          "moves": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlannedMove"
+            },
+            "description": "Moves from a preview, as they were given."
           }
         }
       },
@@ -7301,6 +7606,22 @@
           "other"
         ]
       },
+      "FailedMove": {
+        "type": "object",
+        "required": [
+          "file_id",
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "file_id": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
       "FileCounts": {
         "type": "object",
         "required": [
@@ -7418,7 +7739,7 @@
         "properties": {
           "force": {
             "type": "boolean",
-            "description": "Rename it even on a read-only root."
+            "description": "Ignored: read-only roots are never renamed. Kept so older clients still parse."
           },
           "root_id": {
             "type": "integer",
@@ -7628,6 +7949,27 @@
           }
         ]
       },
+      "GuessedEpisode": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "title"
+        ],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "label": {
+            "type": "string",
+            "description": "`S01E02`, or `E12` without a season."
+          },
+          "title": {
+            "type": "string"
+          }
+        }
+      },
       "GuestDevice": {
         "type": "object",
         "required": [
@@ -7835,6 +8177,165 @@
           }
         }
       },
+      "ImportCandidate": {
+        "type": "object",
+        "required": [
+          "path",
+          "relative_path",
+          "size",
+          "mtime",
+          "same_disk"
+        ],
+        "properties": {
+          "guess": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/ImportGuess"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mtime": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "path": {
+            "type": "string",
+            "description": "Absolute."
+          },
+          "relative_path": {
+            "type": "string",
+            "description": "Relative to the folder looked at."
+          },
+          "same_disk": {
+            "type": "boolean",
+            "description": "On the same filesystem as a writable folder of the library, so a hard\nlink can work."
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "waiting": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it doesn't look finished yet."
+          }
+        }
+      },
+      "ImportFile": {
+        "type": "object",
+        "required": [
+          "path",
+          "items",
+          "mode"
+        ],
+        "properties": {
+          "dry_run": {
+            "type": "boolean"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int64"
+            },
+            "description": "The episodes of one series, or a movie."
+          },
+          "mode": {
+            "$ref": "#/components/schemas/TransferMode",
+            "description": "`copy`, `hardlink` or `move`."
+          },
+          "naming": {
+            "$ref": "#/components/schemas/Naming",
+            "description": "`layout` (default) renames by the folder's layout; `keep` keeps the name."
+          },
+          "path": {
+            "type": "string",
+            "description": "Absolute path of the video on the server."
+          },
+          "replace": {
+            "type": "boolean",
+            "description": "Remove the items' existing files (an upgrade). Off by default."
+          }
+        }
+      },
+      "ImportGuess": {
+        "type": "object",
+        "description": "Which series episode(s) or movie a file probably is.",
+        "required": [
+          "item_id",
+          "kind",
+          "title",
+          "episodes",
+          "confidence"
+        ],
+        "properties": {
+          "confidence": {
+            "type": "number",
+            "format": "double",
+            "description": "0–1."
+          },
+          "episodes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GuessedEpisode"
+            },
+            "description": "For a series: the episodes, if the name says which; empty otherwise."
+          },
+          "item_id": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The series or movie."
+          },
+          "kind": {
+            "type": "string",
+            "description": "`series` or `movie`."
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "ImportListing": {
+        "type": "object",
+        "required": [
+          "path",
+          "files",
+          "unfinished",
+          "truncated"
+        ],
+        "properties": {
+          "files": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ImportCandidate"
+            }
+          },
+          "path": {
+            "type": "string"
+          },
+          "truncated": {
+            "type": "boolean",
+            "description": "More videos than are listed."
+          },
+          "unfinished": {
+            "type": "integer",
+            "description": "Files skipped because their name says they're still being written.",
+            "minimum": 0
+          }
+        }
+      },
       "ImportReport": {
         "type": "object",
         "required": [
@@ -7896,7 +8397,19 @@
             "description": "The episode, movie or series: `item:<id>` or `<provider>:<id>`."
           },
           "mode": {
-            "$ref": "#/components/schemas/TransferMode"
+            "$ref": "#/components/schemas/TransferMode",
+            "description": "`hardlink` (default), `copy` or `move`."
+          },
+          "naming": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/Naming",
+                "description": "`layout` renames the file by the root's layout; `keep` keeps its name.\nLeft out, the destination root's write policy decides (`managed` renames)."
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "ordering": {
             "type": [
@@ -7960,6 +8473,69 @@
             "items": {
               "type": "string"
             }
+          }
+        }
+      },
+      "Inbox": {
+        "type": "object",
+        "required": [
+          "online",
+          "attention"
+        ],
+        "properties": {
+          "attention": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InboxFile"
+            },
+            "description": "Videos it couldn't import alone."
+          },
+          "online": {
+            "type": "boolean",
+            "description": "Whether the folder can be reached now."
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "InboxCheckStarted": {
+        "type": "object",
+        "required": [
+          "started"
+        ],
+        "properties": {
+          "started": {
+            "type": "boolean",
+            "description": "False when a check was already running; one more runs after it."
+          }
+        }
+      },
+      "InboxFile": {
+        "type": "object",
+        "required": [
+          "path",
+          "relative_path",
+          "reason",
+          "seen_at"
+        ],
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "relative_path": {
+            "type": "string",
+            "description": "Relative to the inbox."
+          },
+          "seen_at": {
+            "type": "integer",
+            "format": "int64"
           }
         }
       },
@@ -8243,6 +8819,13 @@
             "type": "integer",
             "format": "int64"
           },
+          "inbox_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "A folder whose finished videos are imported on their own."
+          },
           "kind": {
             "type": "string",
             "description": "`tv`, `movies` or `folders`."
@@ -8391,6 +8974,23 @@
               "null"
             ],
             "format": "int64"
+          }
+        }
+      },
+      "ListImports": {
+        "type": "object",
+        "required": [
+          "library_id",
+          "path"
+        ],
+        "properties": {
+          "library_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "path": {
+            "type": "string",
+            "description": "Absolute path of a folder on the server, outside every library folder."
           }
         }
       },
@@ -8848,6 +9448,14 @@
           }
         }
       },
+      "Naming": {
+        "type": "string",
+        "description": "How an imported file is named.",
+        "enum": [
+          "layout",
+          "keep"
+        ]
+      },
       "NewApiKey": {
         "allOf": [
           {
@@ -8953,6 +9561,108 @@
               "null"
             ],
             "format": "int64"
+          }
+        }
+      },
+      "OrganizeApplied": {
+        "type": "object",
+        "required": [
+          "moved",
+          "failed"
+        ],
+        "properties": {
+          "failed": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FailedMove"
+            }
+          },
+          "moved": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlannedMove"
+            }
+          }
+        }
+      },
+      "OrganizeGroup": {
+        "type": "object",
+        "description": "One series or movie's changes on one root.",
+        "required": [
+          "item_id",
+          "kind",
+          "title",
+          "root_id",
+          "root_path",
+          "moves",
+          "skipped"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string",
+            "description": "`series` or `movie`."
+          },
+          "moves": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlannedMove"
+            },
+            "description": "Paths relative to the root."
+          },
+          "root_id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "root_path": {
+            "type": "string"
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Files left where they are, and why."
+          },
+          "title": {
+            "type": "string"
+          },
+          "year": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "OrganizePreview": {
+        "type": "object",
+        "required": [
+          "groups",
+          "files",
+          "in_place"
+        ],
+        "properties": {
+          "files": {
+            "type": "integer",
+            "description": "Files looked at.",
+            "minimum": 0
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrganizeGroup"
+            },
+            "description": "Only series and movies with something to change or skip, by title."
+          },
+          "in_place": {
+            "type": "integer",
+            "description": "Of those, already where the layout puts them.",
+            "minimum": 0
           }
         }
       },
@@ -9809,6 +10519,35 @@
           }
         }
       },
+      "PreviewOrganize": {
+        "type": "object",
+        "properties": {
+          "item_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "One series or movie."
+          },
+          "library_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "Every writable folder of this library."
+          },
+          "root_id": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "format": "int64",
+            "description": "One writable folder."
+          }
+        }
+      },
       "Progress": {
         "type": "object",
         "required": [
@@ -10343,12 +11082,19 @@
       },
       "RenameLibrary": {
         "type": "object",
-        "required": [
-          "name"
-        ],
         "properties": {
+          "inbox_path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The library's inbox folder, outside every library folder; empty to have none."
+          },
           "name": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       },
@@ -10389,6 +11135,7 @@
           "library_id",
           "path",
           "write_policy",
+          "read_only",
           "layout_template",
           "template_pieces",
           "is_import_target",
@@ -10404,7 +11151,8 @@
             "format": "int64"
           },
           "is_import_target": {
-            "type": "boolean"
+            "type": "boolean",
+            "description": "New series and movies of the library go to this root."
           },
           "last_scan": {
             "oneOf": [
@@ -10438,6 +11186,10 @@
           "path": {
             "type": "string"
           },
+          "read_only": {
+            "type": "boolean",
+            "description": "Media Cabinet never writes here."
+          },
           "scanning": {
             "oneOf": [
               {
@@ -10458,7 +11210,7 @@
           },
           "write_policy": {
             "type": "string",
-            "description": "`managed`, `adaptive` or `read_only`."
+            "description": "`managed`, `adaptive` or `read_only`. Superseded by `read_only`: apart from\nit, the policy only decides how an API import names files when it doesn't say."
           }
         }
       },
@@ -11879,11 +12631,19 @@
               "null"
             ]
           },
+          "read_only": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "Media Cabinet never writes here. Turning it off makes the root writable."
+          },
           "write_policy": {
             "type": [
               "string",
               "null"
-            ]
+            ],
+            "description": "Prefer `read_only`."
           }
         }
       },

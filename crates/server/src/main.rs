@@ -210,6 +210,7 @@ async fn main() -> anyhow::Result<()> {
     let artwork = cabinet_core::artwork::ArtworkStore::new(data_dir.join("artwork"));
     cabinet_core::tasks::log::spawn_writer(db.clone(), task_log_lines);
     let omdb = omdb();
+    let inbox_settle = env_number("CABINET_IMPORT_SETTLE_SECONDS", 120)? as i64;
     let tasks = cabinet_core::tasks::Tasks::new(
         db.clone(),
         cabinet_core::tasks::Services {
@@ -223,6 +224,7 @@ async fn main() -> anyhow::Result<()> {
                 let transcoder = transcoder.clone();
                 std::sync::Arc::new(move || transcoder.active())
             },
+            inbox_settle,
         },
     );
     tasks.resume().await?;
@@ -231,6 +233,7 @@ async fn main() -> anyhow::Result<()> {
         artwork.clone(),
         Duration::from_secs(60 * 60),
     );
+    cabinet_core::inbox::spawn_checker(tasks.clone(), Duration::from_secs(60), inbox_settle);
     let scans = cabinet_core::scan::ScanService::new(tasks.clone());
     let interval = env_number("CABINET_SCAN_INTERVAL_MINUTES", 360)?;
     if interval > 0 {

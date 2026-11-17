@@ -219,7 +219,8 @@ pub fn parse(filename: &str) -> Parsed {
     if marker.is_some() {
         let cut = TAG.find(tail).map_or(tail.len(), |m| m.start());
         let name = clean(&tail[..cut]);
-        if !name.is_empty() && !SAMPLE_WORD.is_match(&name) {
+        // Punctuation alone is no title: `S01E01.1080p` leaves the dot between.
+        if name.chars().any(char::is_alphanumeric) && !SAMPLE_WORD.is_match(&name) {
             p.episode_title = Some(name);
             if let Some(caps) = EPISODE_PART.captures(&tail[cut..]) {
                 p.part.get_or_insert(caps[1].parse().unwrap_or(1));

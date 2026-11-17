@@ -36,6 +36,8 @@ pub struct Library {
     /// `tv`, `movies` or `folders`.
     pub kind: String,
     pub roots: Vec<Root>,
+    /// A folder whose finished videos are imported on their own.
+    pub inbox_path: Option<String>,
     /// The last metadata refresh of the whole library.
     pub last_refresh: Option<ScanRun>,
     /// Set while the library's metadata is refreshed; filled in by whoever runs tasks.
@@ -69,11 +71,15 @@ pub struct Root {
     pub id: i64,
     pub library_id: i64,
     pub path: String,
-    /// `managed`, `adaptive` or `read_only`.
+    /// `managed`, `adaptive` or `read_only`. Superseded by `read_only`: apart from
+    /// it, the policy only decides how an API import names files when it doesn't say.
     pub write_policy: String,
+    /// Media Cabinet never writes here.
+    pub read_only: bool,
     pub layout_template: String,
     /// The template split for display.
     pub template_pieces: Vec<TemplatePiece>,
+    /// New series and movies of the library go to this root.
     pub is_import_target: bool,
     /// Whether the folder is reachable right now.
     pub online: bool,
@@ -130,6 +136,19 @@ fn kind_of(kind: &str) -> LibraryKind {
     LibraryKind::parse(kind).unwrap_or(LibraryKind::Tv)
 }
 
+const NEW_ITEMS_READ_ONLY: &str =
+    "New items can't go to a read-only folder. Choose another folder for new items first.";
+
+/// Applies a read-only switch to a stored policy. Turning read-only off makes a
+/// root `adaptive`: how imports name files is chosen per import now.
+fn with_read_only(policy: WritePolicy, read_only: Option<bool>) -> WritePolicy {
+    match read_only {
+        Some(true) => WritePolicy::ReadOnly,
+        Some(false) if policy == WritePolicy::ReadOnly => WritePolicy::Adaptive,
+        _ => policy,
+    }
+}
+
 /// A folder library only ever reads its folders: nothing is imported, renamed or moved.
 fn check_policy(kind: LibraryKind, policy: WritePolicy) -> Result<(), LibraryError> {
     if kind == LibraryKind::Folders && policy != WritePolicy::ReadOnly {
@@ -139,10 +158,11 @@ fn check_policy(kind: LibraryKind, policy: WritePolicy) -> Result<(), LibraryErr
 }
 
 pub async fn list(pool: &SqlitePool) -> Result<Vec<Library>, LibraryError> {
-    let libraries: Vec<(i64, String, String)> =
-        sqlx::query_as("SELECT id, name, kind FROM library ORDER BY name COLLATE NOCASE, id")
-            .fetch_all(pool)
-            .await?;
+    let libraries: Vec<(i64, String, String, Option<String>)> = sqlx::query_as(
+        "SELECT id, name, kind, inbox_path FROM library ORDER BY name COLLATE NOCASE, id",
+    )
+    .fetch_all(pool)
+    .await?;
     let roots: Vec<RootRow> = sqlx::query_as(
         "SELECT id, library_id, path, write_policy, layout_template, is_import_target, offline_since
          FROM library_root ORDER BY is_import_target DESC, path",
@@ -193,7 +213,7 @@ pub async fn list(pool: &SqlitePool) -> Result<Vec<Library>, LibraryError> {
 
     let kinds: HashMap<i64, LibraryKind> = libraries
         .iter()
-        .map(|(id, _, k)| (*id, kind_of(k)))
+        .map(|(id, _, k, _)| (*id, kind_of(k)))
         .collect();
     let mut by_library: HashMap<i64, Vec<Root>> = HashMap::new();
     for r in roots {
@@ -210,6 +230,7 @@ pub async fn list(pool: &SqlitePool) -> Result<Vec<Library>, LibraryError> {
             last_scan: last_scan.remove(&r.id),
             scanning: None,
             path: r.path,
+            read_only: r.write_policy == WritePolicy::ReadOnly.as_str(),
             write_policy: r.write_policy,
             layout_template: r.layout_template,
             is_import_target: r.is_import_target,
@@ -218,10 +239,11 @@ pub async fn list(pool: &SqlitePool) -> Result<Vec<Library>, LibraryError> {
     }
     Ok(libraries
         .into_iter()
-        .map(|(id, name, kind)| Library {
+        .map(|(id, name, kind, inbox_path)| Library {
             id,
             name,
             kind,
+            inbox_path,
             roots: by_library.remove(&id).unwrap_or_default(),
             last_refresh: last_refresh.remove(&id),
             refreshing: None,
@@ -270,6 +292,67 @@ pub async fn rename(pool: &SqlitePool, id: i64, name: &str) -> Result<Library, L
         .map_err(|e| unique_violation(e, "A library with that name already exists."))?;
     if done.rows_affected() == 0 {
         return Err(LibraryError::NotFound);
+    }
+    get(pool, id).await
+}
+
+/// Sets or clears (`None`) a library's inbox. It must be a reachable folder,
+/// not inside or around any library folder or another inbox, since the inbox
+/// moves files out and a scan must never see them as library content.
+pub async fn set_inbox(
+    pool: &SqlitePool,
+    id: i64,
+    path: Option<&str>,
+) -> Result<Library, LibraryError> {
+    let library = get(pool, id).await?;
+    let path = match path.map(str::trim).filter(|p| !p.is_empty()) {
+        None => None,
+        Some(path) => {
+            if library.kind == "folders" {
+                return invalid("A folder library has no inbox.");
+            }
+            let raw = Path::new(path);
+            if !raw.is_absolute() {
+                return invalid("Use a full path, starting with /.");
+            }
+            let canonical = match tokio::fs::canonicalize(raw).await {
+                Ok(p) if is_dir(&p.to_string_lossy()).await => p,
+                _ => {
+                    return invalid(
+                        "That folder doesn't exist or can't be reached from the server.",
+                    );
+                }
+            };
+            let taken: Vec<(String, String)> = sqlx::query_as(
+                "SELECT path, 'a library folder' FROM library_root
+                 UNION ALL SELECT inbox_path, 'another library''s inbox' FROM library
+                     WHERE inbox_path IS NOT NULL AND id <> ?",
+            )
+            .bind(id)
+            .fetch_all(pool)
+            .await?;
+            for (other, what) in taken {
+                let other = Path::new(&other);
+                if canonical.starts_with(other) || other.starts_with(&canonical) {
+                    return Err(LibraryError::Conflict(format!(
+                        "That folder overlaps {}, which is {what}. The inbox has to be a folder of its own.",
+                        other.display()
+                    )));
+                }
+            }
+            Some(canonical.to_string_lossy().into_owned())
+        }
+    };
+    sqlx::query("UPDATE library SET inbox_path = ? WHERE id = ?")
+        .bind(&path)
+        .bind(id)
+        .execute(pool)
+        .await?;
+    if path.is_none() {
+        sqlx::query("DELETE FROM inbox_file WHERE library_id = ?")
+            .bind(id)
+            .execute(pool)
+            .await?;
     }
     get(pool, id).await
 }
@@ -358,12 +441,27 @@ pub async fn check_folder(
             )));
         }
     }
+    let inboxes: Vec<String> =
+        sqlx::query_scalar("SELECT inbox_path FROM library WHERE inbox_path IS NOT NULL")
+            .fetch_all(pool)
+            .await?;
+    for inbox in inboxes {
+        let inbox = Path::new(&inbox);
+        if canonical.starts_with(inbox) || inbox.starts_with(&canonical) {
+            return Err(LibraryError::Conflict(format!(
+                "That folder overlaps {}, a library's inbox. Files leave an inbox as they're imported.",
+                inbox.display()
+            )));
+        }
+    }
     Ok(canonical)
 }
 
 pub struct NewRoot<'a> {
     pub path: &'a str,
     pub write_policy: &'a str,
+    /// Overrides `write_policy` when given: true is `read_only`, false is writable.
+    pub read_only: Option<bool>,
     pub layout_template: &'a str,
     pub is_import_target: bool,
 }
@@ -383,9 +481,10 @@ pub async fn add_root(
     let policy = WritePolicy::parse(new.write_policy).ok_or_else(|| {
         LibraryError::Invalid("Write policy is managed, adaptive or read_only.".into())
     })?;
+    let policy = with_read_only(policy, new.read_only);
     check_policy(kind_of(&kind), policy)?;
     if new.is_import_target && policy == WritePolicy::ReadOnly {
-        return invalid("A read-only folder can't be the import target.");
+        return invalid(NEW_ITEMS_READ_ONLY);
     }
     let path = check_folder(pool, new.path, None).await?;
 
@@ -429,6 +528,8 @@ pub async fn root(pool: &SqlitePool, id: i64) -> Result<Root, LibraryError> {
 #[derive(Default)]
 pub struct RootChanges<'a> {
     pub write_policy: Option<&'a str>,
+    /// Applied after `write_policy`: true makes it read-only, false writable.
+    pub read_only: Option<bool>,
     pub layout_template: Option<&'a str>,
     pub is_import_target: Option<bool>,
 }
@@ -452,10 +553,11 @@ pub async fn update_root(
         })?,
         None => WritePolicy::parse(&current.write_policy).unwrap_or(WritePolicy::Adaptive),
     };
+    let policy = with_read_only(policy, changes.read_only);
     check_policy(kind_of(&library.kind), policy)?;
     let import_target = changes.is_import_target.unwrap_or(current.is_import_target);
     if import_target && policy == WritePolicy::ReadOnly {
-        return invalid("A read-only folder can't be the import target.");
+        return invalid(NEW_ITEMS_READ_ONLY);
     }
 
     let mut tx = crate::db::begin_write(pool).await?;

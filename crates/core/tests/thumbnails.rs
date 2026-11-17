@@ -95,6 +95,7 @@ impl Fixture {
             NewRoot {
                 path: media.to_str().unwrap(),
                 write_policy: "read_only",
+                read_only: None,
                 layout_template: "{video}",
                 is_import_target: false,
             },

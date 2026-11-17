@@ -5,6 +5,8 @@ import { Link } from '../../components/Link'
 import { match } from '../../lib/router'
 import { LibrariesPage } from '../LibrariesPage'
 import { LibraryDetail } from '../libraries/LibraryDetail'
+import { ImportPage } from '../libraries/ImportPage'
+import { OrganizePage } from '../libraries/OrganizePage'
 import { RootDetail } from '../libraries/RootDetail'
 import { NotFoundPage } from '../NotFoundPage'
 import { ReviewPage } from '../ReviewPage'
@@ -59,6 +61,14 @@ function Section({ path }: { path: string }) {
   const library = match('/manage/libraries/:id', path)
   if (library && /^\d+$/.test(library.id)) {
     return <LibraryDetail key={library.id} id={Number(library.id)} />
+  }
+  const organize = match('/manage/libraries/:id/organize', path)
+  if (organize && /^\d+$/.test(organize.id)) {
+    return <OrganizePage key={organize.id} libraryId={Number(organize.id)} />
+  }
+  const importing = match('/manage/libraries/:id/import', path)
+  if (importing && /^\d+$/.test(importing.id)) {
+    return <ImportPage key={importing.id} libraryId={Number(importing.id)} />
   }
   const root = match('/manage/libraries/:library/roots/:id', path)
   if (root && /^\d+$/.test(root.library) && /^\d+$/.test(root.id)) {

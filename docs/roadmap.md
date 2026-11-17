@@ -164,6 +164,16 @@ Design: `docs/sign-in.md`.
 - [x] A list of known providers with setup steps for each, Sign in with Apple included
 - [ ] Library access from groups (waits for per-user library scoping)
 
+## Library management rework
+
+Design: `docs/library-management.md`.
+
+- [x] Roots are writable or read-only; `read_only` in the API beside `write_policy`; no `force` override
+- [x] "New items go to" on the library instead of "Make import target" on a root
+- [x] Organise on any writable root, scoped to a library, root, series or movie, with a per-change preview, applied in batches
+- [x] Import tool in the web UI: match, copy/hardlink/move (copy by default from outside the roots), rename or keep names
+- [x] Inbox folder per library: skip unfinished files, wait for files to settle, probe before filing, needs-attention list
+
 ## Device players
 
 Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watching. Designs: `docs/clients.md`, `docs/design-language.md`.

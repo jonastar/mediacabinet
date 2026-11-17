@@ -5,7 +5,7 @@ import styles from './ManagePanels.module.css'
 
 type Action = { kind: 'organize' } | { kind: 'move'; rootId: number }
 
-/** Organise files to the template, or move the series to another root, with a preview first. */
+/** Organise files to the layout, or move the series to another root, with a preview first. */
 export function LocationActions({
   series,
   onDone,
@@ -23,8 +23,8 @@ export function LocationActions({
   const targets = (libraries.data ?? [])
     .filter((l) => l.kind === 'tv')
     .flatMap((l) => l.roots)
-    .filter((r) => r.write_policy !== 'read_only' && r.online && !current.has(r.id))
-  const managed = series.locations.some((l) => l.write_policy === 'managed')
+    .filter((r) => !r.read_only && r.online && !current.has(r.id))
+  const writable = series.locations.some((l) => l.write_policy !== 'read_only' && l.online)
 
   const run = (a: Action, dryRun: boolean) =>
     a.kind === 'organize'
@@ -62,7 +62,7 @@ export function LocationActions({
   return (
     <>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-        {managed && (
+        {writable && (
           <button
             type="button"
             className={styles.button}

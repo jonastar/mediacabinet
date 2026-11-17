@@ -62,6 +62,7 @@ impl Lib {
             NewRoot {
                 path: path.to_str().unwrap(),
                 write_policy: "adaptive",
+                read_only: None,
                 layout_template: template,
                 is_import_target: false,
             },

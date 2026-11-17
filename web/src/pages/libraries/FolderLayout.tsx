@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { LibraryKind, WritePolicy } from '../../api/client'
+import type { LibraryKind } from '../../api/client'
 import { DEFAULT_ABOVE, joinTemplate, splitTemplate } from './layout'
 import { TemplateEditor } from './TemplateEditor'
 import { Legend } from './Legend'
@@ -8,8 +8,9 @@ import styles from './Libraries.module.css'
 interface Props {
   id: string
   kind: LibraryKind
-  policy: WritePolicy
-  /** The whole template. Below the item folder is only edited for managed folders. */
+  /** Read-only folders are never renamed, so only where items sit matters. */
+  readOnly: boolean
+  /** The whole template. Below the item folder is only edited for writable folders. */
   value: string
   onChange: (value: string, valid: boolean) => void
 }
@@ -17,9 +18,9 @@ interface Props {
 /**
  * Where each series (or movie) folder sits: at the top of the folder, or under
  * grouping levels you spell out. Inside it the matcher finds its own way; only
- * a managed folder needs to say how files are arranged there.
+ * a writable folder needs to say how Organise and renaming imports name files.
  */
-export function FolderLayout({ id, kind, policy, value, onChange }: Props) {
+export function FolderLayout({ id, kind, readOnly, value, onChange }: Props) {
   const { above, below } = splitTemplate(value, kind)
   const fallback = DEFAULT_ABOVE[kind]
   const [custom, setCustom] = useState(above !== fallback)
@@ -69,10 +70,10 @@ export function FolderLayout({ id, kind, policy, value, onChange }: Props) {
           <Legend kind={kind} part="above" />
         </>
       )}
-      {policy === 'managed' && (
+      {!readOnly && (
         <>
           <label className={styles.field} htmlFor={`${id}-below`}>
-            Inside each {item} folder (managed: files are renamed and moved to match)
+            Inside each {item} folder: how Organise and renaming imports name files
           </label>
           <TemplateEditor
             id={`${id}-below`}

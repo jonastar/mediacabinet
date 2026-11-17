@@ -2,10 +2,11 @@ import { api } from '../../api/client'
 import { useApi } from '../../api/useApi'
 import styles from './Libraries.module.css'
 
+/** The example's outcomes come keyed by the old policy names. */
 const LABELS: Record<string, string> = {
-  managed: 'Managed',
-  adaptive: 'Adaptive',
-  read_only: 'Read-only',
+  managed: 'Renamed',
+  adaptive: 'Name kept',
+  read_only: 'Read-only folder',
 }
 
 /**

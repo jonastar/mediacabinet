@@ -64,6 +64,7 @@ async fn what_a_task_logs_ends_up_in_its_log() {
         NewRoot {
             path: media.to_str().unwrap(),
             write_policy: "read_only",
+            read_only: None,
             layout_template: "{video}",
             is_import_target: false,
         },

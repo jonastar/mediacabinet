@@ -62,7 +62,7 @@ export function LibrariesPage() {
                     <span className={styles.libraryName}>{library.name}</span>
                     <span className={styles.muted}>{librarySummary(library)}</span>
                   </span>
-                  {noTarget && <span className={styles.warnTag}>No import target</span>}
+                  {noTarget && <span className={styles.warnTag}>No folder for new items</span>}
                   <span className={styles.chevron} aria-hidden="true">
                     ›
                   </span>

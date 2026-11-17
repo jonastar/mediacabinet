@@ -5,12 +5,6 @@ import { provider } from '../detail/metadata'
 import { LocationActions } from './LocationActions'
 import styles from './ManagePanels.module.css'
 
-const POLICIES: Record<string, string> = {
-  managed: 'managed root',
-  adaptive: 'adaptive root',
-  read_only: 'read-only root',
-}
-
 interface Props {
   series: SeriesDetail
   monitorPending: boolean
@@ -174,7 +168,7 @@ export function ManagePanels({
             <span className={styles.muted}>
               {[
                 l.is_primary ? 'Primary' : null,
-                l.online ? POLICIES[l.write_policy] : 'Offline',
+                l.online ? (l.write_policy === 'read_only' ? 'Read-only folder' : null) : 'Offline',
                 l.online && !l.is_primary
                   ? null
                   : `${l.file_count} ${l.file_count === 1 ? 'file' : 'files'}`,
@@ -191,22 +185,17 @@ export function ManagePanels({
                 <button
                   type="button"
                   className={styles.button}
-                  disabled={!l.online}
-                  title={l.online ? undefined : 'The root is offline'}
-                  onClick={() => {
-                    const readOnly = l.write_policy === 'read_only'
-                    if (
-                      readOnly &&
-                      !window.confirm(
-                        `${l.root_path} is read-only: Media Cabinet doesn't write to it, and other apps using it may not expect the change.\n\nRename ${l.path} to ${l.corrected_path} anyway?`,
-                      )
-                    ) {
-                      return
-                    }
-                    act(() => api.fixFolderIds(series.id, l.root_id, readOnly))
-                  }}
+                  disabled={!l.online || l.write_policy === 'read_only'}
+                  title={
+                    !l.online
+                      ? 'The root is offline'
+                      : l.write_policy === 'read_only'
+                        ? 'The folder is read-only. Make it writable in its settings to rename it.'
+                        : undefined
+                  }
+                  onClick={() => act(() => api.fixFolderIds(series.id, l.root_id))}
                 >
-                  {l.write_policy === 'read_only' ? 'Rename anyway…' : 'Rename folder'}
+                  Rename folder
                 </button>
               </>
             )}

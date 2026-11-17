@@ -316,3 +316,18 @@ fn inline_ids() {
     assert_eq!(p.ids, [("tmdb".to_string(), "1399".to_string())]);
     assert_eq!(p.title.as_deref(), Some("Show"));
 }
+
+#[test]
+fn punctuation_is_no_episode_title() {
+    // The dot between the marker and the tag used to count as an episode title,
+    // and then as one that differs from the real title.
+    let p = parse("Night.Harbor.S01E01.1080p.mkv");
+    assert_eq!(p.episode_title, None);
+    assert_eq!(p.resolution.as_deref(), Some("1080p"));
+    assert_eq!(
+        parse("Night.Harbor.S01E01.Pilot.1080p.mkv")
+            .episode_title
+            .as_deref(),
+        Some("Pilot")
+    );
+}

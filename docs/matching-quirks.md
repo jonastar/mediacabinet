@@ -86,3 +86,11 @@ filename parser in `crates/core/src/parse/`.
 - **Handling:** when the top search results are within 0.1 of each other, none is
   confident; the folder goes to review instead of a guess.
 - **Tests:** `uncertain_matches_go_to_review` in `tests/matching.rs`.
+
+## A tag right after the episode marker
+
+- **Seen:** `Night.Harbor.S01E01.1080p.mkv` read with `.` as its episode title,
+  which then "differed" from the real one and cost 0.15 confidence: enough to
+  send a plainly named file to review.
+- **Handling:** an episode title needs at least one letter or digit.
+- **Tests:** `punctuation_is_no_episode_title` in `parse/tests.rs`.

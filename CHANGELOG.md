@@ -12,6 +12,11 @@ Details belong in the commit, docs or API reference.
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
 
+- Library folders are now just writable or read-only (`read_only` on roots; `write_policy` still works), and each library chooses which folder new items go to; read-only folders are never written, not even to fix a folder's IDs.
+- Organise a whole library or folder: see every rename first, untick what to leave, then apply (`POST /api/organize/preview`, `POST /api/organize/apply`); it works on any writable folder.
+- Import files from a folder on the server: check what each video is, choose copy (the default), hard link or move, and keep names or rename to the layout (`POST /api/imports/list`, `POST /api/imports/file`; `naming` on `POST /imports`).
+- Library inboxes: finished videos dropped in a library's inbox folder are imported on their own; what can't be placed waits on the library's page (`inbox_path`, `GET /api/libraries/{id}/inbox`). Unfinished downloads are left alone; `CABINET_IMPORT_SETTLE_SECONDS` sets how long a file must be still first.
+- Files named like `Show.S01E01.1080p.mkv` no longer go to review for a mismatched episode title.
 - Media Cabinet is MIT licensed.
 - Guest access for demo servers: when turned on (Manage → Users, or `CABINET_GUEST_ACCESS`), people and apps can continue as a guest with their own throwaway account (`POST /api/auth/guest`, `POST /api/auth/device/guest`, `guest_access` in `GET /api/server-info`).
 - TV mode: the TV app is served at `/tv-mode/` for TV browsers and linked from the web UI's sidebar, signed in with your web session.

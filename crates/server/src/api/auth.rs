@@ -108,6 +108,7 @@ fn needs_admin(method: &Method, path: &str) -> bool {
         ADMIN_READS.iter().any(|prefix| path.starts_with(prefix))
             || (path.starts_with("/api/items/") && path.ends_with("/events"))
             || (path.starts_with("/api/files/") && path.ends_with("/probe"))
+            || (path.starts_with("/api/libraries/") && path.ends_with("/inbox"))
     } else {
         !is_own_change(path)
     }

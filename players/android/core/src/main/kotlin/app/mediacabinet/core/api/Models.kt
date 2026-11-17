@@ -71,11 +71,14 @@ data class AddItem(
 
 @Serializable
 data class AddRoot(
+    /** New series and movies of the library go here. */
     @SerialName("is_import_target") val isImportTarget: Boolean? = null,
     @SerialName("layout_template") val layoutTemplate: String,
     /** Absolute path on the server. */
     val path: String,
-    /** `managed`, `adaptive` (default) or `read_only`. */
+    /** Media Cabinet never writes here. Overrides `write_policy` when given. */
+    @SerialName("read_only") val readOnly: Boolean? = null,
+    /** `managed`, `adaptive` (default) or `read_only`. Prefer `read_only`. */
     @SerialName("write_policy") val writePolicy: String? = null,
 )
 
@@ -87,6 +90,12 @@ data class ApiKey(
     val name: String,
     /** The key's first characters, to recognise it. */
     val prefix: String,
+)
+
+@Serializable
+data class ApplyOrganize(
+    /** Moves from a preview, as they were given. */
+    val moves: List<PlannedMove> = emptyList(),
 )
 
 @Serializable
@@ -512,6 +521,12 @@ value class Extra(val value: String) {
 }
 
 @Serializable
+data class FailedMove(
+    val error: String,
+    @SerialName("file_id") val fileId: Long,
+)
+
+@Serializable
 data class FileCounts(
     val ignored: Long,
     val missing: Long,
@@ -544,7 +559,7 @@ data class FileReview(
 
 @Serializable
 data class FixFolderIds(
-    /** Rename it even on a read-only root. */
+    /** Ignored: read-only roots are never renamed. Kept so older clients still parse. */
     val force: Boolean? = null,
     @SerialName("root_id") val rootId: Long,
 )
@@ -640,6 +655,14 @@ data class FolderVideo(
 )
 
 @Serializable
+data class GuessedEpisode(
+    val id: Long,
+    /** `S01E02`, or `E12` without a season. */
+    val label: String,
+    val title: String,
+)
+
+@Serializable
 data class GuestDevice(
     /** Shown in Account, where it can be signed out. */
     @SerialName("device_name") val deviceName: String,
@@ -701,6 +724,64 @@ data class IgnoredFolder(
 )
 
 @Serializable
+data class ImportCandidate(
+    val guess: ImportGuess? = null,
+    val mtime: Long,
+    /** Absolute. */
+    val path: String,
+    /** Relative to the folder looked at. */
+    @SerialName("relative_path") val relativePath: String,
+    /**
+     * On the same filesystem as a writable folder of the library, so a hard
+     * link can work.
+     */
+    @SerialName("same_disk") val sameDisk: Boolean = false,
+    val size: Long,
+    /** Why it doesn't look finished yet. */
+    val waiting: String? = null,
+)
+
+@Serializable
+data class ImportFile(
+    @SerialName("dry_run") val dryRun: Boolean? = null,
+    /** The episodes of one series, or a movie. */
+    val items: List<Long> = emptyList(),
+    /** `copy`, `hardlink` or `move`. */
+    val mode: TransferMode,
+    /** `layout` (default) renames by the folder's layout; `keep` keeps the name. */
+    val naming: Naming? = null,
+    /** Absolute path of the video on the server. */
+    val path: String,
+    /** Remove the items' existing files (an upgrade). Off by default. */
+    val replace: Boolean? = null,
+)
+
+/** Which series episode(s) or movie a file probably is. */
+@Serializable
+data class ImportGuess(
+    /** 0–1. */
+    val confidence: Double,
+    /** For a series: the episodes, if the name says which; empty otherwise. */
+    val episodes: List<GuessedEpisode> = emptyList(),
+    /** The series or movie. */
+    @SerialName("item_id") val itemId: Long,
+    /** `series` or `movie`. */
+    val kind: String,
+    val title: String,
+    val year: Long? = null,
+)
+
+@Serializable
+data class ImportListing(
+    val files: List<ImportCandidate> = emptyList(),
+    val path: String,
+    /** More videos than are listed. */
+    val truncated: Boolean = false,
+    /** Files skipped because their name says they're still being written. */
+    val unfinished: Long,
+)
+
+@Serializable
 data class ImportReport(
     /** True when the series or movie was new. */
     val created: Boolean = false,
@@ -723,7 +804,13 @@ data class ImportRequest(
     val episodes: List<String>? = null,
     /** The episode, movie or series: `item:<id>` or `<provider>:<id>`. */
     val item: String,
+    /** `hardlink` (default), `copy` or `move`. */
     val mode: TransferMode? = null,
+    /**
+     * `layout` renames the file by the root's layout; `keep` keeps its name.
+     * Left out, the destination root's write policy decides (`managed` renames).
+     */
+    val naming: Naming? = null,
     /** Ordering the episode numbers are in; default the series' default. */
     val ordering: String? = null,
     /** Absolute path of the file on the server. */
@@ -742,6 +829,30 @@ data class ImportResult(
     val replaced: List<String> = emptyList(),
     @SerialName("root_id") val rootId: Long,
     val sidecars: List<String> = emptyList(),
+)
+
+@Serializable
+data class Inbox(
+    /** Videos it couldn't import alone. */
+    val attention: List<InboxFile> = emptyList(),
+    /** Whether the folder can be reached now. */
+    val online: Boolean = false,
+    val path: String? = null,
+)
+
+@Serializable
+data class InboxCheckStarted(
+    /** False when a check was already running; one more runs after it. */
+    val started: Boolean = false,
+)
+
+@Serializable
+data class InboxFile(
+    val path: String,
+    val reason: String,
+    /** Relative to the inbox. */
+    @SerialName("relative_path") val relativePath: String,
+    @SerialName("seen_at") val seenAt: Long,
 )
 
 @Serializable
@@ -837,6 +948,8 @@ value class Level(val value: String) {
 @Serializable
 data class Library(
     val id: Long,
+    /** A folder whose finished videos are imported on their own. */
+    @SerialName("inbox_path") val inboxPath: String? = null,
     /** `tv`, `movies` or `folders`. */
     val kind: String,
     /** The last metadata refresh of the whole library. */
@@ -875,6 +988,13 @@ data class LinkedFile(
     val status: String,
     @SerialName("video_codec") val videoCodec: String? = null,
     val width: Long? = null,
+)
+
+@Serializable
+data class ListImports(
+    @SerialName("library_id") val libraryId: Long,
+    /** Absolute path of a folder on the server, outside every library folder. */
+    val path: String,
 )
 
 @Serializable
@@ -1056,6 +1176,16 @@ data class MySignIn(
     val providers: List<ProviderButton> = emptyList(),
 )
 
+/** How an imported file is named. */
+@Serializable
+@JvmInline
+value class Naming(val value: String) {
+    companion object {
+        val Layout = Naming("layout")
+        val Keep = Naming("keep")
+    }
+}
+
 @Serializable
 data class NewApiKey(
     @SerialName("created_at") val createdAt: Long,
@@ -1118,6 +1248,38 @@ data class OrderingNumber(
     val number: Long? = null,
     val ordering: String,
     val season: Long? = null,
+)
+
+@Serializable
+data class OrganizeApplied(
+    val failed: List<FailedMove> = emptyList(),
+    val moved: List<PlannedMove> = emptyList(),
+)
+
+/** One series or movie's changes on one root. */
+@Serializable
+data class OrganizeGroup(
+    @SerialName("item_id") val itemId: Long,
+    /** `series` or `movie`. */
+    val kind: String,
+    /** Paths relative to the root. */
+    val moves: List<PlannedMove> = emptyList(),
+    @SerialName("root_id") val rootId: Long,
+    @SerialName("root_path") val rootPath: String,
+    /** Files left where they are, and why. */
+    val skipped: List<String> = emptyList(),
+    val title: String,
+    val year: Long? = null,
+)
+
+@Serializable
+data class OrganizePreview(
+    /** Files looked at. */
+    val files: Long,
+    /** Only series and movies with something to change or skip, by title. */
+    val groups: List<OrganizeGroup> = emptyList(),
+    /** Of those, already where the layout puts them. */
+    @SerialName("in_place") val inPlace: Long,
 )
 
 @Serializable
@@ -1403,6 +1565,16 @@ data class PostedCallback(
 )
 
 @Serializable
+data class PreviewOrganize(
+    /** One series or movie. */
+    @SerialName("item_id") val itemId: Long? = null,
+    /** Every writable folder of this library. */
+    @SerialName("library_id") val libraryId: Long? = null,
+    /** One writable folder. */
+    @SerialName("root_id") val rootId: Long? = null,
+)
+
+@Serializable
 data class Progress(
     /** What the player knows; otherwise the file's probed duration is used. */
     @SerialName("duration_seconds") val durationSeconds: Double? = null,
@@ -1572,7 +1744,9 @@ data class Removed(
 
 @Serializable
 data class RenameLibrary(
-    val name: String,
+    /** The library's inbox folder, outside every library folder; empty to have none. */
+    @SerialName("inbox_path") val inboxPath: String? = null,
+    val name: String? = null,
 )
 
 @Serializable
@@ -1588,6 +1762,7 @@ data class ReviewQueue(
 data class Root(
     val files: FileCounts,
     val id: Long,
+    /** New series and movies of the library go to this root. */
     @SerialName("is_import_target") val isImportTarget: Boolean = false,
     @SerialName("last_scan") val lastScan: ScanRun? = null,
     @SerialName("layout_template") val layoutTemplate: String,
@@ -1597,11 +1772,16 @@ data class Root(
     /** Whether the folder is reachable right now. */
     val online: Boolean = false,
     val path: String,
+    /** Media Cabinet never writes here. */
+    @SerialName("read_only") val readOnly: Boolean = false,
     /** Set while a scan runs; filled in by whoever runs scans. */
     val scanning: ScanProgress? = null,
     /** The template split for display. */
     @SerialName("template_pieces") val templatePieces: List<TemplatePiece> = emptyList(),
-    /** `managed`, `adaptive` or `read_only`. */
+    /**
+     * `managed`, `adaptive` or `read_only`. Superseded by `read_only`: apart from
+     * it, the policy only decides how an API import names files when it doesn't say.
+     */
     @SerialName("write_policy") val writePolicy: String,
 )
 
@@ -2090,6 +2270,9 @@ value class TransferMode(val value: String) {
 data class UpdateRoot(
     @SerialName("is_import_target") val isImportTarget: Boolean? = null,
     @SerialName("layout_template") val layoutTemplate: String? = null,
+    /** Media Cabinet never writes here. Turning it off makes the root writable. */
+    @SerialName("read_only") val readOnly: Boolean? = null,
+    /** Prefer `read_only`. */
     @SerialName("write_policy") val writePolicy: String? = null,
 )
 

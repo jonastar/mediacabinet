@@ -40,7 +40,7 @@ Settles the stack and the build-blocking open questions in `media-cabinet-handof
 
 - Imports hard-link by default (download clients keep seeding), falling back to a copy across filesystems; copy and move are options. Sidecars with the same name travel along.
 - Nothing is overwritten: a taken destination stops the operation. Across filesystems, moves copy, check the size, then remove the original.
-- Renaming files on managed roots (Organize) and moving a series are explicit actions with a dry run, never automatic on scan.
+- Renaming files (Organise) and moving a series are explicit actions with a preview, never automatic on scan; a root is writable or read-only, nothing more (`library-management.md`).
 - Replacing an older version on import only happens when asked (`replace`); the old file is marked `removed`, not `missing`.
 - Media Cabinet doesn't write `.nfo` files or embedded tags back out in v1. Writing them, opt-in, can come later.
 - Integration endpoints meant for tools (*arr lists and webhooks, imports) require an API key now. The rest require a session or key once logins exist (Phase 7).

@@ -1,12 +1,12 @@
 import { useState } from 'react'
-import { api, type Library, type LibraryKind, type Root, type WritePolicy } from '../../api/client'
+import { api, type Library, type LibraryKind, type Root } from '../../api/client'
 import { BackIcon } from '../../components/Icons'
 import { Link } from '../../components/Link'
 import { Failed, Loading } from '../../components/Status'
 import { navigate } from '../../lib/router'
 import { NotFoundPage } from '../NotFoundPage'
+import { AccessPicker } from './AccessPicker'
 import { FolderLayout } from './FolderLayout'
-import { PolicyPicker } from './PolicyPicker'
 import { rootStatus } from './roots'
 import { useLibraries } from './useLibraries'
 import styles from './Libraries.module.css'
@@ -26,7 +26,6 @@ function Folder({
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const status = rootStatus(root)
-  const policy = root.write_policy as WritePolicy
 
   const act = async (action: () => Promise<unknown>) => {
     setBusy(true)
@@ -91,34 +90,39 @@ function Folder({
 
       {kind !== 'folders' && (
         <>
-          <section aria-labelledby="root-policy" className={styles.panel}>
-            <h2 id="root-policy">Write policy</h2>
-            <PolicyPicker
-              name={`policy-${root.id}`}
-              value={policy}
-              disabled={busy}
-              onChange={(value) => act(() => api.updateRoot(root.id, { write_policy: value }))}
+          <section aria-labelledby="root-access" className={styles.panel}>
+            <h2 id="root-access">Writing</h2>
+            <AccessPicker
+              name={`access-${root.id}`}
+              readOnly={root.read_only}
+              disabled={busy || (root.is_import_target && !root.read_only)}
+              onChange={(readOnly) => act(() => api.updateRoot(root.id, { read_only: readOnly }))}
             />
-            <div className={styles.pathLine}>
-              {root.is_import_target ? (
-                <span className={styles.tag}>Import target</span>
-              ) : policy !== 'read_only' ? (
-                <button
-                  type="button"
-                  className={`${styles.button} ${styles.small}`}
-                  disabled={busy}
-                  onClick={() => act(() => api.updateRoot(root.id, { is_import_target: true }))}
-                >
-                  Make import target
-                </button>
-              ) : null}
-              <span className={styles.muted}>
-                {root.is_import_target
-                  ? `New ${kind === 'movies' ? 'movies' : 'series'} of ${library.name} land in this folder.`
-                  : `The import target is where new ${kind === 'movies' ? 'movies' : 'series'} of ${library.name} land.`}
-              </span>
-            </div>
+            {root.is_import_target && (
+              <p className={styles.muted}>
+                New {kind === 'movies' ? 'movies' : 'series'} of {library.name} go to this folder.
+                To make it read-only, choose another folder for new items on{' '}
+                <Link to={`/manage/libraries/${library.id}`}>the library’s page</Link> first.
+              </p>
+            )}
           </section>
+
+          {!root.read_only && (
+            <section aria-labelledby="root-organise" className={styles.panel}>
+              <h2 id="root-organise">Organise</h2>
+              <p className={styles.muted}>
+                Rename and move this folder’s files to match its layout, after seeing every change.
+              </p>
+              <div className={styles.actions}>
+                <Link
+                  to={`/manage/libraries/${library.id}/organize?root=${root.id}`}
+                  className={`${styles.button} ${styles.small} ${styles.buttonLink}`}
+                >
+                  Preview changes
+                </Link>
+              </div>
+            </section>
+          )}
 
           <section aria-labelledby="root-template" className={styles.panel}>
             <h2 id="root-template">Folder layout</h2>
@@ -127,7 +131,7 @@ function Folder({
               key={resets}
               id={`template-${root.id}`}
               kind={kind}
-              policy={policy}
+              readOnly={root.read_only}
               value={draft.value}
               onChange={(value, valid) => setDraft({ value, valid })}
             />
@@ -178,7 +182,7 @@ function Folder({
   )
 }
 
-/** One folder of a library: scanning, write policy, import target, layout template. */
+/** One folder of a library: scanning, writable or read-only, layout template. */
 export function RootDetail({ libraryId, id }: { libraryId: number; id: number }) {
   const libraries = useLibraries()
   if (libraries.error) {

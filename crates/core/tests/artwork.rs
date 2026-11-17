@@ -245,6 +245,7 @@ async fn a_scan_asks_for_what_its_library_is_missing() {
         NewRoot {
             path: media.to_str().unwrap(),
             write_policy: "read_only",
+            read_only: None,
             layout_template: "{series}/{filename}",
             is_import_target: false,
         },

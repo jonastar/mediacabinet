@@ -44,6 +44,27 @@ export type NewApiKey = Schemas['NewApiKey']
 export type Webhook = Schemas['Webhook']
 export type NewWebhook = Schemas['NewWebhook']
 export type MovePlan = Schemas['MovePlan']
+export type PlannedMove = Schemas['PlannedMove']
+export type OrganizeGroup = Schemas['OrganizeGroup']
+export type OrganizePreview = Schemas['OrganizePreview']
+export type OrganizeApplied = Schemas['OrganizeApplied']
+export type FailedMove = Schemas['FailedMove']
+export type Inbox = Schemas['Inbox']
+export type ImportListing = Schemas['ImportListing']
+export type ImportCandidate = Schemas['ImportCandidate']
+export type ImportGuess = Schemas['ImportGuess']
+export type ImportResult = Schemas['ImportResult']
+export type TransferMode = Schemas['TransferMode']
+export type Naming = Schemas['Naming']
+export interface ImportFile {
+  path: string
+  items: number[]
+  mode: TransferMode
+  naming: Naming
+  dry_run: boolean
+}
+/** One of these: what Organise looks at. */
+export type OrganizeScope = { library_id: number } | { root_id: number } | { item_id: number }
 export type FolderRename = Schemas['FolderRename']
 export type User = Schemas['User']
 export type UserStatus = Schemas['UserStatus']
@@ -144,17 +165,16 @@ export interface ItemEdit {
   overview?: string
   lock?: boolean
 }
-export type WritePolicy = 'managed' | 'adaptive' | 'read_only'
 
 export interface NewRoot {
   path: string
-  write_policy: WritePolicy
+  read_only: boolean
   layout_template: string
   is_import_target: boolean
 }
 
 export interface RootChanges {
-  write_policy?: WritePolicy
+  read_only?: boolean
   layout_template?: string
   is_import_target?: boolean
 }
@@ -230,6 +250,12 @@ export const api = {
     request<Library>('POST', '/api/libraries', { name, kind }),
   renameLibrary: (id: number, name: string) =>
     request<Library>('PATCH', `/api/libraries/${id}`, { name }),
+  /** An empty path clears the inbox. */
+  setInbox: (id: number, path: string) =>
+    request<Library>('PATCH', `/api/libraries/${id}`, { inbox_path: path }),
+  inbox: (id: number) => request<Inbox>('GET', `/api/libraries/${id}/inbox`),
+  checkInbox: (id: number) =>
+    request<{ started: boolean }>('POST', `/api/libraries/${id}/inbox/check`),
   deleteLibrary: (id: number) => request<void>('DELETE', `/api/libraries/${id}`),
   refreshLibrary: (id: number) =>
     request<{ started: boolean }>('POST', `/api/libraries/${id}/refresh`),
@@ -320,13 +346,17 @@ export const api = {
     request<{ ok: boolean; error?: string | null }>('POST', `/api/webhooks/${id}/test`),
   organize: (itemId: number, dryRun: boolean) =>
     request<MovePlan>('POST', `/api/items/${itemId}/organize`, { dry_run: dryRun }),
+  listImports: (libraryId: number, path: string) =>
+    request<ImportListing>('POST', '/api/imports/list', { library_id: libraryId, path }),
+  importFile: (file: ImportFile) => request<ImportResult>('POST', '/api/imports/file', file),
+  previewOrganize: (scope: OrganizeScope) =>
+    request<OrganizePreview>('POST', '/api/organize/preview', scope),
+  applyOrganize: (moves: PlannedMove[]) =>
+    request<OrganizeApplied>('POST', '/api/organize/apply', { moves }),
   moveSeries: (seriesId: number, rootId: number, dryRun: boolean) =>
     request<MovePlan>('POST', `/api/series/${seriesId}/move`, { root_id: rootId, dry_run: dryRun }),
-  fixFolderIds: (seriesId: number, rootId: number, force: boolean) =>
-    request<FolderRename>('POST', `/api/series/${seriesId}/fix-folder-ids`, {
-      root_id: rootId,
-      force,
-    }),
+  fixFolderIds: (seriesId: number, rootId: number) =>
+    request<FolderRename>('POST', `/api/series/${seriesId}/fix-folder-ids`, { root_id: rootId }),
   placementExample: (libraryId: number) =>
     request<PlacementExample | null>('GET', `/api/libraries/${libraryId}/placement-example`),
 

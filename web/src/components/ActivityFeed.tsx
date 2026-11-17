@@ -13,6 +13,7 @@ const TASK_KINDS: Record<string, string> = {
   metadata_refresh: 'Metadata refresh task',
   thumbnails: 'Thumbnails task',
   artwork: 'Artwork download',
+  inbox: 'Inbox import',
 }
 
 const TARGETS: Record<string, string> = {

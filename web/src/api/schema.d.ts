@@ -768,10 +768,51 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Hands a file over: places it by the destination root's write policy and
-         *     template, transfers it with its sidecars, and links it. Requires an API key.
+         * Hands a file over: places it by the naming asked for and the destination
+         *     root's layout, transfers it with its sidecars, and links it. Requires an API key.
          */
         post: operations["import"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/imports/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Imports one file by hand, as the import tool does: into the series' folder,
+         *     or the library's folder for new items, with its sidecars.
+         */
+        post: operations["import_file"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/imports/list": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * The videos in a folder that could be imported into a library, each with a
+         *     guess at which series episode or movie of the library it is, and whether it
+         *     looks finished downloading.
+         */
+        post: operations["list_imports"];
         delete?: never;
         options?: never;
         head?: never;
@@ -899,7 +940,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Renames a series' or movie's files on managed roots to match the template. */
+        /** Renames a series' or movie's files on writable roots to match the layout. */
         post: operations["organize_item"];
         delete?: never;
         options?: never;
@@ -1081,6 +1122,40 @@ export interface paths {
         get: operations["browse_library"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/libraries/{id}/inbox": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A library's inbox, and the videos in it that need a person. */
+        get: operations["library_inbox"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/libraries/{id}/inbox/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Looks in a library's inbox now, and again at what needed attention. */
+        post: operations["check_inbox"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1338,6 +1413,47 @@ export interface paths {
         get: operations["movie_detail"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organize/apply": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Applies moves from an Organise preview. Each is checked against its file as it
+         *     is now, so a stale preview fails per file instead of moving the wrong thing.
+         */
+        post: operations["apply_organize"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/organize/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * What renaming files to their folder's layout would change, for a library, a
+         *     folder, or a series or movie. Changes nothing; apply what you want to keep
+         *     with `/organize/apply`.
+         */
+        post: operations["preview_organize"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1605,7 +1721,10 @@ export interface paths {
         delete: operations["remove_root"];
         options?: never;
         head?: never;
-        /** Changes a root's write policy, layout template or import target flag. */
+        /**
+         * Changes whether a root is read-only, its layout template, or makes it the
+         *     root new items of its library go to.
+         */
         patch: operations["update_root"];
         trace?: never;
     };
@@ -1712,7 +1831,7 @@ export interface paths {
         put?: never;
         /**
          * Renames a series' folder on a root so the provider IDs in its name, such as
-         *     `[tmdb-1399]`, are the series' own. Read-only roots need `force`.
+         *     `[tmdb-1399]`, are the series' own. Refused on read-only roots.
          */
         post: operations["fix_folder_ids"];
         delete?: never;
@@ -2134,11 +2253,14 @@ export interface components {
             quality_profile_id?: number | null;
         };
         AddRoot: {
+            /** @description New series and movies of the library go here. */
             is_import_target?: boolean;
             layout_template: string;
             /** @description Absolute path on the server. */
             path: string;
-            /** @description `managed`, `adaptive` (default) or `read_only`. */
+            /** @description Media Cabinet never writes here. Overrides `write_policy` when given. */
+            read_only?: boolean | null;
+            /** @description `managed`, `adaptive` (default) or `read_only`. Prefer `read_only`. */
             write_policy?: string;
         };
         ApiKey: {
@@ -2151,6 +2273,10 @@ export interface components {
             name: string;
             /** @description The key's first characters, to recognise it. */
             prefix: string;
+        };
+        ApplyOrganize: {
+            /** @description Moves from a preview, as they were given. */
+            moves: components["schemas"]["PlannedMove"][];
         };
         Attention: {
             /** Format: int64 */
@@ -2506,6 +2632,11 @@ export interface components {
         };
         /** @enum {string} */
         Extra: "sample" | "trailer" | "featurette" | "behind_the_scenes" | "deleted_scene" | "interview" | "short" | "other";
+        FailedMove: {
+            error: string;
+            /** Format: int64 */
+            file_id: number;
+        };
         FileCounts: {
             /** Format: int64 */
             ignored: number;
@@ -2542,7 +2673,7 @@ export interface components {
             root_path: string;
         };
         FixFolderIds: {
-            /** @description Rename it even on a read-only root. */
+            /** @description Ignored: read-only roots are never renamed. Kept so older clients still parse. */
             force?: boolean;
             /** Format: int64 */
             root_id: number;
@@ -2608,6 +2739,13 @@ export interface components {
         FolderVideo: components["schemas"]["MovieSummary"] & {
             file_name: string;
         };
+        GuessedEpisode: {
+            /** Format: int64 */
+            id: number;
+            /** @description `S01E02`, or `E12` without a season. */
+            label: string;
+            title: string;
+        };
         GuestDevice: {
             /** @description Shown in Account, where it can be signed out. */
             device_name: string;
@@ -2667,6 +2805,65 @@ export interface components {
             root_id: number;
             root_path: string;
         };
+        ImportCandidate: {
+            guess?: components["schemas"]["ImportGuess"] | null;
+            /** Format: int64 */
+            mtime: number;
+            /** @description Absolute. */
+            path: string;
+            /** @description Relative to the folder looked at. */
+            relative_path: string;
+            /**
+             * @description On the same filesystem as a writable folder of the library, so a hard
+             *     link can work.
+             */
+            same_disk: boolean;
+            /** Format: int64 */
+            size: number;
+            /** @description Why it doesn't look finished yet. */
+            waiting?: string | null;
+        };
+        ImportFile: {
+            dry_run?: boolean;
+            /** @description The episodes of one series, or a movie. */
+            items: number[];
+            /** @description `copy`, `hardlink` or `move`. */
+            mode: components["schemas"]["TransferMode"];
+            /** @description `layout` (default) renames by the folder's layout; `keep` keeps the name. */
+            naming?: components["schemas"]["Naming"];
+            /** @description Absolute path of the video on the server. */
+            path: string;
+            /** @description Remove the items' existing files (an upgrade). Off by default. */
+            replace?: boolean;
+        };
+        /** @description Which series episode(s) or movie a file probably is. */
+        ImportGuess: {
+            /**
+             * Format: double
+             * @description 0–1.
+             */
+            confidence: number;
+            /** @description For a series: the episodes, if the name says which; empty otherwise. */
+            episodes: components["schemas"]["GuessedEpisode"][];
+            /**
+             * Format: int64
+             * @description The series or movie.
+             */
+            item_id: number;
+            /** @description `series` or `movie`. */
+            kind: string;
+            title: string;
+            /** Format: int64 */
+            year?: number | null;
+        };
+        ImportListing: {
+            files: components["schemas"]["ImportCandidate"][];
+            path: string;
+            /** @description More videos than are listed. */
+            truncated: boolean;
+            /** @description Files skipped because their name says they're still being written. */
+            unfinished: number;
+        };
         ImportReport: {
             /** @description True when the series or movie was new. */
             created: boolean;
@@ -2688,7 +2885,9 @@ export interface components {
             episodes?: string[];
             /** @description The episode, movie or series: `item:<id>` or `<provider>:<id>`. */
             item: string;
+            /** @description `hardlink` (default), `copy` or `move`. */
             mode?: components["schemas"]["TransferMode"];
+            naming?: components["schemas"]["Naming"] | null;
             /** @description Ordering the episode numbers are in; default the series' default. */
             ordering?: string | null;
             /** @description Absolute path of the file on the server. */
@@ -2707,6 +2906,25 @@ export interface components {
             /** Format: int64 */
             root_id: number;
             sidecars: string[];
+        };
+        Inbox: {
+            /** @description Videos it couldn't import alone. */
+            attention: components["schemas"]["InboxFile"][];
+            /** @description Whether the folder can be reached now. */
+            online: boolean;
+            path?: string | null;
+        };
+        InboxCheckStarted: {
+            /** @description False when a check was already running; one more runs after it. */
+            started: boolean;
+        };
+        InboxFile: {
+            path: string;
+            reason: string;
+            /** @description Relative to the inbox. */
+            relative_path: string;
+            /** Format: int64 */
+            seen_at: number;
         };
         IssuerFound: {
             /** @description The issuer as the provider names itself; save this one. */
@@ -2785,6 +3003,8 @@ export interface components {
         Library: {
             /** Format: int64 */
             id: number;
+            /** @description A folder whose finished videos are imported on their own. */
+            inbox_path?: string | null;
             /** @description `tv`, `movies` or `folders`. */
             kind: string;
             last_refresh?: components["schemas"]["ScanRun"] | null;
@@ -2826,6 +3046,12 @@ export interface components {
             video_codec?: string | null;
             /** Format: int64 */
             width?: number | null;
+        };
+        ListImports: {
+            /** Format: int64 */
+            library_id: number;
+            /** @description Absolute path of a folder on the server, outside every library folder. */
+            path: string;
         };
         Location: {
             /**
@@ -2965,6 +3191,11 @@ export interface components {
             logins: components["schemas"]["Login"][];
             providers: components["schemas"]["ProviderButton"][];
         };
+        /**
+         * @description How an imported file is named.
+         * @enum {string}
+         */
+        Naming: "layout" | "keep";
         NewApiKey: components["schemas"]["ApiKey"] & {
             /** @description The key itself. Shown only now; store it in the tool that uses it. */
             secret: string;
@@ -2991,6 +3222,35 @@ export interface components {
             ordering: string;
             /** Format: int64 */
             season?: number | null;
+        };
+        OrganizeApplied: {
+            failed: components["schemas"]["FailedMove"][];
+            moved: components["schemas"]["PlannedMove"][];
+        };
+        /** @description One series or movie's changes on one root. */
+        OrganizeGroup: {
+            /** Format: int64 */
+            item_id: number;
+            /** @description `series` or `movie`. */
+            kind: string;
+            /** @description Paths relative to the root. */
+            moves: components["schemas"]["PlannedMove"][];
+            /** Format: int64 */
+            root_id: number;
+            root_path: string;
+            /** @description Files left where they are, and why. */
+            skipped: string[];
+            title: string;
+            /** Format: int64 */
+            year?: number | null;
+        };
+        OrganizePreview: {
+            /** @description Files looked at. */
+            files: number;
+            /** @description Only series and movies with something to change or skip, by title. */
+            groups: components["schemas"]["OrganizeGroup"][];
+            /** @description Of those, already where the layout puts them. */
+            in_place: number;
         };
         PairingAnswer: {
             approve: boolean;
@@ -3236,6 +3496,23 @@ export interface components {
             /** @description Apple's, on someone's first sign-in: their name and email as JSON. */
             user?: string | null;
         };
+        PreviewOrganize: {
+            /**
+             * Format: int64
+             * @description One series or movie.
+             */
+            item_id?: number | null;
+            /**
+             * Format: int64
+             * @description Every writable folder of this library.
+             */
+            library_id?: number | null;
+            /**
+             * Format: int64
+             * @description One writable folder.
+             */
+            root_id?: number | null;
+        };
         Progress: {
             /**
              * Format: double
@@ -3394,7 +3671,9 @@ export interface components {
             disabled_users: number;
         };
         RenameLibrary: {
-            name: string;
+            /** @description The library's inbox folder, outside every library folder; empty to have none. */
+            inbox_path?: string | null;
+            name?: string | null;
         };
         ReviewQueue: {
             /** @description Files with pending candidates. */
@@ -3407,6 +3686,7 @@ export interface components {
             files: components["schemas"]["FileCounts"];
             /** Format: int64 */
             id: number;
+            /** @description New series and movies of the library go to this root. */
             is_import_target: boolean;
             last_scan?: components["schemas"]["ScanRun"] | null;
             layout_template: string;
@@ -3420,10 +3700,15 @@ export interface components {
             /** @description Whether the folder is reachable right now. */
             online: boolean;
             path: string;
+            /** @description Media Cabinet never writes here. */
+            read_only: boolean;
             scanning?: components["schemas"]["ScanProgress"] | null;
             /** @description The template split for display. */
             template_pieces: components["schemas"]["TemplatePiece"][];
-            /** @description `managed`, `adaptive` or `read_only`. */
+            /**
+             * @description `managed`, `adaptive` or `read_only`. Superseded by `read_only`: apart from
+             *     it, the policy only decides how an API import names files when it doesn't say.
+             */
             write_policy: string;
         };
         ScanProgress: {
@@ -3872,6 +4157,9 @@ export interface components {
         UpdateRoot: {
             is_import_target?: boolean | null;
             layout_template?: string | null;
+            /** @description Media Cabinet never writes here. Turning it off makes the root writable. */
+            read_only?: boolean | null;
+            /** @description Prefer `read_only`. */
             write_policy?: string | null;
         };
         User: {
@@ -5509,6 +5797,92 @@ export interface operations {
             };
         };
     };
+    import_file: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ImportFile"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    list_imports: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ListImports"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportListing"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     item: {
         parameters: {
             query?: {
@@ -6275,6 +6649,72 @@ export interface operations {
             };
         };
     };
+    library_inbox: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Inbox"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    check_inbox: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxCheckStarted"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
     placement_example: {
         parameters: {
             query?: never;
@@ -6779,6 +7219,76 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MovieDetail"];
+                };
+            };
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    apply_organize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplyOrganize"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizeApplied"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
+                };
+            };
+        };
+    };
+    preview_organize: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewOrganize"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizePreview"];
+                };
+            };
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorBody"];
                 };
             };
             404: {

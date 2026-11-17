@@ -32,6 +32,8 @@ pub enum Kind {
     MetadataRefresh,
     Thumbnails,
     Artwork,
+    /// Importing what's new in a library's inbox.
+    Inbox,
 }
 
 impl Kind {
@@ -41,6 +43,7 @@ impl Kind {
             Kind::MetadataRefresh => "metadata_refresh",
             Kind::Thumbnails => "thumbnails",
             Kind::Artwork => "artwork",
+            Kind::Inbox => "inbox",
         }
     }
 
@@ -50,6 +53,7 @@ impl Kind {
             "metadata_refresh" => Some(Kind::MetadataRefresh),
             "thumbnails" => Some(Kind::Thumbnails),
             "artwork" => Some(Kind::Artwork),
+            "inbox" => Some(Kind::Inbox),
             _ => None,
         }
     }
@@ -63,7 +67,7 @@ impl Kind {
     pub fn can_cancel(self) -> bool {
         matches!(
             self,
-            Kind::MetadataRefresh | Kind::Thumbnails | Kind::Artwork
+            Kind::MetadataRefresh | Kind::Thumbnails | Kind::Artwork | Kind::Inbox
         )
     }
 }
@@ -182,6 +186,8 @@ pub struct Services {
     pub artwork: Option<ArtworkStore>,
     /// Whether anything is being transcoded for playback now; heavy tasks wait.
     pub transcoding: Arc<dyn Fn() -> bool + Send + Sync>,
+    /// Seconds an inbox file must stay unchanged before it's imported.
+    pub inbox_settle: i64,
 }
 
 impl Default for Services {
@@ -194,6 +200,7 @@ impl Default for Services {
             thumbnailer: None,
             artwork: None,
             transcoding: Arc::new(|| false),
+            inbox_settle: crate::imports::SETTLE_SECONDS,
         }
     }
 }
@@ -577,6 +584,9 @@ impl Tasks {
                 }
                 (Kind::Artwork, Scope::Library(library_id)) => {
                     crate::artwork::run_task(&handle, library_id).await
+                }
+                (Kind::Inbox, Scope::Library(library_id)) => {
+                    crate::inbox::run_task(&handle, library_id).await
                 }
                 _ => Ok(Finished {
                     state: Ended::Cancelled,

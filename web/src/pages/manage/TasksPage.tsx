@@ -17,6 +17,7 @@ const KINDS: Record<string, string> = {
   metadata_refresh: 'Metadata refresh',
   thumbnails: 'Thumbnails',
   artwork: 'Artwork downloads',
+  inbox: 'Inbox imports',
 }
 
 const STATES: Record<string, string> = {

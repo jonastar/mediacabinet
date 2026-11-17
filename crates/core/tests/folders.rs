@@ -46,6 +46,7 @@ impl Lib {
             NewRoot {
                 path: videos.to_str().unwrap(),
                 write_policy: "read_only",
+                read_only: None,
                 layout_template: "{video}",
                 is_import_target: false,
             },
@@ -323,6 +324,7 @@ async fn folders_stay_read_only_with_no_layout() {
     let adaptive = NewRoot {
         path: other.to_str().unwrap(),
         write_policy: "adaptive",
+        read_only: None,
         layout_template: "{video}",
         is_import_target: false,
     };

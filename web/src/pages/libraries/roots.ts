@@ -1,26 +1,19 @@
-import type {
-  Library,
-  LibraryKind,
-  RefreshProgress,
-  Root,
-  ScanProgress,
-  WritePolicy,
-} from '../../api/client'
+import type { Library, LibraryKind, RefreshProgress, Root, ScanProgress } from '../../api/client'
 import { ago, dayTimeLabel, time } from '../../lib/format'
 import { LOCALE } from '../../core/locale'
 
-export const POLICY_NOTES: Record<WritePolicy, string> = {
-  managed: 'Existing files are renamed and moved to match the layout. New files are placed by it.',
-  adaptive:
-    'Existing files are never moved. New files go next to their siblings, or into the series’ stored folder using the layout.',
-  read_only:
-    'Matched but never touched. Nothing is written here; imports and sidecars go elsewhere (sidecars to the cache folder).',
-}
-
-export const POLICIES: [WritePolicy, string][] = [
-  ['managed', 'Managed'],
-  ['adaptive', 'Adaptive'],
-  ['read_only', 'Read-only'],
+/** A root's two states. Nothing is ever written on its own: only when asked. */
+export const ACCESS = [
+  {
+    readOnly: false,
+    label: 'Writable',
+    note: 'Organise, imports and series moves may write here when you ask. Nothing changes on its own.',
+  },
+  {
+    readOnly: true,
+    label: 'Read-only',
+    note: 'Never written. Imports go to another folder, and sidecars Media Cabinet makes go to its cache folder.',
+  },
 ]
 
 const count = (n: number, noun: string) =>

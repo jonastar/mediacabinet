@@ -33,6 +33,7 @@ fn new_root(path: &str) -> NewRoot<'_> {
     NewRoot {
         path,
         write_policy: "adaptive",
+        read_only: None,
         layout_template: "{series}/Season {season:00}/{filename}",
         is_import_target: false,
     }
@@ -105,6 +106,52 @@ async fn templates_and_policies_are_validated() {
     .await
     .unwrap_err();
     assert!(message(err).contains("read-only"));
+}
+
+#[tokio::test]
+async fn roots_are_switched_between_writable_and_read_only() {
+    let (dir, pool) = db().await;
+    let tv = library::create(&pool, "TV", "tv").await.unwrap();
+    let path = folder(dir.path(), "tv", &[]);
+    let root = library::add_root(
+        &pool,
+        tv.id,
+        NewRoot {
+            write_policy: "managed",
+            read_only: Some(true),
+            ..new_root(&path)
+        },
+    )
+    .await
+    .unwrap();
+    assert!(root.read_only);
+    assert_eq!(root.write_policy, "read_only", "read_only wins");
+
+    let writable = |read_only| RootChanges {
+        read_only: Some(read_only),
+        ..Default::default()
+    };
+    let root = library::update_root(&pool, root.id, writable(false))
+        .await
+        .unwrap();
+    assert!(!root.read_only);
+    assert_eq!(root.write_policy, "adaptive");
+
+    // New items can't go to a read-only folder, in either order.
+    let root = library::update_root(
+        &pool,
+        root.id,
+        RootChanges {
+            is_import_target: Some(true),
+            ..Default::default()
+        },
+    )
+    .await
+    .unwrap();
+    let err = library::update_root(&pool, root.id, writable(true))
+        .await
+        .unwrap_err();
+    assert!(message(err).contains("Choose another folder for new items"));
 }
 
 #[tokio::test]

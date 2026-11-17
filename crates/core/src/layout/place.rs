@@ -1,11 +1,13 @@
-//! Where a new file goes, by write policy. From the spec's placement rules:
+//! Where a new file goes. From the spec's placement rules:
 //!
 //! - A series' folder is resolved once and stored; it's never recomputed from
 //!   metadata, so a genre change never moves files.
-//! - Managed: placed and named by the template.
-//! - Adaptive: next to its siblings if their season folder exists, otherwise into
-//!   the series' stored folder by the template, keeping the original name.
-//! - Read-only: never written; the import target takes it instead.
+//! - Managed (an import that renames by the layout, and Organise): placed and
+//!   named by the template.
+//! - Adaptive (an import that keeps names): next to its siblings if their season
+//!   folder exists, otherwise into the series' stored folder by the template,
+//!   keeping the original name.
+//! - Read-only: never written; the library's root for new items takes it instead.
 
 use std::collections::HashMap;
 
@@ -96,7 +98,7 @@ pub fn place(
     match policy {
         WritePolicy::ReadOnly => Ok(Placement {
             path: None,
-            note: "Not written here. It goes to the import target, and the series gets a second location there."
+            note: "Not written here. It goes to the folder for new items, and the series gets a second location there."
                 .into(),
         }),
         WritePolicy::Adaptive => {
@@ -126,7 +128,13 @@ pub fn place(
             parts.push(name);
             Ok(Placement {
                 path: Some(parts.join("/")),
-                note: format!("Renamed by the template; the series folder is {stored}."),
+                note: if template.names_files() {
+                    format!("Renamed by the template; the series folder is {stored}.")
+                } else {
+                    format!(
+                        "Placed by the template, which keeps file names; the series folder is {stored}."
+                    )
+                },
             })
         }
     }

@@ -4,6 +4,7 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use cabinet_core::catalog::folders::{self, FolderPage};
+use cabinet_core::inbox::Inbox;
 use cabinet_core::layout::{LibraryKind, Proposal, Template, TemplatePiece};
 use cabinet_core::library::{
     self, FolderListing, Library, NewRoot, PlacementExample, Root, RootChanges,
@@ -104,7 +105,9 @@ pub async fn create_library(
 
 #[derive(Deserialize, ToSchema)]
 pub struct RenameLibrary {
-    name: String,
+    name: Option<String>,
+    /// The library's inbox folder, outside every library folder; empty to have none.
+    inbox_path: Option<String>,
 }
 
 #[utoipa::path(
@@ -121,10 +124,65 @@ pub async fn rename_library(
     Path(id): Path<i64>,
     Json(body): Json<RenameLibrary>,
 ) -> Result<Json<Library>, ApiError> {
-    let renamed = library::rename(&state.db, id, &body.name).await?;
-    let name = Some(renamed.name.as_str());
-    config_changed(&state, actor, "library", "changed", id, name, &["name"]).await;
-    Ok(Json(renamed))
+    let mut fields = Vec::new();
+    let mut changed = library::get(&state.db, id).await?;
+    if let Some(name) = &body.name {
+        changed = library::rename(&state.db, id, name).await?;
+        fields.push("name");
+    }
+    if let Some(inbox) = &body.inbox_path {
+        changed = library::set_inbox(&state.db, id, Some(inbox)).await?;
+        fields.push("inbox_path");
+    }
+    if !fields.is_empty() {
+        let name = Some(changed.name.as_str());
+        config_changed(&state, actor, "library", "changed", id, name, &fields).await;
+    }
+    Ok(Json(with_progress(&state, vec![changed]).remove(0)))
+}
+
+/// A library's inbox, and the videos in it that need a person.
+#[utoipa::path(
+    get,
+    path = "/libraries/{id}/inbox",
+    tag = "libraries",
+    params(("id" = i64, Path)),
+    responses((status = 200, body = Inbox), (status = 404, body = ErrorBody))
+)]
+pub async fn library_inbox(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+) -> Result<Json<Inbox>, ApiError> {
+    library::get(&state.db, id).await?;
+    Ok(Json(cabinet_core::inbox::state(&state.db, id).await?))
+}
+
+#[derive(Serialize, ToSchema)]
+pub struct InboxCheckStarted {
+    /// False when a check was already running; one more runs after it.
+    started: bool,
+}
+
+/// Looks in a library's inbox now, and again at what needed attention.
+#[utoipa::path(
+    post,
+    path = "/libraries/{id}/inbox/check",
+    tag = "libraries",
+    params(("id" = i64, Path)),
+    responses((status = 202, body = InboxCheckStarted), (status = 400, body = ErrorBody), (status = 404, body = ErrorBody))
+)]
+pub async fn check_inbox(
+    State(state): State<AppState>,
+    Path(id): Path<i64>,
+) -> Result<(StatusCode, Json<InboxCheckStarted>), ApiError> {
+    if library::get(&state.db, id).await?.inbox_path.is_none() {
+        return Err(ApiError::BadRequest("This library has no inbox.".into()));
+    }
+    let started = state
+        .tasks
+        .request(Kind::Inbox, Scope::Library(id), Trigger::Manual)
+        .await?;
+    Ok((StatusCode::ACCEPTED, Json(InboxCheckStarted { started })))
 }
 
 /// Deletes an empty library. Its folders must be removed first.
@@ -150,10 +208,13 @@ pub async fn delete_library(
 pub struct AddRoot {
     /// Absolute path on the server.
     path: String,
-    /// `managed`, `adaptive` (default) or `read_only`.
+    /// `managed`, `adaptive` (default) or `read_only`. Prefer `read_only`.
     #[serde(default = "adaptive")]
     write_policy: String,
+    /// Media Cabinet never writes here. Overrides `write_policy` when given.
+    read_only: Option<bool>,
     layout_template: String,
+    /// New series and movies of the library go here.
     #[serde(default)]
     is_import_target: bool,
 }
@@ -188,6 +249,7 @@ pub async fn add_root(
         NewRoot {
             path: &body.path,
             write_policy: &body.write_policy,
+            read_only: body.read_only,
             layout_template: &body.layout_template,
             is_import_target: body.is_import_target,
         },
@@ -210,12 +272,16 @@ pub async fn add_root(
 
 #[derive(Deserialize, ToSchema)]
 pub struct UpdateRoot {
+    /// Prefer `read_only`.
     write_policy: Option<String>,
+    /// Media Cabinet never writes here. Turning it off makes the root writable.
+    read_only: Option<bool>,
     layout_template: Option<String>,
     is_import_target: Option<bool>,
 }
 
-/// Changes a root's write policy, layout template or import target flag.
+/// Changes whether a root is read-only, its layout template, or makes it the
+/// root new items of its library go to.
 #[utoipa::path(
     patch,
     path = "/roots/{id}",
@@ -232,6 +298,7 @@ pub async fn update_root(
 ) -> Result<Json<Root>, ApiError> {
     let given = [
         ("write_policy", body.write_policy.is_some()),
+        ("read_only", body.read_only.is_some()),
         ("layout_template", body.layout_template.is_some()),
         ("is_import_target", body.is_import_target.is_some()),
     ];
@@ -241,6 +308,7 @@ pub async fn update_root(
         id,
         RootChanges {
             write_policy: body.write_policy.as_deref(),
+            read_only: body.read_only,
             layout_template: body.layout_template.as_deref(),
             is_import_target: body.is_import_target,
         },

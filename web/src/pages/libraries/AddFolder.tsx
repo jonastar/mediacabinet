@@ -5,10 +5,9 @@ import {
   type FolderProposal,
   type Library,
   type LibraryKind,
-  type WritePolicy,
 } from '../../api/client'
+import { AccessPicker } from './AccessPicker'
 import { FolderLayout } from './FolderLayout'
-import { PolicyPicker } from './PolicyPicker'
 import styles from './Libraries.module.css'
 import { LOCALE } from '../../core/locale'
 
@@ -42,7 +41,7 @@ function Fit({ proposal }: { proposal: FolderProposal }) {
   )
 }
 
-/** Pick a folder, see the proposed template, confirm it with a write policy. */
+/** Pick a folder, see the proposed template, confirm it as writable or read-only. */
 export function AddFolder({ library, onAdded, onCancel }: Props) {
   const kind = library.kind as LibraryKind
   const isFolders = kind === 'folders'
@@ -50,7 +49,7 @@ export function AddFolder({ library, onAdded, onCancel }: Props) {
   const [browser, setBrowser] = useState<FolderListing | null>(null)
   const [proposal, setProposal] = useState<FolderProposal | null>(null)
   const [template, setTemplate] = useState({ value: '', valid: false })
-  const [policy, setPolicy] = useState<WritePolicy>(isFolders ? 'read_only' : 'adaptive')
+  const [readOnly, setReadOnly] = useState(isFolders)
   const [importTarget, setImportTarget] = useState(!library.roots.some((r) => r.is_import_target))
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -90,9 +89,9 @@ export function AddFolder({ library, onAdded, onCancel }: Props) {
     try {
       await api.addRoot(library.id, {
         path: proposal.path,
-        write_policy: policy,
+        read_only: readOnly,
         layout_template: template.value,
-        is_import_target: importTarget && policy !== 'read_only',
+        is_import_target: importTarget && !readOnly,
       })
       onAdded()
     } catch (e) {
@@ -185,23 +184,23 @@ export function AddFolder({ library, onAdded, onCancel }: Props) {
               key={proposal.path}
               id="add-template"
               kind={kind}
-              policy={policy}
+              readOnly={readOnly}
               value={template.value}
               onChange={(value, valid) => setTemplate({ value, valid })}
             />
           </div>
           <div className={styles.block}>
-            <span className={styles.label}>Write policy</span>
-            <PolicyPicker name="add-policy" value={policy} onChange={setPolicy} />
+            <span className={styles.label}>Writing</span>
+            <AccessPicker name="add-access" readOnly={readOnly} onChange={setReadOnly} />
           </div>
           <label className={styles.check}>
             <input
               type="checkbox"
-              checked={importTarget && policy !== 'read_only'}
-              disabled={policy === 'read_only'}
+              checked={importTarget && !readOnly}
+              disabled={readOnly}
               onChange={(e) => setImportTarget(e.target.checked)}
             />
-            Import target: new series land here
+            New {kind === 'movies' ? 'movies' : 'series'} go here
           </label>
         </>
       )}

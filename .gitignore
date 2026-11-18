@@ -6,3 +6,4 @@
 .env
 /fixtures
 /data-demo
+.vscode/settings.json

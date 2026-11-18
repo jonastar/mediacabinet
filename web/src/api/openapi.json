@@ -8797,6 +8797,40 @@
           "oauth2"
         ]
       },
+      "LayoutExample": {
+        "type": "object",
+        "description": "A sample file placed by a template, to show what a layout does.",
+        "required": [
+          "filename"
+        ],
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "The name the file arrives with."
+          },
+          "folder": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The item's folder, relative to the root."
+          },
+          "path": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Where Organise or a renaming import puts it, relative to the root."
+          },
+          "problem": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why it can't be placed, e.g. a token this file has no value for."
+          }
+        }
+      },
       "Level": {
         "type": "string",
         "enum": [
@@ -12435,7 +12469,8 @@
         "type": "object",
         "required": [
           "valid",
-          "pieces"
+          "pieces",
+          "examples"
         ],
         "properties": {
           "error": {
@@ -12444,6 +12479,13 @@
               "null"
             ],
             "description": "What's wrong, when it isn't valid."
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LayoutExample"
+            },
+            "description": "Sample files placed by the template as a new item, when valid."
           },
           "pieces": {
             "type": "array",

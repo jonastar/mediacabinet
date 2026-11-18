@@ -934,6 +934,19 @@ value class Kind(val value: String) {
     }
 }
 
+/** A sample file placed by a template, to show what a layout does. */
+@Serializable
+data class LayoutExample(
+    /** The name the file arrives with. */
+    val filename: String,
+    /** The item's folder, relative to the root. */
+    val folder: String? = null,
+    /** Where Organise or a renaming import puts it, relative to the root. */
+    val path: String? = null,
+    /** Why it can't be placed, e.g. a token this file has no value for. */
+    val problem: String? = null,
+)
+
 @Serializable
 @JvmInline
 value class Level(val value: String) {
@@ -2189,6 +2202,8 @@ data class TaskSummary(
 data class TemplateCheck(
     /** What's wrong, when it isn't valid. */
     val error: String? = null,
+    /** Sample files placed by the template as a new item, when valid. */
+    val examples: List<LayoutExample> = emptyList(),
     val pieces: List<TemplatePiece> = emptyList(),
     /** The normalised template, when valid. */
     val template: String? = null,

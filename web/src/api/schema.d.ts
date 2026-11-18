@@ -2998,6 +2998,17 @@ export interface components {
          * @enum {string}
          */
         Kind: "oidc" | "github" | "discord" | "oauth2";
+        /** @description A sample file placed by a template, to show what a layout does. */
+        LayoutExample: {
+            /** @description The name the file arrives with. */
+            filename: string;
+            /** @description The item's folder, relative to the root. */
+            folder?: string | null;
+            /** @description Where Organise or a renaming import puts it, relative to the root. */
+            path?: string | null;
+            /** @description Why it can't be placed, e.g. a token this file has no value for. */
+            problem?: string | null;
+        };
         /** @enum {string} */
         Level: "good" | "info" | "warning" | "problem";
         Library: {
@@ -4105,6 +4116,8 @@ export interface components {
         TemplateCheck: {
             /** @description What's wrong, when it isn't valid. */
             error?: string | null;
+            /** @description Sample files placed by the template as a new item, when valid. */
+            examples: components["schemas"]["LayoutExample"][];
             pieces: components["schemas"]["TemplatePiece"][];
             /** @description The normalised template, when valid. */
             template?: string | null;

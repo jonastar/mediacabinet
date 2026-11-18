@@ -154,6 +154,106 @@ fn below_folders(
     template.render_segments(start..end.max(start), values)
 }
 
+/// A sample file placed by a template, to show what a layout does.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, ToSchema)]
+pub struct LayoutExample {
+    /// The name the file arrives with.
+    pub filename: String,
+    /// The item's folder, relative to the root.
+    pub folder: Option<String>,
+    /// Where Organise or a renaming import puts it, relative to the root.
+    pub path: Option<String>,
+    /// Why it can't be placed, e.g. a token this file has no value for.
+    pub problem: Option<String>,
+}
+
+/// Fixed sample files placed by `template` as a new item, renamed to the layout.
+/// The second sample of each kind lacks some values (resolution, edition), so a
+/// template that needs them shows which files Organise would skip.
+pub fn examples(template: &Template, kind: super::LibraryKind) -> Vec<LayoutExample> {
+    use super::LibraryKind;
+    let samples: Vec<(&str, Vec<(&str, &str)>)> = match kind {
+        LibraryKind::Tv => vec![
+            (
+                "Lowland.S02E01.1080p.WEB-DL.mkv",
+                vec![
+                    ("series", "Lowland"),
+                    ("year", "2014"),
+                    ("genre", "Drama"),
+                    ("season", "2"),
+                    ("episode", "1"),
+                    ("absolute", "11"),
+                    ("title", "Floodplain"),
+                    ("resolution", "1080p"),
+                ],
+            ),
+            (
+                "harbour.lights.103.mkv",
+                vec![
+                    ("series", "Harbour Lights"),
+                    ("year", "2019"),
+                    ("genre", "Comedy"),
+                    ("season", "1"),
+                    ("episode", "3"),
+                    ("absolute", "3"),
+                    ("title", "The Lighthouse"),
+                ],
+            ),
+        ],
+        LibraryKind::Movies => vec![
+            (
+                "Arrival.2016.2160p.UHD.BluRay.mkv",
+                vec![
+                    ("movie", "Arrival"),
+                    ("year", "2016"),
+                    ("genre", "Science Fiction"),
+                    ("resolution", "2160p"),
+                ],
+            ),
+            (
+                "The Third Man (1949) Criterion.mp4",
+                vec![
+                    ("movie", "The Third Man"),
+                    ("year", "1949"),
+                    ("genre", "Thriller"),
+                    ("edition", "Criterion"),
+                ],
+            ),
+        ],
+        LibraryKind::Folders => Vec::new(),
+    };
+    samples
+        .into_iter()
+        .map(|(filename, values)| {
+            let incoming = Incoming {
+                filename,
+                values: values
+                    .into_iter()
+                    .map(|(k, v)| (k, v.to_string()))
+                    .collect(),
+            };
+            let folder = template
+                .render_segments(0..template.item_index + 1, &incoming.values)
+                .map(|parts| parts.join("/"));
+            let placed = place(WritePolicy::Managed, template, None, None, &incoming);
+            match (folder, placed) {
+                (Ok(folder), Ok(placed)) => LayoutExample {
+                    filename: filename.to_string(),
+                    folder: Some(folder),
+                    path: placed.path,
+                    problem: None,
+                },
+                (folder, placed) => LayoutExample {
+                    filename: filename.to_string(),
+                    folder: folder.as_ref().ok().cloned(),
+                    path: None,
+                    problem: placed.err().or(folder.err()).map(|e| e.0),
+                },
+            }
+        })
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::super::template::LibraryKind;
@@ -226,5 +326,34 @@ mod tests {
             Some("L/Lowland/Season 02/Lowland.S02E01.mkv")
         );
         assert!(p.note.contains("resolved now"));
+    }
+
+    #[test]
+    fn examples_show_where_sample_files_go() {
+        let t = template(
+            "{series} ({year})/Season {season:00}/{series} - S{season:00}E{episode:00} [{resolution}].{ext}",
+        );
+        let shown = examples(&t, LibraryKind::Tv);
+        assert_eq!(shown[0].folder.as_deref(), Some("Lowland (2014)"));
+        assert_eq!(
+            shown[0].path.as_deref(),
+            Some("Lowland (2014)/Season 02/Lowland - S02E01 [1080p].mkv")
+        );
+        // The second sample has no resolution in its name.
+        assert_eq!(shown[1].folder.as_deref(), Some("Harbour Lights (2019)"));
+        assert_eq!(shown[1].path, None);
+        assert!(
+            shown[1]
+                .problem
+                .as_deref()
+                .unwrap()
+                .contains("{resolution}")
+        );
+
+        let kept = examples(&template("{series}"), LibraryKind::Tv);
+        assert_eq!(
+            kept[1].path.as_deref(),
+            Some("Harbour Lights/harbour.lights.103.mkv")
+        );
     }
 }

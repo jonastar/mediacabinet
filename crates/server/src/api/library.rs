@@ -5,7 +5,7 @@ use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use cabinet_core::catalog::folders::{self, FolderPage};
 use cabinet_core::inbox::Inbox;
-use cabinet_core::layout::{LibraryKind, Proposal, Template, TemplatePiece};
+use cabinet_core::layout::{self, LayoutExample, LibraryKind, Proposal, Template, TemplatePiece};
 use cabinet_core::library::{
     self, FolderListing, Library, NewRoot, PlacementExample, Root, RootChanges,
 };
@@ -515,6 +515,8 @@ pub struct TemplateCheck {
     /// The normalised template, when valid.
     template: Option<String>,
     pieces: Vec<TemplatePiece>,
+    /// Sample files placed by the template as a new item, when valid.
+    examples: Vec<LayoutExample>,
 }
 
 /// Validates a layout template and splits it for display, for live editing.
@@ -535,12 +537,14 @@ pub async fn check_template(
             error: None,
             template: Some(t.source()),
             pieces: t.pieces(),
+            examples: layout::examples(&t, kind),
         },
         Err(e) => TemplateCheck {
             valid: false,
             error: Some(e.0),
             template: None,
             pieces: Vec::new(),
+            examples: Vec::new(),
         },
     }))
 }

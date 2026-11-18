@@ -7,7 +7,7 @@ mod propose;
 mod template;
 
 pub use group::{Group, Hints, corrected_ids, group};
-pub use place::{Incoming, Placement, WritePolicy, place};
+pub use place::{Incoming, LayoutExample, Placement, WritePolicy, examples, place};
 pub use propose::{Proposal, propose};
 pub use template::{
     DEFAULT_MOVIES, DEFAULT_TV, LibraryKind, Template, TemplateError, TemplatePiece, TemplateRole,

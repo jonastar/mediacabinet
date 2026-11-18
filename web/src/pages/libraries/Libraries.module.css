@@ -708,3 +708,35 @@
 .aside[open] > * + * {
   margin-top: 12px;
 }
+
+.examples ul {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.examples li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  color: var(--text-muted);
+}
+
+.examples code {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.exampleFrom {
+  font-family: var(--font-mono);
+  overflow-wrap: anywhere;
+}
+
+.exampleProblem {
+  color: var(--state-attention-text);
+}

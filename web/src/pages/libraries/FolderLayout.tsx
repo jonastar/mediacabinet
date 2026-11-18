@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import type { LibraryKind } from '../../api/client'
 import { DEFAULT_ABOVE, joinTemplate, splitTemplate } from './layout'
 import { TemplateEditor } from './TemplateEditor'
+import { LayoutExamples } from './LayoutExamples'
 import { Legend } from './Legend'
 import styles from './Libraries.module.css'
 
@@ -86,6 +87,7 @@ export function FolderLayout({ id, kind, readOnly, value, onChange }: Props) {
           <Legend kind={kind} part="below" />
         </>
       )}
+      <LayoutExamples kind={kind} template={value} readOnly={readOnly} />
     </div>
   )
 }

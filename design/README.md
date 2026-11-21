@@ -7,7 +7,7 @@ The design values shared by the web UI and every player. How they're used is in 
 - `web/src/tokens.css`: CSS variables for the web UI
 - `players/web/src/tokens.ts`: fixed values for the Samsung and LG screens, because older TVs have no CSS variables
 - `players/apple/Core/Sources/Core/Tokens.swift`
-- `players/android/core/src/main/kotlin/app/mediacabinet/core/Tokens.kt`
+- `players/android/core/src/main/kotlin/tv/mediacabinet/core/Tokens.kt`
 
 The generated files are committed, and the pre-commit hook checks they're current (CI should too, once there is one).
 

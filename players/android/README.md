@@ -51,6 +51,6 @@ An Android TV device works the same way, or with **Network debugging** and `adb 
 - **Subtitles:** drawn by the app from the server's WebVTT, like the TV app. The server shifts cues by the plan's `offset_seconds`, so they're timed against the stream, not the file.
 - **Sizes:** Android TV lays out at 960×540 dp, so TV values in `docs/design-language.md` are halved here.
 - **TV screens:** follow the layouts and focus behaviour of [`players/web/`](../web/), and use what Compose for TV does well on top.
-- **One app ID:** phone and TV both use `app.mediacabinet`. Google Play takes a separate build for its Android TV track.
+- **One app ID:** phone and TV both use `tv.mediacabinet`. Google Play takes a separate build for its Android TV track.
 - **Manrope** is bundled in `core` (`res/font/manrope.ttf`, the variable font), under the SIL Open Font License in `core/fonts-OFL.txt`.
 - **Google Play:** new personal accounts need a closed test with 12 testers for 14 days before production, and TV apps are reviewed separately. Start finding testers early.

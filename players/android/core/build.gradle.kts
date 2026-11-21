@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "app.mediacabinet.core"
+    namespace = "tv.mediacabinet.core"
     compileSdk = 37
 
     defaultConfig {

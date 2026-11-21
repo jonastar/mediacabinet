@@ -194,7 +194,7 @@ function kotlin() {
     })
   return `// ${NOTICE}
 
-package app.mediacabinet.core.api
+package tv.mediacabinet.core.api
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -205,7 +205,7 @@ ${blocks.join('\n\n')}
 }
 
 const outputs = {
-  'players/android/core/src/main/kotlin/app/mediacabinet/core/api/Models.kt': kotlin(),
+  'players/android/core/src/main/kotlin/tv/mediacabinet/core/api/Models.kt': kotlin(),
 }
 
 const check = process.argv.includes('--check')

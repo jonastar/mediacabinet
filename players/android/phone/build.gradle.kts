@@ -4,12 +4,12 @@ plugins {
 }
 
 android {
-    namespace = "app.mediacabinet.phone"
+    namespace = "tv.mediacabinet.phone"
     compileSdk = 37
 
     defaultConfig {
         // The same ID as the TV app: Google Play ships each on its own form factor track.
-        applicationId = "app.mediacabinet"
+        applicationId = "tv.mediacabinet"
         minSdk = 26
         targetSdk = 37
         versionCode = 1

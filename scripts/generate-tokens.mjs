@@ -86,14 +86,14 @@ function kotlin() {
     block('DurationMs', number(entries(tokens.duration))),
     block('TvLayout', number(entries(tokens.tv))),
   ]
-  return `// ${NOTICE}\n// Colours are 0xAARRGGBB, as Compose's Color() takes them. TV sizes are at\n// 1920×1080: halve them on Android TV, which lays out at 960×540 dp.\n\npackage app.mediacabinet.core\n\nobject Tokens {\n${blocks.join('\n\n')}\n}\n`
+  return `// ${NOTICE}\n// Colours are 0xAARRGGBB, as Compose's Color() takes them. TV sizes are at\n// 1920×1080: halve them on Android TV, which lays out at 960×540 dp.\n\npackage tv.mediacabinet.core\n\nobject Tokens {\n${blocks.join('\n\n')}\n}\n`
 }
 
 const outputs = {
   'web/src/tokens.css': css(),
   'players/web/src/tokens.ts': tv(),
   'players/apple/Core/Sources/Core/Tokens.swift': swift(),
-  'players/android/core/src/main/kotlin/app/mediacabinet/core/Tokens.kt': kotlin(),
+  'players/android/core/src/main/kotlin/tv/mediacabinet/core/Tokens.kt': kotlin(),
 }
 
 const check = process.argv.includes('--check')

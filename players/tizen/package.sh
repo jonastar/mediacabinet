@@ -12,10 +12,9 @@ set -e
 here=$(cd "$(dirname "$0")" && pwd)
 root=$here/../..
 
-(cd "$root/players/web" && pnpm build)
+version=$(cat "$here/VERSION")
 rm -rf "$here/build"
-mkdir -p "$here/build/app"
-cp -R "$root/players/web/dist/." "$here/build/app/"
+(cd "$root/players/web" && VITE_APP_PLATFORM=tizen VITE_APP_VERSION=$version TV_OUT_DIR=$here/build/app pnpm build)
 cp "$here/config.xml" "$here/build/app/"
 cp "$root/docs/brand/icons/android-maskable-512.png" "$here/build/app/icon.png"
 (cd "$here/build/app" && zip -q -r ../MediaCabinet-unsigned.wgt .)

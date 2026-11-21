@@ -3128,6 +3128,17 @@ export interface components {
             /** @description Sent as `?media_token=` on artwork, streams and subtitles only. */
             token: string;
         };
+        /**
+         * @description The oldest version of each app this server works with. Each app has its own
+         *     version (`docs/releasing.md`); Android's covers phone and TV, Apple's iOS and
+         *     tvOS.
+         */
+        MinAppVersions: {
+            android: string;
+            apple: string;
+            tizen: string;
+            webos: string;
+        };
         /** @enum {string} */
         Mode: "direct" | "remux" | "transcode";
         /** @description Monitoring settings. Leave a field out to keep it; send null to clear it. */
@@ -3819,8 +3830,13 @@ export interface components {
         ServerInfo: {
             /** @description Apps may offer "Continue as guest" (`POST /auth/device/guest`). */
             guest_access: boolean;
-            /** @description Apps older than this should ask to be updated. */
+            /**
+             * @description From before each app had its own version, and always 0.0.0: apps read
+             *     their own entry in `min_app_versions`.
+             */
             min_app_version: string;
+            /** @description Apps older than their entry should ask to be updated. */
+            min_app_versions: components["schemas"]["MinAppVersions"];
             /** @description What to call this server; `CABINET_SERVER_NAME`, or "Media Cabinet". */
             name: string;
             version: string;

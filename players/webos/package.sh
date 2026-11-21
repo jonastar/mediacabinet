@@ -3,10 +3,9 @@
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
 root=$here/../..
-(cd "$root/players/web" && pnpm build)
+version=$(cd "$root" && scripts/set-version.sh webos)
 rm -rf "$here/build"
-mkdir -p "$here/build/app"
-cp -R "$root/players/web/dist/." "$here/build/app/"
+(cd "$root/players/web" && VITE_APP_PLATFORM=webos VITE_APP_VERSION=$version TV_OUT_DIR=$here/build/app pnpm build)
 cp "$here/appinfo.json" "$here/build/app/"
 cp "$here/images/icon-80.png" "$here/build/app/icon.png"
 cp "$here/images/icon-130.png" "$here/build/app/largeIcon.png"

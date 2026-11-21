@@ -7,7 +7,7 @@
       "name": "MIT",
       "identifier": "MIT"
     },
-    "version": "1.0.0-dev"
+    "version": "2026.1.0-dev"
   },
   "paths": {
     "/api/activity": {
@@ -9231,6 +9231,30 @@
           }
         }
       },
+      "MinAppVersions": {
+        "type": "object",
+        "description": "The oldest version of each app this server works with. Each app has its own\nversion (`docs/releasing.md`); Android's covers phone and TV, Apple's iOS and\ntvOS.",
+        "required": [
+          "android",
+          "apple",
+          "tizen",
+          "webos"
+        ],
+        "properties": {
+          "android": {
+            "type": "string"
+          },
+          "apple": {
+            "type": "string"
+          },
+          "tizen": {
+            "type": "string"
+          },
+          "webos": {
+            "type": "string"
+          }
+        }
+      },
       "Mode": {
         "type": "string",
         "enum": [
@@ -11596,6 +11620,7 @@
           "name",
           "version",
           "min_app_version",
+          "min_app_versions",
           "guest_access"
         ],
         "properties": {
@@ -11605,7 +11630,11 @@
           },
           "min_app_version": {
             "type": "string",
-            "description": "Apps older than this should ask to be updated."
+            "description": "From before each app had its own version, and always 0.0.0: apps read\ntheir own entry in `min_app_versions`."
+          },
+          "min_app_versions": {
+            "$ref": "#/components/schemas/MinAppVersions",
+            "description": "Apps older than their entry should ask to be updated."
           },
           "name": {
             "type": "string",

@@ -1,6 +1,6 @@
 {
   "name": "media-cabinet-webos",
-  "version": "1.0.0-dev",
+  "version": "2026.1.0-dev",
   "private": true,
   "description": "LG's command line tools, for packaging and installing the TV app",
   "scripts": {

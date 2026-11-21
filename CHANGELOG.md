@@ -1,17 +1,19 @@
 # Changelog
 
-Changes that matter to people running Media Cabinet or using its API: features,
-fixes, changed behaviour, migrations and anything to do when upgrading. Newest
-first. How versions and releases work is in `docs/releasing.md`.
+Changes to the server and web UI that matter to people running Media Cabinet or
+using its API: features, fixes, changed behaviour, migrations and anything to do
+when upgrading. Newest first. The player apps have their own, in `players/*/`.
+How versions and releases work is in `docs/releasing.md`.
 
 Keep entries brief: one line each, saying what changed for the user, not how.
 Details belong in the commit, docs or API reference.
 
-## 1.0.0 (unreleased)
+## 2026.1.0 (unreleased)
 
 The first release: a self-hosted library manager and streaming server for movies
-and TV, with its own web UI. See `docs/roadmap.md` for what v1 covers.
+and TV, with its own web UI. See `docs/roadmap.md` for what it covers.
 
+- Versions are by year: this is 2026.1.0, then 2026.2.0. Each app has its own, and `GET /api/server-info` gives the oldest of each the server works with (`min_app_versions`).
 - Library folders are now just writable or read-only (`read_only` on roots; `write_policy` still works), and each library chooses which folder new items go to; read-only folders are never written, not even to fix a folder's IDs.
 - Organise a whole library or folder: see every rename first, untick what to leave, then apply (`POST /api/organize/preview`, `POST /api/organize/apply`); it works on any writable folder.
 - Import files from a folder on the server: check what each video is, choose copy (the default), hard link or move, and keep names or rename to the layout (`POST /api/imports/list`, `POST /api/imports/file`; `naming` on `POST /imports`).

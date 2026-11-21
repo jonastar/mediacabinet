@@ -16,16 +16,30 @@ use utoipa::{IntoParams, ToSchema};
 use super::accounts::{record_failed_login, record_login};
 use super::auth::{self, SignedIn};
 use super::error::ErrorBody;
-use super::{ApiError, MIN_APP_VERSION};
+use super::{ApiError, MIN_APP_VERSIONS};
 use crate::AppState;
+
+/// The oldest version of each app this server works with. Each app has its own
+/// version (`docs/releasing.md`); Android's covers phone and TV, Apple's iOS and
+/// tvOS.
+#[derive(Clone, Copy, Serialize, ToSchema)]
+pub struct MinAppVersions {
+    pub android: &'static str,
+    pub apple: &'static str,
+    pub tizen: &'static str,
+    pub webos: &'static str,
+}
 
 #[derive(Serialize, ToSchema)]
 pub struct ServerInfo {
     /// What to call this server; `CABINET_SERVER_NAME`, or "Media Cabinet".
     name: String,
     version: &'static str,
-    /// Apps older than this should ask to be updated.
+    /// From before each app had its own version, and always 0.0.0: apps read
+    /// their own entry in `min_app_versions`.
     min_app_version: &'static str,
+    /// Apps older than their entry should ask to be updated.
+    min_app_versions: MinAppVersions,
     /// Apps may offer "Continue as guest" (`POST /auth/device/guest`).
     guest_access: bool,
 }
@@ -41,7 +55,8 @@ pub async fn server_info(State(state): State<AppState>) -> Result<Json<ServerInf
     Ok(Json(ServerInfo {
         name,
         version: env!("CARGO_PKG_VERSION"),
-        min_app_version: MIN_APP_VERSION,
+        min_app_version: "0.0.0",
+        min_app_versions: MIN_APP_VERSIONS,
         guest_access: super::accounts::guest_access(&state).await?,
     }))
 }

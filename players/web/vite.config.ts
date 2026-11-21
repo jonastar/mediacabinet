@@ -83,6 +83,8 @@ export default defineConfig({
   },
   oxc: { jsx: { runtime: 'automatic', importSource: 'preact' } },
   build: {
+    // The TV apps' packaging builds into their own folder, leaving dist/ to the server.
+    outDir: process.env.TV_OUT_DIR || 'dist',
     cssTarget: 'chrome38',
     // Terser, because the default minifier turns legacy chunks back into ES2015.
     minify: 'terser',

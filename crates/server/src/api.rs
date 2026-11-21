@@ -32,9 +32,15 @@ mod watch;
 
 pub use error::ApiError;
 
-/// The oldest app version this server still works with. Raise it only when
-/// removing or changing something old apps use (see `docs/releasing.md`).
-const MIN_APP_VERSION: &str = "0.0.0";
+/// The oldest version of each app this server still works with. Raise an app's
+/// only when removing or changing something its older versions use (see
+/// `docs/releasing.md`).
+const MIN_APP_VERSIONS: devices::MinAppVersions = devices::MinAppVersions {
+    android: "0.0.0",
+    apple: "0.0.0",
+    tizen: "0.0.0",
+    webos: "0.0.0",
+};
 
 #[derive(OpenApi)]
 #[openapi(info(title = "Media Cabinet API"))]

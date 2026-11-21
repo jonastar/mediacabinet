@@ -1,0 +1,4 @@
+// The app's version, for iOS and tvOS: scripts/set-version.sh apple (docs/releasing.md).
+// The App Store takes only numbers, so MARKETING_VERSION has no -dev.
+CABINET_VERSION = 2026.1.0-dev
+MARKETING_VERSION = 2026.1.0

@@ -5,7 +5,9 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { parse, tokenizer, tokTypes } from 'acorn'
 
-const dist = new URL('../dist/', import.meta.url).pathname
+const dist = process.env.TV_OUT_DIR
+  ? process.env.TV_OUT_DIR.replace(/\/?$/, '/')
+  : new URL('../dist/', import.meta.url).pathname
 
 /** Features of CSS, with what's the oldest engine they work on (docs/clients.md). */
 const CSS_RULES = [

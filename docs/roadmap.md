@@ -190,7 +190,7 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 - [x] UI: signed-in devices in Account, with sign out
 - [x] Capabilities: HDR formats and audio channels; remuxing honours `audio_codecs`
 - [x] Play reasons worded for any client, not just browsers
-- [x] `GET /api/server-info`: name, version, minimum app version
+- [x] `GET /api/server-info`: name, version, minimum version of each app
 - [x] Rule for API changes: additive, removals wait for a minimum version
 - [ ] Generate Swift and Kotlin API clients from the OpenAPI spec (Kotlin models done: `scripts/generate-api-clients.mjs`)
 - [ ] Git remote and macOS CI: build, sign, upload to TestFlight

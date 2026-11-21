@@ -1,20 +1,7 @@
 import { useState } from 'preact/hooks'
 import { api, normaliseAddress } from '../api'
 import { useInitialFocus } from '../focus'
-
-/** The app's version, against the oldest the server still works with. */
-const APP_VERSION = '1.0.0'
-
-function older(version: string, than: string) {
-  const a = version.split('.').map(Number)
-  const b = than.split('.').map(Number)
-  for (let i = 0; i < 3; i++) {
-    if ((a[i] || 0) !== (b[i] || 0)) {
-      return (a[i] || 0) < (b[i] || 0)
-    }
-  }
-  return false
-}
+import { APP_PLATFORM, APP_VERSION, MIN_SERVER_VERSION, meetsMinimum } from '../version'
 
 /** Asks where the server is. */
 export function Connect({ onConnected }: { onConnected: (address: string) => void }) {
@@ -30,8 +17,13 @@ export function Connect({ onConnected }: { onConnected: (address: string) => voi
     setError(null)
     try {
       const info = await api.serverInfo(address)
-      if (older(APP_VERSION, info.min_app_version)) {
-        setError(`${info.name} needs a newer version of this app.`)
+      const minApp = APP_PLATFORM && info.min_app_versions[APP_PLATFORM]
+      if (!meetsMinimum(info.version, MIN_SERVER_VERSION)) {
+        setError(
+          `${info.name} runs Media Cabinet ${info.version}. Update it to ${MIN_SERVER_VERSION} or later to connect.`,
+        )
+      } else if (APP_VERSION && minApp && !meetsMinimum(APP_VERSION, minApp)) {
+        setError(`${info.name} needs version ${minApp} of this app or later.`)
       } else {
         onConnected(address)
       }

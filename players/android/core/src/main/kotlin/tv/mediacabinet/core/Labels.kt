@@ -70,8 +70,15 @@ fun clock(seconds: Double): String {
 }
 
 /**
- * Whether this app is at least `minimum` (`GET /api/server-info`), comparing
- * `major.minor.patch` and ignoring anything after a `-`.
+ * The oldest server this app works with, checked against `version` in
+ * `GET /api/server-info`. Raise it when the app starts using something newer
+ * servers added (see docs/releasing.md).
+ */
+const val MIN_SERVER_VERSION = "2026.1.0"
+
+/**
+ * Whether `version` is at least `minimum`, comparing `year.release.patch` and
+ * ignoring anything after a `-`, so a server working toward 2026.2.0 counts as it.
  */
 fun meetsMinimum(version: String, minimum: String): Boolean {
     val parse = { v: String -> v.substringBefore('-').split('.').map { it.toIntOrNull() ?: 0 } }

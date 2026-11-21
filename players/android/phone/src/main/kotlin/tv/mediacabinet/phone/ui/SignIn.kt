@@ -33,6 +33,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import tv.mediacabinet.core.MIN_SERVER_VERSION
 import tv.mediacabinet.core.Tokens
 import tv.mediacabinet.core.api.Api
 import tv.mediacabinet.core.api.ApiException
@@ -86,8 +87,11 @@ fun ConnectScreen(model: AppModel) {
         scope.launch {
             try {
                 val info = Api(server, model.http).serverInfo()
-                if (!meetsMinimum(BuildConfig.VERSION_NAME, info.minAppVersion)) {
-                    problem = "${info.name} needs version ${info.minAppVersion} of this app or later. Update it to connect."
+                val minApp = info.minAppVersions.android
+                if (!meetsMinimum(info.version, MIN_SERVER_VERSION)) {
+                    problem = "${info.name} runs Media Cabinet ${info.version}, and this app needs $MIN_SERVER_VERSION or later. Update the server to connect."
+                } else if (!meetsMinimum(BuildConfig.VERSION_NAME, minApp)) {
+                    problem = "${info.name} needs version $minApp of this app or later. Update it to connect."
                 } else {
                     model.account.server = server
                     model.serverInfo = info

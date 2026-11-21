@@ -3,6 +3,19 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// The app's version, shared with the TV app: scripts/set-version.sh android.
+val cabinetVersion = providers.gradleProperty("cabinetVersion").get()
+
+/**
+ * Play needs a bigger versionCode for every upload, and the phone and TV apps
+ * share an ID, so the last digit is theirs: 2026.3.1 is 202603010 on phones and
+ * 202603011 on TVs. Patches on an old release stay below the next release.
+ */
+fun playVersionCode(version: String, formFactor: Int): Int {
+    val (year, minor, patch) = version.substringBefore('-').split('.').map(String::toInt)
+    return year * 100_000 + minor * 1_000 + patch * 10 + formFactor
+}
+
 android {
     namespace = "tv.mediacabinet.phone"
     compileSdk = 37
@@ -12,8 +25,8 @@ android {
         applicationId = "tv.mediacabinet"
         minSdk = 26
         targetSdk = 37
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = playVersionCode(cabinetVersion, formFactor = 0)
+        versionName = cabinetVersion
     }
 
     buildTypes {

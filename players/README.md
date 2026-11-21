@@ -19,7 +19,8 @@ There's a folder per build, not per target. Android's phone and TV apps share on
 - **Sign-in:** device tokens from the pairing flow, sent as `Authorization: Bearer`. Never an API key, because those act as an admin. When `GET /api/server-info` says `guest_access`, offer "Continue as guest" (`POST /api/auth/device/guest`, `docs/guests.md`).
 - **Playback:** send capabilities to `POST /items/{id}/play`, and play the plan it returns. If playback fails to start, ask again without what failed, and remember that for the device.
 - **Timeline:** custom controls, using `offset_seconds` and `duration_seconds`, because an HLS session can start partway into a file.
-- **API changes:** additive. Old versions stay in use for months, and removals wait for a declared minimum version (`GET /api/server-info`).
+- **Versions:** each app has its own, with its own changelog (`docs/releasing.md`). On the connect screen, check the server's `version` against the app's `MIN_SERVER_VERSION`, and the app's own against its entry in `min_app_versions` (`GET /api/server-info`).
+- **API changes:** additive. Old versions stay in use for months, and removals wait for a declared minimum version.
 - **Look and behaviour:** [`docs/design-language.md`](../docs/design-language.md), with values from [`design/`](../design/) and Watch mode wording from `web/src/lib/wording.ts`. For TV layouts and focus, [`players/web/`](web/) is the working reference, and runs in a desktop browser.
 
 ## Testing

@@ -1092,6 +1092,19 @@ data class MediaToken(
     val token: String,
 )
 
+/**
+ * The oldest version of each app this server works with. Each app has its own
+ * version (`docs/releasing.md`); Android's covers phone and TV, Apple's iOS and
+ * tvOS.
+ */
+@Serializable
+data class MinAppVersions(
+    val android: String,
+    val apple: String,
+    val tizen: String,
+    val webos: String,
+)
+
 @Serializable
 @JvmInline
 value class Mode(val value: String) {
@@ -1909,8 +1922,13 @@ data class SeriesSummary(
 data class ServerInfo(
     /** Apps may offer "Continue as guest" (`POST /auth/device/guest`). */
     @SerialName("guest_access") val guestAccess: Boolean = false,
-    /** Apps older than this should ask to be updated. */
+    /**
+     * From before each app had its own version, and always 0.0.0: apps read
+     * their own entry in `min_app_versions`.
+     */
     @SerialName("min_app_version") val minAppVersion: String,
+    /** Apps older than their entry should ask to be updated. */
+    @SerialName("min_app_versions") val minAppVersions: MinAppVersions,
     /** What to call this server; `CABINET_SERVER_NAME`, or "Media Cabinet". */
     val name: String,
     val version: String,

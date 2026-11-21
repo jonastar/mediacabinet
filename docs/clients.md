@@ -237,7 +237,7 @@ Capabilities a client reports:
 Old app versions will keep calling the API, sometimes for months.
 
 - **API changes are additive.** Removing or changing a field used by an app waits for a declared minimum version (`docs/releasing.md`).
-- **`GET /api/server-info` (public).** Returns the server's name (`CABINET_SERVER_NAME`), version and the minimum app version it supports. Apps use it on the connect screen, and it can tell people when to update.
+- **`GET /api/server-info` (public).** Returns the server's name (`CABINET_SERVER_NAME`), version and the oldest version of each app it supports (`min_app_versions`). Apps use it on the connect screen, against the oldest server they support, to tell people what to update.
 - **Generated API clients.** Swift and Kotlin types come from `/api/openapi.json`, as the web's do.
 
 ### Reaching a server

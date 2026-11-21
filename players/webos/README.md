@@ -12,7 +12,7 @@ pnpm install
 pnpm exec ares-setup-device                             # once, to add the TV as "tv"
 pnpm exec ares-novacom --device tv --getkey             # once, with the passphrase the TV shows
 pnpm exec ares-install --device tv build/*.ipk
-pnpm exec ares-launch --device tv app.mediacabinet.tv
+pnpm exec ares-launch --device tv mediacabinet.tv
 ```
 
 These need to run on a machine that can reach the TV over the network. If that isn't this one, copy the `.ipk` and run the install there with LG's CLI.
@@ -20,7 +20,6 @@ These need to run on a machine that can reach the TV over the network. If that i
 ## Still to come
 
 - the platform adapter: capabilities, HDR. Today's is generic, in `players/web/src/platform.ts`
-- proper icon sizes for the store
 
 ## Things to know
 

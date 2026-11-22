@@ -3,7 +3,8 @@
 //!
 //! ffmpeg runs ahead of the player but not too far: it's paused (SIGSTOP) once
 //! it's about three minutes ahead of the last segment asked for, and continued when
-//! the player gets within a minute and a half. A session nobody has asked
+//! the player gets within a minute and a half. Windows has no SIGSTOP, so there it
+//! runs on to the end of the file. A session nobody has asked
 //! anything of for a minute is stopped and its folder removed.
 //!
 //! ffmpeg reports its progress on stdout (`-progress`), for the player's stats.
@@ -146,14 +147,32 @@ pub struct Transcoder {
     sessions: Arc<Mutex<HashMap<String, Session>>>,
 }
 
-fn signal(child: &Child, sig: i32) {
-    #[cfg(unix)]
-    if let Some(pid) = child.id() {
-        // SAFETY: sending a signal to our own child process.
-        unsafe {
-            libc::kill(pid as i32, sig);
-        }
-    }
+/// Pauses ffmpeg, and says whether it did.
+#[cfg(unix)]
+fn pause(child: &Child) -> bool {
+    signal(child, libc::SIGSTOP)
+}
+
+#[cfg(not(unix))]
+fn pause(_: &Child) -> bool {
+    false
+}
+
+#[cfg(unix)]
+fn resume(child: &Child) {
+    signal(child, libc::SIGCONT);
+}
+
+#[cfg(not(unix))]
+fn resume(_: &Child) {}
+
+#[cfg(unix)]
+fn signal(child: &Child, sig: i32) -> bool {
+    let Some(pid) = child.id() else {
+        return false;
+    };
+    // SAFETY: sending a signal to our own child process.
+    unsafe { libc::kill(pid as i32, sig) == 0 }
 }
 
 fn segment_number(name: &str) -> Option<usize> {
@@ -351,7 +370,7 @@ impl Transcoder {
         if let Some(n) = segment_number(name) {
             session.requested = session.requested.max(n);
             if session.paused && segments_written(&session.dir) < session.requested + RESUME_AHEAD {
-                signal(&session.child, libc::SIGCONT);
+                resume(&session.child);
                 session.paused = false;
             }
         }
@@ -426,10 +445,9 @@ impl Transcoder {
                     for session in sessions.values_mut() {
                         let written = segments_written(&session.dir);
                         if !session.paused && written > session.requested + PAUSE_AHEAD {
-                            signal(&session.child, libc::SIGSTOP);
-                            session.paused = true;
+                            session.paused = pause(&session.child);
                         } else if session.paused && written < session.requested + RESUME_AHEAD {
-                            signal(&session.child, libc::SIGCONT);
+                            resume(&session.child);
                             session.paused = false;
                         }
                     }

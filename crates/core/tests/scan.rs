@@ -315,6 +315,7 @@ async fn empty_root_with_known_files_is_treated_as_unmounted() {
     assert_eq!(lib.status(id).await, "present");
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn unreadable_folder_marks_nothing_missing() {
     let lib = Lib::new().await;
@@ -336,8 +337,10 @@ async fn unreadable_folder_marks_nothing_missing() {
 }
 
 /// Removes all permissions from a folder, restoring them on drop so cleanup works.
+#[cfg(unix)]
 struct Locked(PathBuf);
 
+#[cfg(unix)]
 impl Locked {
     fn new(path: &Path) -> Locked {
         use std::os::unix::fs::PermissionsExt;
@@ -346,6 +349,7 @@ impl Locked {
     }
 }
 
+#[cfg(unix)]
 impl Drop for Locked {
     fn drop(&mut self) {
         use std::os::unix::fs::PermissionsExt;

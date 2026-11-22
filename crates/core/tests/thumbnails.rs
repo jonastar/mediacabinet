@@ -2,6 +2,7 @@
 //! way to playback, and cancelling.
 
 use std::fs;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -52,7 +53,8 @@ fn make_clip(path: &Path, black: bool) {
 }
 
 /// An ffmpeg that fails for files with `bad` in their name, and otherwise runs
-/// the real one, after `delay` seconds.
+/// the real one, after `delay` seconds. A shell script, so Unix only.
+#[cfg(unix)]
 fn wrapped_ffmpeg(dir: &Path, delay: f64) -> PathBuf {
     let path = dir.join("wrapped-ffmpeg");
     fs::write(
@@ -340,6 +342,7 @@ async fn a_dark_video_still_gets_a_thumbnail() {
     assert_eq!(f.last().await.1["made"], 1);
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn a_bad_file_is_listed_and_only_retried_by_hand() {
     if !has_ffmpeg() {
@@ -510,6 +513,7 @@ async fn heavy_tasks_run_one_at_a_time_and_queued_ones_can_be_cancelled() {
     assert_eq!(state, "ok");
 }
 
+#[cfg(unix)]
 #[tokio::test]
 async fn a_running_task_stops_at_the_next_file_and_carries_on_later() {
     if !has_ffmpeg() {

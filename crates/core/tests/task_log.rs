@@ -4,6 +4,9 @@
 //! subscriber for one thread, while tracing caches per callsite, across the process,
 //! whether a line is enabled. A test running alongside can leave a line cached as
 //! disabled and lose it. The server installs its subscriber before anything runs.
+//!
+//! Unix only: it stands in for ffmpeg with a shell script.
+#![cfg(unix)]
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;

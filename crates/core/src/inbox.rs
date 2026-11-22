@@ -113,15 +113,10 @@ async fn seen(pool: &SqlitePool, library: i64) -> Result<HashMap<String, Seen>, 
 }
 
 fn identity(path: &Path) -> (Option<i64>, Option<i64>) {
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::MetadataExt;
-        if let Ok(m) = std::fs::metadata(path) {
-            return (Some(m.dev() as i64), Some(m.ino() as i64));
-        }
+    match std::fs::metadata(path) {
+        Ok(m) => crate::scan::identity(path, &m),
+        Err(_) => (None, None),
     }
-    let _ = path;
-    (None, None)
 }
 
 impl Seen {

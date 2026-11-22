@@ -30,6 +30,9 @@ tracing-subscriber = { version = "0.3.23", default-features = false, features = 
 utoipa = "6.0.0"
 walkdir = "2.5.0"
 
+[target.'cfg(windows)'.dependencies]
+winapi-util = "0.1.11"
+
 [dev-dependencies]
 axum = "0.8.9"
 tempfile = "3.27.0"

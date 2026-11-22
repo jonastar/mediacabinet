@@ -117,7 +117,7 @@ pub fn walk_with_progress(root: &Path, found: impl Fn(usize)) -> io::Result<Walk
         if metadata.len() == 0 {
             continue;
         }
-        let (device_id, inode) = identity(&metadata);
+        let (device_id, inode) = identity(entry.path(), &metadata);
         walk.files.push(Found {
             relative_path,
             size: metadata.len() as i64,
@@ -142,7 +142,7 @@ pub fn stat(root: &Path, path: &Path) -> io::Result<Found> {
             path.display()
         ))
     })?;
-    let (device_id, inode) = identity(&metadata);
+    let (device_id, inode) = identity(path, &metadata);
     Ok(Found {
         relative_path,
         size: metadata.len() as i64,
@@ -203,14 +203,31 @@ fn mtime(metadata: &std::fs::Metadata) -> i64 {
         .unwrap_or(0)
 }
 
+/// The (device, inode) pair that stays with a file through renames, which is how
+/// a move is told from a new file. `metadata` is `path`'s.
 #[cfg(unix)]
-fn identity(metadata: &std::fs::Metadata) -> (Option<i64>, Option<i64>) {
+pub(crate) fn identity(_path: &Path, metadata: &std::fs::Metadata) -> (Option<i64>, Option<i64>) {
     use std::os::unix::fs::MetadataExt;
     (Some(metadata.dev() as i64), Some(metadata.ino() as i64))
 }
 
-#[cfg(not(unix))]
-fn identity(_metadata: &std::fs::Metadata) -> (Option<i64>, Option<i64>) {
+/// On Windows: the volume's serial number and the file's index on it, which
+/// std only gives on nightly, so it's read from a handle.
+#[cfg(windows)]
+pub(crate) fn identity(path: &Path, _metadata: &std::fs::Metadata) -> (Option<i64>, Option<i64>) {
+    let info =
+        winapi_util::Handle::from_path_any(path).and_then(|h| winapi_util::file::information(&h));
+    match info {
+        Ok(info) => (
+            Some(info.volume_serial_number() as i64),
+            Some(info.file_index() as i64),
+        ),
+        Err(_) => (None, None),
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
+pub(crate) fn identity(_path: &Path, _metadata: &std::fs::Metadata) -> (Option<i64>, Option<i64>) {
     (None, None)
 }
 

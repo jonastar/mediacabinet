@@ -5,7 +5,8 @@
 //!
 //! 1. Same device and inode, with the same size and mtime: the same file, possibly
 //!    renamed. Inode goes before path so that two swapped files keep their links.
-//! 2. Same path: the same file. If size or mtime changed, its content changed.
+//! 2. Same path: the same file. If size or mtime changed, its content changed,
+//!    unless it hashes the same as before (only touched).
 //! 3. Same content hash as a row that wasn't found: moved, e.g. copied across
 //!    devices and the original deleted.
 //!
@@ -139,8 +140,12 @@ pub fn plan(
                 let kind = if row.size == found.size && row.mtime == found.mtime {
                     MatchKind::Same
                 } else {
-                    MatchKind::Changed {
-                        hash: hash(&root.join(&found.relative_path)).ok(),
+                    let new = hash(&root.join(&found.relative_path)).ok();
+                    // Only touched, e.g. written back from a backup: the same content.
+                    if row.size == found.size && new.is_some() && new == row.content_hash {
+                        MatchKind::Same
+                    } else {
+                        MatchKind::Changed { hash: new }
                     }
                 };
                 claim(&mut plan, &mut unclaimed, id, found, kind);
@@ -278,6 +283,45 @@ mod tests {
         let plan = plan(
             existing,
             walk(vec![found("e01.mkv", 11, 9)]),
+            Path::new("/"),
+            hash_by_name,
+            |_, _| (),
+        );
+        assert_eq!(
+            kind_of(&plan, 1),
+            &MatchKind::Changed {
+                hash: Some("e01".into())
+            }
+        );
+    }
+
+    #[test]
+    fn same_path_written_back_with_the_same_content_is_the_same() {
+        let existing = vec![row(1, "e01.mkv", 10, 5, "e01")];
+        let touched = Found {
+            mtime: 200,
+            ..found("e01.mkv", 11, 5)
+        };
+        let plan = plan(
+            existing,
+            walk(vec![touched]),
+            Path::new("/"),
+            hash_by_name,
+            |_, _| (),
+        );
+        assert_eq!(kind_of(&plan, 1), &MatchKind::Same);
+    }
+
+    #[test]
+    fn same_path_and_size_with_new_content_is_changed() {
+        let existing = vec![row(1, "e01.mkv", 10, 5, "old")];
+        let touched = Found {
+            mtime: 200,
+            ..found("e01.mkv", 10, 5)
+        };
+        let plan = plan(
+            existing,
+            walk(vec![touched]),
             Path::new("/"),
             hash_by_name,
             |_, _| (),

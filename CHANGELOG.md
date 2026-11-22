@@ -8,7 +8,7 @@ How versions and releases work is in `docs/releasing.md`.
 Keep entries brief: one line each, saying what changed for the user, not how.
 Details belong in the commit, docs or API reference.
 
-## 2026.1.0 (unreleased)
+## 2026.1.0 (2026-11-22)
 
 The first release: a self-hosted library manager and streaming server for movies
 and TV, with its own web UI. See `docs/roadmap.md` for what it covers.

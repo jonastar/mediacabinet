@@ -73,7 +73,7 @@ jobs:
             || { echo "::error::Run 'pnpm api:types' in web/ and commit the result"; exit 1; }
 
   web:
-    name: Web UI and TV apps
+    name: Web UI and web based TV apps
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

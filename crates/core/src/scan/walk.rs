@@ -167,6 +167,19 @@ pub fn is_video(path: &Path) -> bool {
         .is_some_and(|e| VIDEO_EXTENSIONS.contains(&e.to_ascii_lowercase().as_str()))
 }
 
+/// `path` under `root` with `/` between folders, which is how relative paths are
+/// stored and compared on every platform. Names that aren't UTF-8 are made so.
+/// `None` if `path` isn't under `root`.
+pub fn relative_path(root: &Path, path: &Path) -> Option<String> {
+    let rel = path.strip_prefix(root).ok()?;
+    let parts: Vec<_> = rel
+        .components()
+        .map(|c| c.as_os_str().to_string_lossy())
+        .collect();
+    Some(parts.join("/"))
+}
+
+/// Like `relative_path`, but `None` for names that aren't UTF-8.
 fn relative(root: &Path, path: &Path) -> Option<String> {
     let rel = path.strip_prefix(root).ok()?;
     let parts: Option<Vec<&str>> = rel.components().map(|c| c.as_os_str().to_str()).collect();

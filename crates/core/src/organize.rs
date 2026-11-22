@@ -530,11 +530,7 @@ pub async fn import_file(
         .into_iter()
         .filter_map(|s| sidecar_destination(&s, source, &destination).map(|d| (s, d)))
         .collect();
-    let rel = |p: &Path| {
-        p.strip_prefix(&dest_root.path)
-            .map(|r| r.to_string_lossy().into_owned())
-            .unwrap_or_default()
-    };
+    let rel = |p: &Path| scan::relative_path(Path::new(&dest_root.path), p).unwrap_or_default();
     let mut result = ImportResult {
         file_id: 0,
         root_id: dest_root.id,

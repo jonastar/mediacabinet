@@ -212,10 +212,7 @@ pub async fn list(
     let mut indexes: HashMap<i64, SeriesIndex> = HashMap::new();
     let mut files = Vec::new();
     for (path, size, mtime) in found {
-        let relative_path = path
-            .strip_prefix(&dir)
-            .map(|p| p.to_string_lossy().into_owned())
-            .unwrap_or_default();
+        let relative_path = scan::relative_path(&dir, &path).unwrap_or_default();
         let guess = guess(pool, &items, &mut indexes, &relative_path).await?;
         files.push(ImportCandidate {
             waiting: not_finished(&path, mtime, now, settle),
@@ -416,12 +413,7 @@ mod tests {
         let (found, unfinished, truncated) = walk(dir.path(), &[]);
         let names: Vec<String> = found
             .iter()
-            .map(|(p, _, _)| {
-                p.strip_prefix(dir.path())
-                    .unwrap()
-                    .to_string_lossy()
-                    .into_owned()
-            })
+            .map(|(p, _, _)| scan::relative_path(dir.path(), p).unwrap())
             .collect();
         assert_eq!(names, ["Show S01/Show.S01E04.mkv", "Show.S01E01.mkv"]);
         assert_eq!((unfinished, truncated), (1, false));

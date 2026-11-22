@@ -13,7 +13,7 @@ use utoipa::ToSchema;
 
 use crate::imports::{self, ImportCandidate, ImportGuess, ImportsError};
 use crate::organize::{self, ImportOptions, Naming, TransferMode};
-use crate::scan::ProbeError;
+use crate::scan::{self, ProbeError};
 use crate::tasks::{Ended, Finished, Handle, Kind, Scope, Tasks, Trigger};
 
 /// A file shorter than this share of the expected runtime may be incomplete.
@@ -62,10 +62,8 @@ pub async fn state(pool: &SqlitePool, library: i64) -> Result<Inbox, sqlx::Error
         .into_iter()
         .filter(|(p, _, _)| Path::new(p).exists())
         .map(|(p, reason, seen_at)| InboxFile {
-            relative_path: Path::new(&p)
-                .strip_prefix(&base)
-                .map(|r| r.to_string_lossy().into_owned())
-                .unwrap_or_else(|_| p.clone()),
+            relative_path: scan::relative_path(Path::new(&base), Path::new(&p))
+                .unwrap_or_else(|| p.clone()),
             path: p,
             reason: reason.unwrap_or_default(),
             seen_at,

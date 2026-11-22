@@ -1,0 +1,25 @@
+name: Set up Node and pnpm
+description: Node 24 and the pnpm that web/package.json pins, with the given packages installed.
+inputs:
+  dirs:
+    description: Space-separated package folders to install, such as "web players/web".
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v4
+      with:
+        package_json_file: web/package.json
+    - uses: actions/setup-node@v5
+      with:
+        node-version: 24
+        cache: pnpm
+        cache-dependency-path: |
+          web/pnpm-lock.yaml
+          players/web/pnpm-lock.yaml
+          players/webos/pnpm-lock.yaml
+    - shell: bash
+      run: |
+        for dir in ${{ inputs.dirs }}; do
+          pnpm install --frozen-lockfile --dir "$dir"
+        done

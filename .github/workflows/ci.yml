@@ -1,0 +1,140 @@
+# Format, lint, test and build every app on each push and pull request.
+name: CI
+
+on:
+  push:
+    branches: [main, 'release/**']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Newer pushes replace a pull request's run; every commit on main keeps its own.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  CARGO_TERM_COLOR: always
+  # Keep in step with the Dockerfile's rust image.
+  RUST_TOOLCHAIN: '1.97'
+
+jobs:
+  # What .githooks/pre-commit checks.
+  format:
+    name: Format, lint and generated files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: rustfmt
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          dirs: web players/web
+      - run: cargo fmt --all --check
+      - run: node scripts/generate-tokens.mjs --check
+      - run: node scripts/generate-api-clients.mjs --check
+      - name: web
+        working-directory: web
+        run: pnpm format:check && pnpm lint
+      - name: players/web
+        working-directory: players/web
+        run: pnpm format:check && pnpm lint
+
+  rust:
+    name: Rust (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      # The scan and transcode tests skip themselves without ffmpeg. Installing it
+      # with Homebrew takes minutes, so they only run on Linux.
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      - if: runner.os == 'Linux'
+        run: cargo clippy --all-targets --locked -- -D warnings
+      - run: cargo test --locked
+      - if: runner.os == 'Linux'
+        name: OpenAPI spec matches the handlers
+        run: |
+          cargo run -q --locked -p media-cabinet -- openapi > web/src/api/openapi.json
+          git diff --exit-code -- web/src/api/openapi.json \
+            || { echo "::error::Run 'pnpm api:types' in web/ and commit the result"; exit 1; }
+
+  web:
+    name: Web UI and TV apps
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          dirs: web players/web players/webos
+      - name: web test
+        working-directory: web
+        run: pnpm test
+      - name: web build
+        working-directory: web
+        run: pnpm build
+      - name: players/web build
+        working-directory: players/web
+        run: pnpm build
+      - run: players/tizen/package.sh
+      - run: players/webos/package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tv-apps
+          path: |
+            players/tizen/build/MediaCabinet-unsigned.wgt
+            players/webos/build/*.ipk
+          retention-days: 14
+
+  android:
+    name: Android
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: players/android
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v5
+      # The runner's Android SDK comes from ANDROID_HOME, as local.properties isn't committed.
+      - run: ./gradlew --no-daemon :core:testDebugUnitTest :phone:lintDebug :phone:assembleDebug
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-reports
+          path: players/android/*/build/reports/
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: players/android/phone/build/outputs/apk/debug/*.apk
+          retention-days: 14
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

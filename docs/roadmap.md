@@ -14,7 +14,7 @@ Tick items as they land. Open questions from the spec are listed in the phase th
 - [x] Initial schema migration with constraint tests
 - [x] Backup before migrating an existing database
 - [x] Fixture library generator (`scripts/make-fixtures.sh`)
-- [ ] CI: format, lint, test and build on every push (needs a remote)
+- [x] CI: format, lint, test and build on every push and pull request (`.github/workflows/ci.yml`)
 - [x] Choose a licence: MIT
 
 ## Phase 1 — Scanning core

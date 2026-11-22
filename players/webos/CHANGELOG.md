@@ -9,3 +9,4 @@ Keep entries brief: one line each, saying what changed for the user, not how.
 ## 2026.1.0 (unreleased)
 
 - The first release.
+- Each release is on GitHub as an `.ipk`, for installing on a TV in Developer Mode.

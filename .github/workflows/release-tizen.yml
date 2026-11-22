@@ -1,0 +1,68 @@
+# Builds a Samsung TV release when its tag is pushed (scripts/release.sh tizen):
+# the unsigned .wgt in a draft GitHub release. Publishing the draft is the
+# release. See docs/releasing.md.
+#
+# A TV only installs a package signed for it, and the store takes one signed with
+# the seller's certificate, so signing is done by hand (players/tizen/README.md).
+#
+# Run it by hand to build from any branch without making a release.
+name: Release Samsung TV
+
+on:
+  push:
+    tags: ['tizen/v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: version
+        uses: ./.github/actions/release-version
+        with:
+          app: tizen
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          dirs: web players/web
+      - run: players/tizen/package.sh
+      - name: Collect
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir dist
+          cp players/tizen/build/MediaCabinet-unsigned.wgt "dist/media-cabinet-tizen-$VERSION-unsigned.wgt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tizen-release
+          path: dist
+          retention-days: 7
+
+  release:
+    name: Draft release
+    needs: build
+    if: needs.build.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: tizen-release
+          path: dist
+      - uses: ./.github/actions/draft-release
+        with:
+          version: ${{ needs.build.outputs.version }}
+          title: Samsung TV ${{ needs.build.outputs.version }}
+          changelog: players/tizen/CHANGELOG.md
+          files: dist
+          install: |
+            - **Samsung TV:** the `.wgt` is unsigned, and a TV only installs a package signed with a certificate for it. Sign it with your own and install it with Samsung's `tz`, as in [players/tizen/README.md](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/players/tizen/README.md).

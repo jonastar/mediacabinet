@@ -9,3 +9,4 @@ Keep entries brief: one line each, saying what changed for the user, not how.
 ## 2026.1.0 (unreleased)
 
 - The first release.
+- Each release is on GitHub as an unsigned `.wgt`, to sign for your own TV.

@@ -1,0 +1,41 @@
+name: Release version
+description: >-
+  An app's version, from scripts/set-version.sh. On its release tag (<app>/v<version>)
+  it fails unless the tag is that version and it isn't -dev, and says to release.
+inputs:
+  app:
+    description: server, android, apple, tizen or webos.
+    required: true
+outputs:
+  version:
+    description: The version in the tree, such as 2026.1.0 or 2026.2.0-dev.
+    value: ${{ steps.version.outputs.version }}
+  release:
+    description: '"true" on the app''s release tag, otherwise "false" (a trial build).'
+    value: ${{ steps.version.outputs.release }}
+runs:
+  using: composite
+  steps:
+    - id: version
+      shell: bash
+      env:
+        APP: ${{ inputs.app }}
+      run: |
+        version=$(scripts/set-version.sh "$APP")
+        release=false
+        if [ "$GITHUB_REF_TYPE" = tag ]; then
+          if [ "$GITHUB_REF_NAME" != "$APP/v$version" ]; then
+            echo "::error::Tag $GITHUB_REF_NAME isn't $APP's version, $version"
+            exit 1
+          fi
+          case $version in
+          *-*)
+            echo "::error::$version is a -dev version: release with scripts/release.sh $APP"
+            exit 1
+            ;;
+          esac
+          release=true
+        fi
+        echo "version=$version" >> "$GITHUB_OUTPUT"
+        echo "release=$release" >> "$GITHUB_OUTPUT"
+        echo "$APP $version (release: $release)" >> "$GITHUB_STEP_SUMMARY"

@@ -1,0 +1,105 @@
+# Builds an Android release when its tag is pushed (scripts/release.sh android):
+# the signed APK for installing by hand and the bundle for Google Play, in a draft
+# GitHub release. Publishing the draft is the release. See docs/releasing.md.
+#
+# Signing takes these repository secrets (players/android/README.md):
+#   ANDROID_KEYSTORE_BASE64    the keystore, as `base64 -w0 release.jks`
+#   ANDROID_KEYSTORE_PASSWORD
+#   ANDROID_KEY_ALIAS
+#   ANDROID_KEY_PASSWORD       if it isn't the keystore's password
+#
+# Run it by hand to build from any branch without making a release; without the
+# secrets that build is unsigned.
+name: Release Android
+
+on:
+  push:
+    tags: ['android/v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: version
+        uses: ./.github/actions/release-version
+        with:
+          app: android
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Keystore
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          RELEASE: ${{ steps.version.outputs.release }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            if [ "$RELEASE" = true ]; then
+              echo "::error::A release needs the ANDROID_KEYSTORE_BASE64 secret, to sign it"
+              exit 1
+            fi
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret, so this build is unsigned"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          echo "CABINET_KEYSTORE=$RUNNER_TEMP/release.jks" >> "$GITHUB_ENV"
+      - name: Build
+        working-directory: players/android
+        env:
+          CABINET_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          CABINET_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          CABINET_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD || secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: ./gradlew --no-daemon :core:testDebugUnitTest :phone:assembleRelease :phone:bundleRelease
+      - name: Collect
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          out=players/android/phone/build/outputs
+          name=media-cabinet-android-$VERSION-phone
+          if [ -z "${CABINET_KEYSTORE:-}" ]; then
+            name=$name-unsigned
+          fi
+          mkdir dist
+          cp "$(ls $out/apk/release/*.apk)" "dist/$name.apk"
+          cp $out/bundle/release/*.aab "dist/$name.aab"
+          # R8's renames, to read stack traces from crash reports.
+          gzip -c $out/mapping/release/mapping.txt > "dist/media-cabinet-android-$VERSION-phone-mapping.txt.gz"
+          ls -l dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-release
+          path: dist
+          retention-days: 7
+
+  release:
+    name: Draft release
+    needs: build
+    if: needs.build.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: android-release
+          path: dist
+      - uses: ./.github/actions/draft-release
+        with:
+          version: ${{ needs.build.outputs.version }}
+          title: Android ${{ needs.build.outputs.version }}
+          changelog: players/android/CHANGELOG.md
+          files: dist
+          install: |
+            - **Phone or tablet** (Android 8.0 or later): download the `.apk` on it and open it. Android asks once to allow installs from your browser or files app.
+            - The `.aab` is the bundle for Google Play, and the mapping file reads its crash reports.

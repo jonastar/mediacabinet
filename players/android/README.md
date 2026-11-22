@@ -25,6 +25,19 @@ Needs JDK 17 or later and the Android SDK (`sdk.dir` in `local.properties`, whic
 ./gradlew :phone:lintDebug
 ```
 
+### Release signing
+
+A release build (`./gradlew :phone:assembleRelease :phone:bundleRelease`) is signed when `CABINET_KEYSTORE` points at a keystore, with `CABINET_KEYSTORE_PASSWORD`, `CABINET_KEY_ALIAS` and, if it differs from the keystore's, `CABINET_KEY_PASSWORD`. Without them it's unsigned. Make the keystore once, and keep it and its password safe: every update has to be signed with the same key.
+
+```sh
+keytool -genkeypair -v -keystore release.jks -alias media-cabinet -keyalg RSA -keysize 4096 -validity 10000
+base64 -w0 release.jks   # for the ANDROID_KEYSTORE_BASE64 secret
+```
+
+`.github/workflows/release-android.yml` takes them from the repository secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`.
+
+Google Play re-signs apps with its own key unless it's given yours. When setting up Play App Signing, give it this key, so the APKs on GitHub and the app from Play are signed the same way and update each other.
+
 `LiveServerTest` decodes a real server's responses with the generated models, when pointed at one:
 
 ```sh

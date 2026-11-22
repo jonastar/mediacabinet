@@ -29,8 +29,25 @@ android {
         versionName = cabinetVersion
     }
 
+    // Release signing, from the environment (players/android/README.md). Without
+    // CABINET_KEYSTORE a release build is unsigned.
+    val keystore = providers.environmentVariable("CABINET_KEYSTORE").orNull
+    if (keystore != null) {
+        signingConfigs {
+            create("release") {
+                val password = providers.environmentVariable("CABINET_KEYSTORE_PASSWORD").get()
+                storeFile = file(keystore)
+                storePassword = password
+                keyAlias = providers.environmentVariable("CABINET_KEY_ALIAS").get()
+                keyPassword =
+                    providers.environmentVariable("CABINET_KEY_PASSWORD").orElse(password).get()
+            }
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))

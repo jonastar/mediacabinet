@@ -88,6 +88,20 @@ of it from any branch without pushing an image or making a release.
 After the first image push, check the GHCR package's visibility: if it's
 private, make it public in the package's settings, once.
 
+The players' tags work the same way, each making a draft release with the
+version's section of the app's changelog:
+
+| Tag | Workflow | Attached |
+| --- | --- | --- |
+| `android/v*` | `release-android.yml` | the signed phone APK and Play bundle (`.aab`), and R8's mapping file. Signing needs the secrets in `players/android/README.md` |
+| `tizen/v*` | `release-tizen.yml` | the unsigned `.wgt`: a TV only installs a package signed for it, and the store takes one signed with the seller's certificate, so signing is by hand (`players/tizen/README.md`) |
+| `webos/v*` | `release-webos.yml` | the `.ipk` |
+
+All four check the tag against the app's version first, and can be run by hand
+to build without a release (an Android build without the secrets is unsigned).
+The shared steps are in `.github/actions/`: `release-version` and
+`draft-release`.
+
 ## Patch releases
 
 1. Fix on `main` first.

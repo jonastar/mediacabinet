@@ -1,0 +1,65 @@
+# Builds an LG TV release when its tag is pushed (scripts/release.sh webos): the
+# .ipk in a draft GitHub release. Publishing the draft is the release. See
+# docs/releasing.md.
+#
+# Run it by hand to build from any branch without making a release.
+name: Release LG TV
+
+on:
+  push:
+    tags: ['webos/v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: version
+        uses: ./.github/actions/release-version
+        with:
+          app: webos
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          dirs: web players/web players/webos
+      - run: players/webos/package.sh
+      - name: Collect
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          mkdir dist
+          cp "$(ls players/webos/build/*.ipk)" "dist/media-cabinet-webos-$VERSION.ipk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webos-release
+          path: dist
+          retention-days: 7
+
+  release:
+    name: Draft release
+    needs: build
+    if: needs.build.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: webos-release
+          path: dist
+      - uses: ./.github/actions/draft-release
+        with:
+          version: ${{ needs.build.outputs.version }}
+          title: LG TV ${{ needs.build.outputs.version }}
+          changelog: players/webos/CHANGELOG.md
+          files: dist
+          install: |
+            - **LG TV** (webOS): with the Developer Mode app on the TV, install the `.ipk` with LG's CLI (`ares-install --device tv media-cabinet-webos-${{ needs.build.outputs.version }}.ipk`), set up as in [players/webos/README.md](${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/players/webos/README.md).

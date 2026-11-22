@@ -31,25 +31,9 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - id: version
-        run: |
-          version=$(scripts/set-version.sh server)
-          release=false
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            if [ "${GITHUB_REF_NAME#server/v}" != "$version" ]; then
-              echo "::error::Tag $GITHUB_REF_NAME doesn't match the version in Cargo.toml, $version"
-              exit 1
-            fi
-            case $version in
-            *-*)
-              echo "::error::$version is a -dev version: release with scripts/release.sh server"
-              exit 1
-              ;;
-            esac
-            release=true
-          fi
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "release=$release" >> "$GITHUB_OUTPUT"
-          echo "Server $version (release: $release)" >> "$GITHUB_STEP_SUMMARY"
+        uses: ./.github/actions/release-version
+        with:
+          app: server
 
   # Built once, and embedded in every binary.
   web:
@@ -200,9 +184,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-    env:
-      VERSION: ${{ needs.version.outputs.version }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/download-artifact@v5
@@ -210,34 +191,13 @@ jobs:
           pattern: server-*
           path: dist
           merge-multiple: true
-      - name: Checksums
-        working-directory: dist
-        run: sha256sum * > SHA256SUMS && cat SHA256SUMS
-      - name: Notes from the changelog
-        run: |
-          # This version's section of CHANGELOG.md, without its heading.
-          awk -v v="$VERSION" '
-            /^## / { if (found) exit; if (index($0, "## " v " ") == 1) { found = 1; next } }
-            found
-          ' CHANGELOG.md > changes.md
-          if ! grep -q '[^[:space:]]' changes.md; then
-            echo "::error::CHANGELOG.md has no section for $VERSION"
-            exit 1
-          fi
-          {
-            cat changes.md
-            echo
-            echo '## Install'
-            echo
-            echo "- **Docker:** \`docker pull $IMAGE:$VERSION\`"
-            echo '- **Linux, macOS, Windows:** the archive for your system below. It needs `ffmpeg` and `ffprobe` installed and on the PATH; the Docker image has them.'
-            echo '- **macOS:** the binary isn'"'"'t notarized yet, so run `xattr -d com.apple.quarantine media-cabinet` once before starting it.'
-            echo
-            echo 'Check a download against `SHA256SUMS` with `sha256sum -c SHA256SUMS --ignore-missing`.'
-          } > notes.md
-          cat notes.md
-      - name: Create the draft
-        run: |
-          gh release create "$GITHUB_REF_NAME" dist/* \
-            --repo "$GITHUB_REPOSITORY" --verify-tag --draft --latest=false \
-            --title "Server $VERSION" --notes-file notes.md
+      - uses: ./.github/actions/draft-release
+        with:
+          version: ${{ needs.version.outputs.version }}
+          title: Server ${{ needs.version.outputs.version }}
+          changelog: CHANGELOG.md
+          files: dist
+          install: |
+            - **Docker:** `docker pull ${{ env.IMAGE }}:${{ needs.version.outputs.version }}`
+            - **Linux, macOS, Windows:** the archive for your system below. It needs `ffmpeg` and `ffprobe` installed and on the PATH; the Docker image has them.
+            - **macOS:** the binary isn't notarized yet, so run `xattr -d com.apple.quarantine media-cabinet` once before starting it.

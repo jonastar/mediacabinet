@@ -1,0 +1,64 @@
+name: Draft release
+description: >-
+  A draft GitHub release for the pushed tag, with every file in a folder, their
+  SHA256SUMS, and the version's changelog section followed by install notes.
+inputs:
+  version:
+    required: true
+  title:
+    description: Such as "Server 2026.1.0".
+    required: true
+  changelog:
+    description: The app's changelog, such as CHANGELOG.md.
+    required: true
+  files:
+    description: The folder whose files are attached.
+    required: true
+  install:
+    description: Markdown for the Install section.
+    required: true
+  token:
+    default: ${{ github.token }}
+runs:
+  using: composite
+  steps:
+    - name: Checksums
+      shell: bash
+      working-directory: ${{ inputs.files }}
+      run: sha256sum * > SHA256SUMS && cat SHA256SUMS
+    - name: Notes from the changelog
+      shell: bash
+      env:
+        VERSION: ${{ inputs.version }}
+        CHANGELOG: ${{ inputs.changelog }}
+        INSTALL: ${{ inputs.install }}
+      run: |
+        # This version's section, without its heading.
+        awk -v v="$VERSION" '
+          /^## / { if (found) exit; if (index($0, "## " v " ") == 1) { found = 1; next } }
+          found
+        ' "$CHANGELOG" > "$RUNNER_TEMP/changes.md"
+        if ! grep -q '[^[:space:]]' "$RUNNER_TEMP/changes.md"; then
+          echo "::error::$CHANGELOG has no section for $VERSION"
+          exit 1
+        fi
+        {
+          cat "$RUNNER_TEMP/changes.md"
+          echo
+          echo '## Install'
+          echo
+          printf '%s\n' "$INSTALL"
+          echo
+          echo 'Check a download against `SHA256SUMS` with `sha256sum -c SHA256SUMS --ignore-missing`.'
+        } > "$RUNNER_TEMP/notes.md"
+        cat "$RUNNER_TEMP/notes.md"
+    - name: Create the draft
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+        TITLE: ${{ inputs.title }}
+        FILES: ${{ inputs.files }}
+      run: |
+        gh release create "$GITHUB_REF_NAME" "$FILES"/* \
+          --repo "$GITHUB_REPOSITORY" --verify-tag --draft --latest=false \
+          --title "$TITLE" --notes-file "$RUNNER_TEMP/notes.md"

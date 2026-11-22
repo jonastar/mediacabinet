@@ -21,7 +21,7 @@ and TV, with its own web UI. See `docs/roadmap.md` for what it covers.
 - The folder layout editor shows where sample files would go as you type, and which ones Organise would skip (`examples` on `POST /api/templates/check`).
 - Files named like `Show.S01E01.1080p.mkv` no longer go to review for a mismatched episode title.
 - Media Cabinet is MIT licensed.
-- Each release comes as a Docker image (`ghcr.io/jonastar/mediacabinet`) and as downloads for Linux, macOS and Windows, which need ffmpeg installed. On Windows, a transcode isn't paused when it gets far ahead of the player.
+- Each release comes as a Docker image (`ghcr.io/jonastar/mediacabinet`) and as downloads for Linux, macOS and Windows, each with ffmpeg included (jellyfin-ffmpeg). On Windows, a transcode isn't paused when it gets far ahead of the player.
 - Guest access for demo servers: when turned on (Manage → Users, or `CABINET_GUEST_ACCESS`), people and apps can continue as a guest with their own throwaway account (`POST /api/auth/guest`, `POST /api/auth/device/guest`, `guest_access` in `GET /api/server-info`).
 - TV mode: the TV app is served at `/tv-mode/` for TV browsers and linked from the web UI's sidebar, signed in with your web session.
 - Home is laid out as rails: Up next as smaller stills, a day-by-day This week strip from yesterday on (`recently_aired` in `GET /api/home`), then Recently added; Up next only names the ordering when it isn't the default (`view_name`).

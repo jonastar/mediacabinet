@@ -115,6 +115,8 @@ jobs:
         run: |
           mkdir -p "dist/$PACKAGE"
           cp "$BINARY" LICENSE README.md "dist/$PACKAGE/"
+          # The pinned jellyfin-ffmpeg build, which the server finds next to itself.
+          scripts/fetch-ffmpeg.sh "${{ matrix.name }}" "dist/$PACKAGE"
           cd dist
           if [ "$RUNNER_OS" = Windows ]; then
             7z a -tzip -bso0 "$PACKAGE.zip" "$PACKAGE"
@@ -149,7 +151,11 @@ jobs:
             mkdir -p "context/linux/${arch#*:}"
             tar xzf "archives/media-cabinet-$VERSION-${arch%:*}-linux.tar.gz" \
               -C "context/linux/${arch#*:}" --strip-components=1 \
-              "media-cabinet-$VERSION-${arch%:*}-linux/media-cabinet"
+              "media-cabinet-$VERSION-${arch%:*}-linux/media-cabinet" \
+              "media-cabinet-$VERSION-${arch%:*}-linux/ffmpeg" \
+              "media-cabinet-$VERSION-${arch%:*}-linux/ffprobe" \
+              "media-cabinet-$VERSION-${arch%:*}-linux/FFMPEG.md" \
+              "media-cabinet-$VERSION-${arch%:*}-linux/FFMPEG-COPYING.GPLv3.txt"
           done
           ls -lR context
       - uses: docker/metadata-action@v5
@@ -199,5 +205,5 @@ jobs:
           files: dist
           install: |
             - **Docker:** `docker pull ${{ env.IMAGE }}:${{ needs.version.outputs.version }}`
-            - **Linux, macOS, Windows:** the archive for your system below. It needs `ffmpeg` and `ffprobe` installed and on the PATH; the Docker image has them.
-            - **macOS:** the binary isn't notarized yet, so run `xattr -d com.apple.quarantine media-cabinet` once before starting it.
+            - **Linux, macOS, Windows:** the archive for your system below. It includes ffmpeg and ffprobe (jellyfin-ffmpeg, see `FFMPEG.md`); on Linux they need glibc 2.28 or newer, so on musl systems such as Alpine set `CABINET_FFMPEG` and `CABINET_FFPROBE` to your own.
+            - **macOS:** the binaries aren't notarized yet, so run `xattr -dr com.apple.quarantine .` in the unpacked folder once before starting it.

@@ -1,14 +1,16 @@
 # The released image: the release's own Linux binaries, built by
 # .github/workflows/release-server.yml, in a runtime like the Dockerfile's.
-# The build context holds linux/amd64/media-cabinet and linux/arm64/media-cabinet.
+# The build context holds linux/{amd64,arm64}/ with each archive's media-cabinet,
+# ffmpeg and ffprobe (the pinned jellyfin-ffmpeg build) and ffmpeg's licence.
 # Keep the runtime in step with the last stage of the Dockerfile.
 
 FROM debian:bookworm-slim
 ARG TARGETPLATFORM
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+    && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-COPY ${TARGETPLATFORM}/media-cabinet /usr/local/bin/media-cabinet
+COPY ${TARGETPLATFORM}/media-cabinet ${TARGETPLATFORM}/ffmpeg ${TARGETPLATFORM}/ffprobe /usr/local/bin/
+COPY ${TARGETPLATFORM}/FFMPEG.md ${TARGETPLATFORM}/FFMPEG-COPYING.GPLv3.txt /usr/share/doc/ffmpeg/
 ENV CABINET_DATA_DIR=/data CABINET_BIND=0.0.0.0:8420
 VOLUME /data
 EXPOSE 8420

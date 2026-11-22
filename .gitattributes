@@ -1,0 +1,2 @@
+# Shell scripts run on the Windows CI runners too, whose checkout would give them CRLF.
+*.sh text eol=lf

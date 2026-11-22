@@ -44,9 +44,7 @@ impl From<ImportsError> for ApiError {
 
 fn prober() -> cabinet_core::scan::Prober {
     cabinet_core::scan::Prober {
-        program: std::env::var("CABINET_FFPROBE")
-            .unwrap_or_else(|_| "ffprobe".into())
-            .into(),
+        program: cabinet_core::tools::program("CABINET_FFPROBE", "ffprobe"),
         ..Default::default()
     }
 }

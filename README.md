@@ -70,8 +70,8 @@ Set these in the environment, or in a `.env` file in the working directory (giti
 | `CABINET_BIND` | `0.0.0.0:8420` | Listen address |
 | `CABINET_SCAN_INTERVAL_MINUTES` | `360` | Rescan each scanned root this often; `0` turns it off |
 | `CABINET_WATCH` | `1` | Rescan a root shortly after its files change; `0` turns it off |
-| `CABINET_FFPROBE` | `ffprobe` | ffprobe to run |
-| `CABINET_FFMPEG` | `ffmpeg` | ffmpeg to run, for streams that aren't played directly and for subtitles |
+| `CABINET_FFPROBE` | `ffprobe` | ffprobe to run. Without it, the one next to `media-cabinet` (release archives and the image ship one), else the PATH's |
+| `CABINET_FFMPEG` | `ffmpeg` | ffmpeg to run, for streams that aren't played directly and for subtitles; found like ffprobe |
 | `CABINET_HWACCEL` | `none` | Hardware video encoding: `vaapi` (or `vaapi:/dev/dri/renderD129`), `nvenc` or `qsv`. Checked at startup; falls back to software if it doesn't work |
 | `CABINET_SERVER_NAME` | `Media Cabinet` | What apps call this server on their connect screen |
 | `CABINET_CORS_ORIGINS` | none | More origins allowed to call `/api` across sites, separated by commas, such as a TV app's dev server. Packaged TV apps are already allowed |
@@ -99,7 +99,7 @@ cargo build --release
 
 If `web/dist` is missing when the server compiles, the binary still runs but serves a "Web UI not built" message. Rebuild the server after building the UI.
 
-**Docker.** Includes ffmpeg.
+**Docker.** Includes ffmpeg (the jellyfin-ffmpeg build the release archives ship, from `scripts/fetch-ffmpeg.sh`).
 
 ```sh
 docker build -t media-cabinet .

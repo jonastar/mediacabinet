@@ -259,6 +259,8 @@ Samsung and LG TVs, Android, Android TV, iOS and Apple TV, for browsing and watc
 - [x] Stream inspector: a file's probed streams and sidecars (`GET /files/{id}/probe`)
 - [ ] Published Docker image and release binaries
 - [ ] Smaller image (static ffmpeg)
+- [x] ffmpeg in the release archives and image: a pinned jellyfin-ffmpeg build (`scripts/fetch-ffmpeg.sh`)
+- [ ] Our own ffmpeg builds (a fork of jellyfin-ffmpeg, or a standalone build repo) instead of jellyfin-ffmpeg's releases
 - [ ] Upgrade test: migrate a large database from an older version, with backup
 - [ ] Install, configuration and \*arr setup docs
 - [ ] API reference from the OpenAPI spec

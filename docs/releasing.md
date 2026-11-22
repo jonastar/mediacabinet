@@ -75,6 +75,9 @@ A pushed `server/v*` tag runs `.github/workflows/release-server.yml`, which:
 2. Builds the web UI and TV app once, and the server with them embedded, for
    Linux (x86_64 and aarch64, static with musl), macOS (Apple Silicon and Intel)
    and Windows (x86_64), as `media-cabinet-<version>-<arch>-<os>` archives.
+   Each has ffmpeg and ffprobe next to the binary: the jellyfin-ffmpeg release
+   pinned, with its checksums, in `scripts/fetch-ffmpeg.sh`. To update ffmpeg,
+   change it there; the image and the `Dockerfile` use the same one.
 3. Pushes `ghcr.io/jonastar/mediacabinet:<version>` for amd64 and arm64, made
    by `Dockerfile.release` from the Linux binaries above.
 4. Makes a draft GitHub release with the archives, `SHA256SUMS`, and the

@@ -179,9 +179,7 @@ async fn main() -> anyhow::Result<()> {
     let sign_in = sign_in_providers(&db).await?;
 
     let prober = cabinet_core::scan::Prober {
-        program: std::env::var("CABINET_FFPROBE")
-            .unwrap_or_else(|_| "ffprobe".into())
-            .into(),
+        program: cabinet_core::tools::program("CABINET_FFPROBE", "ffprobe"),
         ..Default::default()
     };
     let provider = metadata_provider()?;
@@ -196,9 +194,7 @@ async fn main() -> anyhow::Result<()> {
     let hwaccel = std::env::var("CABINET_HWACCEL").unwrap_or_default();
     let hwaccel = cabinet_core::playback::HwAccel::parse(&hwaccel)
         .context("CABINET_HWACCEL must be none, vaapi, vaapi:<device>, nvenc or qsv")?;
-    let ffmpeg: PathBuf = std::env::var("CABINET_FFMPEG")
-        .unwrap_or_else(|_| "ffmpeg".into())
-        .into();
+    let ffmpeg = cabinet_core::tools::program("CABINET_FFMPEG", "ffmpeg");
     let transcoder =
         transcode::Transcoder::new(data_dir.join("transcode"), ffmpeg.clone(), hwaccel).await;
     transcoder.spawn_reaper();

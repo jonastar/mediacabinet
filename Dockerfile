@@ -26,11 +26,26 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo build --release --locked -p media-cabinet \
     && cp target/release/media-cabinet /usr/local/bin/media-cabinet
 
+# The pinned jellyfin-ffmpeg build the release archives ship.
+FROM debian:bookworm-slim AS ffmpeg
+ARG TARGETARCH
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl ca-certificates xz-utils
+COPY scripts/fetch-ffmpeg.sh /usr/local/bin/
+RUN if [ "$TARGETARCH" = arm64 ]; then \
+        platform=aarch64-linux; \
+    else \
+        platform=x86_64-linux; \
+    fi \
+    && fetch-ffmpeg.sh "$platform" /ffmpeg
+
 FROM debian:bookworm-slim
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+    && apt-get install -y --no-install-recommends ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=server /usr/local/bin/media-cabinet /usr/local/bin/media-cabinet
+COPY --from=ffmpeg /ffmpeg/ffmpeg /ffmpeg/ffprobe /usr/local/bin/
+COPY --from=ffmpeg /ffmpeg/FFMPEG.md /ffmpeg/FFMPEG-COPYING.GPLv3.txt /usr/share/doc/ffmpeg/
 ENV CABINET_DATA_DIR=/data CABINET_BIND=0.0.0.0:8420
 VOLUME /data
 EXPOSE 8420

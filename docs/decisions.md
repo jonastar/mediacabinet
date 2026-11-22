@@ -13,7 +13,7 @@ Settles the stack and the build-blocking open questions in `media-cabinet-handof
 | Frontend | React + TypeScript, no meta-framework. Vite as the build tool. |
 | API contract | OpenAPI. The frontend's TypeScript types are generated from it. |
 | Streaming | In v1, with our own player. Web player first. |
-| Deployment | Both: a single binary with the UI embedded, and a Docker image that adds ffmpeg. |
+| Deployment | Both: a single binary with the UI embedded, and a Docker image. Both come with a pinned jellyfin-ffmpeg build (`scripts/fetch-ffmpeg.sh`), so transcoding and HDR tone mapping behave the same everywhere. |
 
 ## Data model
 

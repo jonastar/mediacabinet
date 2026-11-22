@@ -64,6 +64,30 @@ them for you:
 Then push the branch and the tag. `scripts/set-version.sh <app>` shows an app's
 version, and `scripts/set-version.sh <app> <version>` sets it everywhere.
 
+## What CI builds
+
+`.github/workflows/ci.yml` checks, tests and builds every app on each push to
+`main` and `release/**` and on each pull request.
+
+A pushed `server/v*` tag runs `.github/workflows/release-server.yml`, which:
+
+1. Fails if the tag isn't the version in `Cargo.toml`, or that's a `-dev` one.
+2. Builds the web UI and TV app once, and the server with them embedded, for
+   Linux (x86_64 and aarch64, static with musl), macOS (Apple Silicon and Intel)
+   and Windows (x86_64), as `media-cabinet-<version>-<arch>-<os>` archives.
+3. Pushes `ghcr.io/jonastar/mediacabinet:<version>` for amd64 and arm64, made
+   by `Dockerfile.release` from the Linux binaries above.
+4. Makes a draft GitHub release with the archives, `SHA256SUMS`, and the
+   version's changelog section as its notes.
+
+Check the draft, then publish it. Publishing doesn't move the image's `latest`
+tag or mark the release as latest yet; do both by hand until that's automated.
+Run the workflow by hand (Actions → Release server → Run workflow) to build all
+of it from any branch without pushing an image or making a release.
+
+After the first image push, check the GHCR package's visibility: if it's
+private, make it public in the package's settings, once.
+
 ## Patch releases
 
 1. Fix on `main` first.

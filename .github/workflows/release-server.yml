@@ -1,0 +1,243 @@
+# Builds a server release when its tag is pushed (scripts/release.sh server):
+# binaries for Linux, macOS and Windows, the Docker image on GHCR under the exact
+# version, and a draft GitHub release with them. Publishing the draft is the
+# release. See docs/releasing.md.
+#
+# Run it by hand (Actions → Release server → Run workflow) to build everything
+# from any branch without pushing an image or making a release.
+name: Release server
+
+on:
+  push:
+    tags: ['server/v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  # Keep in step with ci.yml and the Dockerfile.
+  RUST_TOOLCHAIN: '1.97'
+  IMAGE: ghcr.io/${{ github.repository }}
+
+jobs:
+  version:
+    name: Version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release: ${{ steps.version.outputs.release }}
+    steps:
+      - uses: actions/checkout@v5
+      - id: version
+        run: |
+          version=$(scripts/set-version.sh server)
+          release=false
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            if [ "${GITHUB_REF_NAME#server/v}" != "$version" ]; then
+              echo "::error::Tag $GITHUB_REF_NAME doesn't match the version in Cargo.toml, $version"
+              exit 1
+            fi
+            case $version in
+            *-*)
+              echo "::error::$version is a -dev version: release with scripts/release.sh server"
+              exit 1
+              ;;
+            esac
+            release=true
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "release=$release" >> "$GITHUB_OUTPUT"
+          echo "Server $version (release: $release)" >> "$GITHUB_STEP_SUMMARY"
+
+  # Built once, and embedded in every binary.
+  web:
+    name: Web UI and TV app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup-pnpm
+        with:
+          dirs: web players/web
+      - working-directory: web
+        run: pnpm build
+      - working-directory: players/web
+        run: pnpm build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: |
+            web/dist
+            players/web/dist
+          retention-days: 7
+
+  build:
+    name: Server (${{ matrix.name }})
+    needs: [version, web]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux builds are static (musl, in Alpine), so they run on any distro.
+          - name: x86_64-linux
+            os: ubuntu-latest
+          - name: aarch64-linux
+            os: ubuntu-24.04-arm
+          - name: aarch64-macos
+            os: macos-latest
+            target: aarch64-apple-darwin
+          - name: x86_64-macos
+            os: macos-latest
+            target: x86_64-apple-darwin
+          - name: x86_64-windows
+            os: windows-latest
+            target: x86_64-pc-windows-msvc
+    runs-on: ${{ matrix.os }}
+    env:
+      PACKAGE: media-cabinet-${{ needs.version.outputs.version }}-${{ matrix.name }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          name: web-dist
+
+      - if: runner.os == 'Linux'
+        name: Build in Alpine
+        run: |
+          docker run --rm -v "$PWD":/src -w /src "rust:$RUST_TOOLCHAIN-alpine" \
+            sh -c 'apk add -q musl-dev && cargo build --release --locked -p media-cabinet'
+          echo "BINARY=target/release/media-cabinet" >> "$GITHUB_ENV"
+
+      - if: runner.os != 'Linux'
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ env.RUST_TOOLCHAIN }}
+          targets: ${{ matrix.target }}
+      - if: runner.os != 'Linux'
+        name: Build
+        # Windows: the C runtime linked in, so it runs without the Visual C++ redistributable.
+        env:
+          RUSTFLAGS: ${{ runner.os == 'Windows' && '-C target-feature=+crt-static' || '' }}
+        run: |
+          cargo build --release --locked -p media-cabinet --target ${{ matrix.target }}
+          exe=${{ runner.os == 'Windows' && '.exe' || '' }}
+          echo "BINARY=target/${{ matrix.target }}/release/media-cabinet$exe" >> "$GITHUB_ENV"
+
+      - name: Package
+        run: |
+          mkdir -p "dist/$PACKAGE"
+          cp "$BINARY" LICENSE README.md "dist/$PACKAGE/"
+          cd dist
+          if [ "$RUNNER_OS" = Windows ]; then
+            7z a -tzip -bso0 "$PACKAGE.zip" "$PACKAGE"
+          else
+            tar czf "$PACKAGE.tar.gz" "$PACKAGE"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: server-${{ matrix.name }}
+          path: dist/${{ env.PACKAGE }}.*
+          retention-days: 7
+
+  docker:
+    name: Docker image
+    needs: [version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: server-*-linux
+          path: archives
+          merge-multiple: true
+      - name: Lay out the binaries by platform
+        run: |
+          for arch in x86_64:amd64 aarch64:arm64; do
+            mkdir -p "context/linux/${arch#*:}"
+            tar xzf "archives/media-cabinet-$VERSION-${arch%:*}-linux.tar.gz" \
+              -C "context/linux/${arch#*:}" --strip-components=1 \
+              "media-cabinet-$VERSION-${arch%:*}-linux/media-cabinet"
+          done
+          ls -lR context
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ${{ env.IMAGE }}
+          tags: type=raw,value=${{ env.VERSION }}
+          labels: |
+            org.opencontainers.image.title=Media Cabinet
+            org.opencontainers.image.version=${{ env.VERSION }}
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - if: needs.version.outputs.release == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: context
+          file: Dockerfile.release
+          platforms: linux/amd64,linux/arm64
+          push: ${{ needs.version.outputs.release == 'true' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  release:
+    name: Draft release
+    needs: [version, build, docker]
+    if: needs.version.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.version.outputs.version }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: server-*
+          path: dist
+          merge-multiple: true
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum * > SHA256SUMS && cat SHA256SUMS
+      - name: Notes from the changelog
+        run: |
+          # This version's section of CHANGELOG.md, without its heading.
+          awk -v v="$VERSION" '
+            /^## / { if (found) exit; if (index($0, "## " v " ") == 1) { found = 1; next } }
+            found
+          ' CHANGELOG.md > changes.md
+          if ! grep -q '[^[:space:]]' changes.md; then
+            echo "::error::CHANGELOG.md has no section for $VERSION"
+            exit 1
+          fi
+          {
+            cat changes.md
+            echo
+            echo '## Install'
+            echo
+            echo "- **Docker:** \`docker pull $IMAGE:$VERSION\`"
+            echo '- **Linux, macOS, Windows:** the archive for your system below. It needs `ffmpeg` and `ffprobe` installed and on the PATH; the Docker image has them.'
+            echo '- **macOS:** the binary isn'"'"'t notarized yet, so run `xattr -d com.apple.quarantine media-cabinet` once before starting it.'
+            echo
+            echo 'Check a download against `SHA256SUMS` with `sha256sum -c SHA256SUMS --ignore-missing`.'
+          } > notes.md
+          cat notes.md
+      - name: Create the draft
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --repo "$GITHUB_REPOSITORY" --verify-tag --draft --latest=false \
+            --title "Server $VERSION" --notes-file notes.md

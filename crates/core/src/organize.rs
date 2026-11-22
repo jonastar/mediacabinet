@@ -58,7 +58,7 @@ pub enum TransferMode {
 }
 
 fn is_cross_device(e: &io::Error) -> bool {
-    e.raw_os_error() == Some(18) // EXDEV
+    e.kind() == io::ErrorKind::CrossesDevices
 }
 
 /// Copies and checks the size, removing a partial copy on failure.

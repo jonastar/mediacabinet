@@ -10,7 +10,7 @@ use std::path::PathBuf;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args().skip(1);
-    let root = std::fs::canonicalize(args.next().ok_or("usage: scan <folder> [database]")?)?;
+    let root = dunce::canonicalize(args.next().ok_or("usage: scan <folder> [database]")?)?;
     let tmp = tempfile::tempdir()?;
     let db_path = args
         .next()

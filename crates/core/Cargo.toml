@@ -11,6 +11,7 @@ base64 = "0.22.1"
 ring = "0.17.14"
 blake3 = "1.8.7"
 chrono = { version = "0.4.45", features = ["serde"] }
+dunce = "1.0.5"
 futures = "0.3.34"
 getrandom = "0.4.3"
 hex = "0.4.3"

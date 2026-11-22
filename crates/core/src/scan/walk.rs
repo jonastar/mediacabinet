@@ -1,7 +1,7 @@
 //! Walks a library root and lists the video files in it.
 
 use std::io;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::time::UNIX_EPOCH;
 
 use walkdir::{DirEntry, WalkDir};
@@ -165,6 +165,14 @@ pub fn is_video(path: &Path) -> bool {
     path.extension()
         .and_then(|e| e.to_str())
         .is_some_and(|e| VIDEO_EXTENSIONS.contains(&e.to_ascii_lowercase().as_str()))
+}
+
+/// `path` made absolute, with links resolved. On Windows this is a plain
+/// `C:\…` path rather than a verbatim `\\?\C:\…` one where that means the
+/// same: verbatim paths don't accept `/`, and relative paths are joined with it.
+pub async fn canonical(path: &Path) -> io::Result<PathBuf> {
+    let p = tokio::fs::canonicalize(path).await?;
+    Ok(dunce::simplified(&p).to_path_buf())
 }
 
 /// `path` under `root` with `/` between folders, which is how relative paths are

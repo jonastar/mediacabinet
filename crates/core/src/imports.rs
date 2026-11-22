@@ -160,7 +160,7 @@ pub async fn list(
             "Use a full path, starting with /.".into(),
         ));
     }
-    let dir = tokio::fs::canonicalize(raw).await.map_err(|_| {
+    let dir = scan::canonical(raw).await.map_err(|_| {
         ImportsError::Invalid(
             "That folder doesn't exist or can't be reached from the server.".into(),
         )
@@ -238,7 +238,30 @@ fn device(path: &Path) -> Option<u64> {
     std::fs::metadata(path).ok().map(|m| m.dev())
 }
 
-#[cfg(not(unix))]
+/// The drive or share, which is what a hard link can't cross. (A volume
+/// mounted in a folder is missed; linking then fails and falls back to a copy.)
+#[cfg(windows)]
+fn device(path: &Path) -> Option<u64> {
+    use std::hash::{DefaultHasher, Hash, Hasher};
+    use std::path::{Component, Prefix};
+    let Some(Component::Prefix(prefix)) = path.components().next() else {
+        return None;
+    };
+    let key = match prefix.kind() {
+        Prefix::Disk(d) | Prefix::VerbatimDisk(d) => d.to_ascii_uppercase().to_string(),
+        Prefix::UNC(server, share) | Prefix::VerbatimUNC(server, share) => format!(
+            "{}\\{}",
+            server.to_string_lossy().to_lowercase(),
+            share.to_string_lossy().to_lowercase()
+        ),
+        _ => return None,
+    };
+    let mut h = DefaultHasher::new();
+    key.hash(&mut h);
+    Some(h.finish())
+}
+
+#[cfg(not(any(unix, windows)))]
 fn device(_: &Path) -> Option<u64> {
     None
 }

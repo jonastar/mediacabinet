@@ -315,7 +315,7 @@ pub async fn set_inbox(
             if !raw.is_absolute() {
                 return invalid("Use a full path, starting with /.");
             }
-            let canonical = match tokio::fs::canonicalize(raw).await {
+            let canonical = match crate::scan::canonical(raw).await {
                 Ok(p) if is_dir(&p.to_string_lossy()).await => p,
                 _ => {
                     return invalid(
@@ -417,7 +417,7 @@ pub async fn check_folder(
     if !raw.is_absolute() {
         return invalid("Use a full path, starting with /.");
     }
-    let canonical = match tokio::fs::canonicalize(raw).await {
+    let canonical = match crate::scan::canonical(raw).await {
         Ok(p) if is_dir(&p.to_string_lossy()).await => p,
         _ => return invalid("That folder doesn't exist or can't be reached from the server."),
     };
